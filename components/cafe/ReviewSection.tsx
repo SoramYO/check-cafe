@@ -158,8 +158,9 @@ const styles = StyleSheet.create({
   },
   averageRating: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontWeight:'bold',
     marginBottom: 4,
+    paddingVertical: 12,
   },
   starsContainer: {
     flexDirection: 'row',

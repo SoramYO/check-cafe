@@ -30,9 +30,8 @@ const CheckinGallery: React.FC<CheckinGalleryProps> = ({
   onSeeAllPress 
 }) => {
   const { colors } = useTheme();
-  const numColumns = 3;
   const screenWidth = Dimensions.get('window').width;
-  const itemWidth = (screenWidth - 48) / numColumns;
+  const itemWidth = screenWidth * 0.4; // Adjust item width for horizontal scrolling
 
   const renderCheckinItem = ({ item }: { item: CheckinSpot }) => (
     <TouchableOpacity 
@@ -45,7 +44,8 @@ const CheckinGallery: React.FC<CheckinGalleryProps> = ({
         resizeMode="cover"
       />
       <View style={styles.usernameContainer}>
-        <ThemedText style={styles.username}>{item.description}</ThemedText> // Changed from username to description
+        <ThemedText style={styles.username}>{item.description}</ThemedText> 
+        {/* Changed from username to description */}
       </View>
     </TouchableOpacity>
   );
@@ -66,9 +66,10 @@ const CheckinGallery: React.FC<CheckinGalleryProps> = ({
           data={spots.slice(0, 6)} // Changed checkins to spots
           renderItem={renderCheckinItem}
           keyExtractor={(item) => item.id}
-          numColumns={numColumns}
-          columnWrapperStyle={styles.columnWrapper}
-          scrollEnabled={false}
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalListContainer}
+          scrollEnabled={true}
         />
       ) : (
         <ThemedText style={styles.noCheckinsText}>
@@ -99,13 +100,18 @@ const styles = StyleSheet.create({
     color: '#3498db',
   },
   columnWrapper: {
-    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 8,
+  },
+  horizontalListContainer: {
+    paddingRight: 16,
+    gap: 12,
   },
   checkinItem: {
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
+    marginRight: 12,
   },
   checkinImage: {
     width: '100%',
@@ -133,4 +139,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CheckinGallery; 
+export default CheckinGallery;

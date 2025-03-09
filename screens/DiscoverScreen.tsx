@@ -50,12 +50,11 @@ const FEATURED_SHOPS = [
   },
 ];
 
-export default function DiscoverScreen() {
+export default function DiscoverScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const scrollY = useRef(new Animated.Value(0)).current;
-  const navigation = useNavigation<any>();
 
-  const renderCategory = ({ item }) => (
+  const renderCategory = ({ item }: any) => (
     <TouchableOpacity style={styles.categoryItem}>
       <View style={styles.categoryIcon}>
         <MaterialCommunityIcons name={item.icon} size={24} color="#4A90E2" />
@@ -64,7 +63,7 @@ export default function DiscoverScreen() {
     </TouchableOpacity>
   );
 
-  const renderShopCard = ({ item }) => (
+  const renderShopCard = ({ item }: any) => (
     <TouchableOpacity
       style={styles.shopCard}
       onPress={() => navigation.navigate('CafeDetail', { cafeId: item.id })}
@@ -99,14 +98,14 @@ export default function DiscoverScreen() {
         </View>
 
         <View style={styles.features}>
-          {item.features.map((feature, index) => (
+          {item.features.map((feature: string, index: number) => (
             <View key={index} style={styles.featureBadge}>
               <Text style={styles.featureText}>{feature}</Text>
             </View>
           ))}
         </View>
 
-        <TouchableOpacity style={styles.bookButton}>
+        <TouchableOpacity style={styles.bookButton} onPress={() => navigation.navigate('Booking')}>
           <Text style={styles.bookButtonText}>Đặt chỗ</Text>
           <MaterialCommunityIcons name="arrow-right" size={20} color="white" />
         </TouchableOpacity>

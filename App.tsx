@@ -15,6 +15,7 @@ import ProfileScreen from "./screens/ProfileScreen";
 import BookingsScreen from "./screens/BookingsScreen";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CafeDetailScreen from './screens/CafeDetailScreen';
+import BookingScreen from './screens/BookingScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -37,7 +38,7 @@ function MainTabs() {
             iconName = focused ? 'account' : 'account-outline';
           }
 
-          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+          return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#FF6B6B',
         tabBarInactiveTintColor: 'gray',
@@ -72,6 +73,7 @@ function RootStack() {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="MainApp" component={MainTabs} />
       <Stack.Screen name="CafeDetail" component={CafeDetailScreen} />
+      <Stack.Screen name="Booking" component={BookingScreen} />
     </Stack.Navigator>
   );
 }
