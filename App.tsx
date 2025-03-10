@@ -82,10 +82,10 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider style={styles.container}>
-        <Toaster />
         <NavigationContainer>
           <RootStack />
         </NavigationContainer>
+         <Toaster />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

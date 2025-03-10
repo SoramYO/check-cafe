@@ -7,21 +7,21 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MapView, {
+import {
   Marker,
   PROVIDER_DEFAULT,
-  PROVIDER_GOOGLE,
 } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
+import WebMapComponent from "../components/WebMapComponent";
+import MapView from "react-native-maps";
 
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
-  const [location, setLocation] = useState<Location.LocationObject | null>(
-    null
-  );
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,10 +32,9 @@ export default function MapScreen() {
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
     }
-
     getCurrentLocation();
   }, []);
 
@@ -56,40 +55,52 @@ export default function MapScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
-        <LinearGradient colors={["#18213e", "#983aa8"]}>
-          <MapView
-            ref={mapRef}
-            showsMyLocationButton
-            showsUserLocation
-            provider={PROVIDER_DEFAULT}
-            style={styles.map}
-            region={{
-              latitude: location?.coords.latitude || 0,
-              longitude: location?.coords.longitude || 0,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-          >
-            <Marker
-              title="LoHa"
-              description=""
-              coordinate={{
-                latitude: (location?.coords?.latitude || 0) + 0.0105,
-                longitude: (location?.coords?.longitude || 0) + 0.0005,
+        <LinearGradient colors={["#18213e", "#983aa8"]} style={styles.gradient}>
+          {Platform.OS === "web" ? (
+            <WebMapComponent location={location} />
+          ) : (
+            <MapView
+              ref={mapRef}
+              showsMyLocationButton
+              showsUserLocation
+              provider={PROVIDER_DEFAULT}
+              style={styles.map}
+              region={{
+                latitude: location?.coords.latitude || 0,
+                longitude: location?.coords.longitude || 0,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
               }}
             >
-              <Image
-                source={require("../assets/images/icon.png")}
-                style={{ width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: "gray" }}
-              />
-            </Marker>
-          </MapView>
-          <TouchableOpacity
-            style={styles.locationButton}
-            onPress={goToCurrentLocation}
-          >
-            <Ionicons name="locate" size={24} color="#fff" />
-          </TouchableOpacity>
+              <Marker
+                title="LoHa"
+                description=""
+                coordinate={{
+                  latitude: (location?.coords?.latitude || 0) + 0.0105,
+                  longitude: (location?.coords?.longitude || 0) + 0.0005,
+                }}
+              >
+                <Image
+                  source={require("../assets/images/icon.png")}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: 2,
+                    borderColor: "gray",
+                  }}
+                />
+              </Marker>
+            </MapView>
+          )}
+          {Platform.OS !== "web" && (
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={goToCurrentLocation}
+            >
+              <Ionicons name="locate" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
         </LinearGradient>
       </View>
     </SafeAreaView>
@@ -98,6 +109,9 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  gradient: {
     flex: 1,
   },
   map: {
