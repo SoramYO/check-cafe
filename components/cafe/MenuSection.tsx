@@ -1,8 +1,7 @@
-import React from 'react';
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { ThemedText } from '../ThemedText';
-import { ThemedView } from '../ThemedView';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 
 interface MenuItem {
   id: string;
@@ -19,108 +18,168 @@ interface MenuSectionProps {
 }
 
 const MenuSection: React.FC<MenuSectionProps> = ({ menuItems, onItemPress }) => {
-  const { colors } = useTheme();
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const categories = ['all', ...new Set(menuItems.map(item => item.category))];
+  
+  const filteredItems = selectedCategory === 'all' 
+    ? menuItems 
+    : menuItems.filter(item => item.category === selectedCategory);
 
-  // Group menu items by category
-  const groupedMenu = menuItems.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, MenuItem[]>);
-
-  const categories = Object.keys(groupedMenu);
-
-  const renderMenuItem = ({ item }: { item: MenuItem }) => (
+  const renderCategoryTab = (category: string) => (
     <TouchableOpacity
-      style={styles.menuItem}
-      onPress={() => onItemPress && onItemPress(item)}
+      key={category}
+      style={[
+        styles.categoryTab,
+        selectedCategory === category && styles.categoryTabActive
+      ]}
+      onPress={() => setSelectedCategory(category)}
     >
-      <View style={styles.menuItemContent}>
-        <View style={styles.menuDetails}>
-          <ThemedText style={styles.menuItemName}>{item.name}</ThemedText>
-          <ThemedText style={styles.menuItemDescription}>{item.description}</ThemedText>
-          <ThemedText style={styles.menuItemPrice}>{item.price}</ThemedText>
-        </View>
-        {(item.imageUrl || item.image) && (
-          <Image
-            source={{ uri: item.imageUrl || item.image }}
-            style={styles.menuItemImage}
-            resizeMode="cover"
-          />
-        )}
-      </View>
+      <Text style={[
+        styles.categoryTabText,
+        selectedCategory === category && styles.categoryTabTextActive
+      ]}>
+        {category === 'all' ? 'Tất cả' : category}
+      </Text>
     </TouchableOpacity>
   );
 
-  return (
-    <ThemedView style={styles.container}>
-      <ThemedText style={styles.sectionTitle}>Menu</ThemedText>
-
-      {categories.map((category) => (
-        <View key={category} style={styles.categoryContainer}>
-          <ThemedText style={styles.categoryTitle}>{category}</ThemedText>
-          <FlatList
-            data={groupedMenu[category]}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMenuItem}
-            scrollEnabled={false}
-          />
+  const renderMenuItem = (item: MenuItem) => (
+    <MotiView
+      key={item.id}
+      from={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 500 }}
+    >
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => onItemPress && onItemPress(item)}
+      >
+        <View style={styles.menuItemContent}>
+          <View style={styles.menuDetails}>
+            <Text style={styles.menuItemName}>{item.name}</Text>
+            <Text style={styles.menuItemDescription}>{item.description}</Text>
+            <Text style={styles.menuItemPrice}>{item.price}</Text>
+          </View>
+          {item.imageUrl && (
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.menuItemImage}
+              resizeMode="cover"
+            />
+          )}
         </View>
-      ))}
-    </ThemedView>
+      </TouchableOpacity>
+    </MotiView>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>Thực đơn</Text>
+        <TouchableOpacity style={styles.filterButton}>
+          <MaterialCommunityIcons name="tune-vertical" size={24} color="#64748B" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesContainer}
+      >
+        {categories.map(renderCategoryTab)}
+      </ScrollView>
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.menuList}
+      >
+        {filteredItems.map(renderMenuItem)}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    overflow: 'hidden',
     marginVertical: 8,
+    maxHeight: 500, // Add max height to make the menu section scrollable
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  categoryContainer: {
-    marginBottom: 16,
-  },
-  categoryTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 8,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    color: '#1E293B',
+  },
+  filterButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  categoriesContainer: {
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  categoryTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 4,
+  },
+  categoryTabActive: {
+    backgroundColor: '#4A90E2',
+  },
+  categoryTabText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  categoryTabTextActive: {
+    color: 'white',
+  },
+  menuList: {
+    padding: 16,
+    gap: 16,
   },
   menuItem: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    position: 'relative',
   },
   menuItemContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   menuDetails: {
     flex: 1,
-    marginRight: 12,
+    gap: 4,
   },
   menuItemName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    color: '#1E293B',
   },
   menuItemDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#64748B',
     marginBottom: 4,
   },
   menuItemPrice: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
+    color: '#4A90E2',
   },
   menuItemImage: {
     width: 80,
@@ -129,4 +188,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MenuSection; 
+export default MenuSection;

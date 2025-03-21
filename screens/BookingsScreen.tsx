@@ -52,7 +52,10 @@ export default function BookingsScreen() {
     <MotiView
       from={{ opacity: 0, translateY: 20 }}
       animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 500 }}
+      transition={{
+        opacity: { type: 'timing', duration: 500 },
+        translateY: { type: 'timing', duration: 500 }
+      }}
       style={styles.bookingCard}
     >
       <Image source={{ uri: item.image }} style={styles.cafeImage} />

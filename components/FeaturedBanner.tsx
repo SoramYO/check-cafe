@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -9,26 +10,27 @@ const FEATURED_BANNERS = [
     id: '1',
     title: 'Khám phá Horizon Coffee',
     subtitle: 'View đồi núi đỉnh cao',
-    image: 'https://api.a0.dev/assets/image?text=horizon+coffee+shop+dalat+mountain+view&aspect=16:9',
+    image: 'https://images.unsplash.com/photo-1493857671505-72967e2e2760?q=80&w=2940&auto=format&fit=crop',
     type: 'discover',
   },
   {
     id: '2',
     title: 'Giảm 20% tại Túi Mơ To',
     subtitle: 'Chỉ trong hôm nay',
-    image: 'https://api.a0.dev/assets/image?text=tui+mo+to+coffee+shop+dalat+cozy&aspect=16:9',
+    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2940&auto=format&fit=crop',
     type: 'promotion',
   },
   {
     id: '3',
     title: 'Festival Hoa Đà Lạt 2025',
     subtitle: 'Sắp diễn ra',
-    image: 'https://api.a0.dev/assets/image?text=dalat+flower+festival+2025&aspect=16:9',
+    image: 'https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?q=80&w=2940&auto=format&fit=crop',
     type: 'event',
   },
 ];
 
 export default function FeaturedBanner() {
+  const navigation = useNavigation();
   const scrollX = useRef(new Animated.Value(0)).current;
   const slideRef = useRef(null);
 
@@ -44,6 +46,10 @@ export default function FeaturedBanner() {
 
     return () => clearInterval(timer);
   }, []);
+
+  const handleBannerPress = (banner) => {
+    navigation.navigate('FeaturedDetail', { type: banner.type });
+  };
 
   return (
     <View style={styles.container}>
@@ -64,7 +70,10 @@ export default function FeaturedBanner() {
               <View style={styles.content}>
                 <Text style={styles.title}>{banner.title}</Text>
                 <Text style={styles.subtitle}>{banner.subtitle}</Text>
-                <TouchableOpacity style={styles.button}>
+                <TouchableOpacity 
+                  style={styles.button}
+                  onPress={() => handleBannerPress(banner)}
+                >
                   <Text style={styles.buttonText}>
                     {banner.type === 'promotion' ? 'Đặt ngay' : 'Xem thêm'}
                   </Text>

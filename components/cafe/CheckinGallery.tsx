@@ -1,16 +1,9 @@
 import React from 'react';
-import { View, Image, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { ThemedText } from '../ThemedText';
-import { ThemedView } from '../ThemedView';
-
-interface Checkin {
-  id: string;
-  imageUrl: string;
-  username: string;
-  date: string;
-  caption?: string;
-}
+import { View, Image, StyleSheet, TouchableOpacity, Text, FlatList } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 
 interface CheckinSpot {
   id: string;
@@ -19,123 +12,195 @@ interface CheckinSpot {
 }
 
 interface CheckinGalleryProps {
-  spots: CheckinSpot[]; // Changed from checkins to spots
-  onCheckinPress?: (spot: CheckinSpot) => void;
+  spots: CheckinSpot[];
+  onSpotPress?: (spot: CheckinSpot) => void;
   onSeeAllPress?: () => void;
+  cafeId?: string;
 }
 
 const CheckinGallery: React.FC<CheckinGalleryProps> = ({ 
-  spots, // Changed prop name from checkins to spots
-  onCheckinPress, 
-  onSeeAllPress 
+  spots,
+  onSpotPress,
+  onSeeAllPress,
+  cafeId
 }) => {
-  const { colors } = useTheme();
-  const screenWidth = Dimensions.get('window').width;
-  const itemWidth = screenWidth * 0.4; // Adjust item width for horizontal scrolling
+  const navigation = useNavigation();
 
-  const renderCheckinItem = ({ item }: { item: CheckinSpot }) => (
-    <TouchableOpacity 
-      style={[styles.checkinItem, { width: itemWidth, height: itemWidth }]}
-      onPress={() => onCheckinPress && onCheckinPress(item)}
+  const handleCheckin = (spot: CheckinSpot) => {
+    navigation.navigate('CheckinCamera', {
+      spotId: spot.id,
+      spotName: spot.description,
+      cafeId: cafeId
+    });
+  };
+
+  const handleAddSpot = () => {
+    navigation.navigate('CheckinCamera', {
+      cafeId: cafeId,
+      isNewSpot: true
+    });
+  };
+
+  const renderSpotCard = ({ item: spot }: { item: CheckinSpot }) => (
+    <MotiView
+      from={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'timing', duration: 500 }}
+      style={styles.spotCard}
     >
-      <Image 
-        source={{ uri: item.image }} // Changed from imageUrl to image
-        style={styles.checkinImage}
-        resizeMode="cover"
-      />
-      <View style={styles.usernameContainer}>
-        <ThemedText style={styles.username}>{item.description}</ThemedText> 
-        {/* Changed from username to description */}
-      </View>
-    </TouchableOpacity>
+      <TouchableOpacity onPress={() => onSpotPress?.(spot)}>
+        <Image source={{ uri: spot.image }} style={styles.spotImage} />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.gradient}
+        >
+          <View style={styles.spotInfo}>
+            <Text style={styles.spotDescription}>{spot.description}</Text>
+            <TouchableOpacity 
+              style={styles.checkInButton}
+              onPress={() => handleCheckin(spot)}
+            >
+              <MaterialCommunityIcons name="camera" size={16} color="white" />
+              <Text style={styles.checkInText}>Check-in</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    </MotiView>
   );
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <ThemedText style={styles.sectionTitle}>Check-in Spots</ThemedText>
-        {spots.length > 6 && ( // Changed checkins to spots
-          <TouchableOpacity onPress={onSeeAllPress}>
-            <ThemedText style={styles.seeAllButton}>See All</ThemedText>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.titleContainer}>
+          <MaterialCommunityIcons name="camera" size={24} color="#4A90E2" />
+          <Text style={styles.title}>Điểm check-in đẹp</Text>
+        </View>
+        {spots.length > 3 && (
+          <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
+            <Text style={styles.seeAllText}>Xem tất cả</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#4A90E2" />
           </TouchableOpacity>
         )}
       </View>
 
-      {spots.length > 0 ? ( // Changed checkins to spots
-        <FlatList
-          data={spots.slice(0, 6)} // Changed checkins to spots
-          renderItem={renderCheckinItem}
-          keyExtractor={(item) => item.id}
-          horizontal={true}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalListContainer}
-          scrollEnabled={true}
-        />
-      ) : (
-        <ThemedText style={styles.noCheckinsText}>
-          No check-in spots available.
-        </ThemedText>
-      )}
-    </ThemedView>
+      <FlatList
+        data={spots}
+        renderItem={renderSpotCard}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.spotsContainer}
+      />
+
+      <TouchableOpacity 
+        style={styles.addSpotButton}
+        onPress={handleAddSpot}
+      >
+        <MaterialCommunityIcons name="plus" size={20} color="#4A90E2" />
+        <Text style={styles.addSpotText}>Thêm điểm check-in mới</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: 'white',
+    borderRadius: 16,
     padding: 16,
     marginVertical: 8,
+    gap: 16,
   },
-  headerContainer: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E293B',
   },
   seeAllButton: {
-    fontSize: 16,
-    color: '#3498db',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  columnWrapper: {
-    gap: 8,
-    marginBottom: 8,
+  seeAllText: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: '500',
   },
-  horizontalListContainer: {
-    paddingRight: 16,
-    gap: 12,
+  spotsContainer: {
+    gap: 16,
+    paddingVertical: 8,
   },
-  checkinItem: {
-    borderRadius: 8,
+  spotCard: {
+    width: 280,
+    height: 200,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
-    marginRight: 12,
+    marginRight: 16,
   },
-  checkinImage: {
+  spotImage: {
     width: '100%',
     height: '100%',
   },
-  usernameContainer: {
+  gradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 4,
+    height: '50%',
+    justifyContent: 'flex-end',
+    padding: 12,
   },
-  username: {
+  spotInfo: {
+    gap: 8,
+  },
+  spotDescription: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  checkInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  checkInText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '500',
   },
-  noCheckinsText: {
-    textAlign: 'center',
-    fontSize: 16,
-    marginVertical: 20,
-    fontStyle: 'italic',
+  addSpotButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  addSpotText: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: '500',
   },
 });
 

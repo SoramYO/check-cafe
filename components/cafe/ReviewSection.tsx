@@ -1,8 +1,7 @@
-import React from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { ThemedText } from '../ThemedText';
-import { ThemedView } from '../ThemedView';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Text, ScrollView } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 
 interface Review {
   id: string;
@@ -12,6 +11,8 @@ interface Review {
   date: string;
   comment: string;
   photos?: string[];
+  likes: number;
+  isLiked?: boolean;
 }
 
 interface ReviewSectionProps {
@@ -27,7 +28,6 @@ interface ReviewSectionProps {
   onWriteReviewPress?: () => void;
 }
 
-
 const ReviewSection: React.FC<ReviewSectionProps> = ({
   reviews = [],
   averageRating,
@@ -37,212 +37,367 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   onSeeAllPress,
   onWriteReviewPress,
 }) => {
-  const { colors } = useTheme();
+  const [likedReviews, setLikedReviews] = useState<Set<string>>(new Set());
   const rating = averageRating || (cafe?.rating || 0);
   const reviewCount = totalReviews || (cafe?.reviews || 0);
 
-  const renderStars = (rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-
-    for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(<ThemedText key={i} style={styles.star}>★</ThemedText>);
-      } else if (i === fullStars + 1 && halfStar) {
-        stars.push(<ThemedText key={i} style={styles.star}>✮</ThemedText>);
+  const handleLikePress = (reviewId: string) => {
+    setLikedReviews(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(reviewId)) {
+        newSet.delete(reviewId);
       } else {
-        stars.push(<ThemedText key={i} style={[styles.star, styles.emptyStar]}>☆</ThemedText>);
+        newSet.add(reviewId);
       }
-    }
-
-    return <View style={styles.starsContainer}>{stars}</View>;
+      return newSet;
+    });
   };
 
-  const renderReviewItem = ({ item }: { item: Review }) => (
-    <TouchableOpacity
-      style={styles.reviewItem}
-      onPress={() => onReviewPress && onReviewPress(item)}
-    >
-      <View style={styles.reviewHeader}>
-        <View style={styles.userInfo}>
-          {item.userAvatar ? (
-            <Image source={{ uri: item.userAvatar }} style={styles.userAvatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder} />
-          )}
-          <View>
-            <ThemedText style={styles.username}>{item.username}</ThemedText>
-            <ThemedText style={styles.date}>{item.date}</ThemedText>
+  const renderRatingStats = () => {
+    const stats = [5, 4, 3, 2, 1].map(stars => ({
+      stars,
+      percentage: Math.random() * 100, // Replace with actual data
+    }));
+
+    return (
+      <View style={styles.ratingStats}>
+        {stats.map(({ stars, percentage }) => (
+          <View key={stars} style={styles.ratingStat}>
+            <Text style={styles.ratingStarText}>{stars}</Text>
+            <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
+            <View style={styles.ratingBar}>
+              <View style={[styles.ratingFill, { width: `${percentage}%` }]} />
+            </View>
+            <Text style={styles.ratingPercentage}>{Math.round(percentage)}%</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderReviewCard = (review: Review) => {
+    const isLiked = likedReviews.has(review.id);
+
+    return (
+      <MotiView
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 500 }}
+        style={styles.reviewCard}
+        key={review.id}
+      >
+        <View style={styles.reviewHeader}>
+          <View style={styles.userInfo}>
+            {review.userAvatar ? (
+              <Image source={{ uri: review.userAvatar }} style={styles.userAvatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <MaterialCommunityIcons name="account" size={24} color="#94A3B8" />
+              </View>
+            )}
+            <View>
+              <Text style={styles.username}>{review.username}</Text>
+              <Text style={styles.date}>{review.date}</Text>
+            </View>
+          </View>
+          <View style={styles.ratingContainer}>
+            {[...Array(5)].map((_, index) => (
+              <MaterialCommunityIcons
+                key={index}
+                name={index < review.rating ? "star" : "star-outline"}
+                size={16}
+                color="#FFD700"
+              />
+            ))}
           </View>
         </View>
-        {renderStars(item.rating)}
-      </View>
-      
-      <ThemedText style={styles.comment}>{item.comment}</ThemedText>
-      
-      {item.photos && item.photos.length > 0 && (
-        <FlatList
-          horizontal
-          data={item.photos}
-          keyExtractor={(photo, index) => `${item.id}-photo-${index}`}
-          renderItem={({ item: photo }) => (
-            <Image source={{ uri: photo }} style={styles.reviewPhoto} />
-          )}
-          contentContainerStyle={styles.photosContainer}
-          showsHorizontalScrollIndicator={false}
-        />
-      )}
-    </TouchableOpacity>
-  );
+
+        <Text style={styles.comment}>{review.comment}</Text>
+
+        {review.photos && review.photos.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.photosContainer}
+          >
+            {review.photos.map((photo, index) => (
+              <TouchableOpacity key={index} style={styles.photoWrapper}>
+                <Image source={{ uri: photo }} style={styles.reviewPhoto} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        <View style={styles.reviewActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, isLiked && styles.actionButtonActive]}
+            onPress={() => handleLikePress(review.id)}
+          >
+            <MaterialCommunityIcons
+              name={isLiked ? "heart" : "heart-outline"}
+              size={20}
+              color={isLiked ? "#EF4444" : "#64748B"}
+            />
+            <Text style={[
+              styles.actionButtonText,
+              isLiked && styles.actionButtonTextActive
+            ]}>
+              {review.likes + (isLiked ? 1 : 0)}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton}>
+            <MaterialCommunityIcons name="comment-outline" size={20} color="#64748B" />
+            <Text style={styles.actionButtonText}>Phản hồi</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton}>
+            <MaterialCommunityIcons name="share-outline" size={20} color="#64748B" />
+            <Text style={styles.actionButtonText}>Chia sẻ</Text>
+          </TouchableOpacity>
+        </View>
+      </MotiView>
+    );
+  };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Đánh giá</Text>
+        {reviews.length > 0 && (
+          <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
+            <Text style={styles.seeAllText}>Xem tất cả</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#4A90E2" />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <View style={styles.ratingOverview}>
-        <ThemedText style={styles.averageRating}>{rating.toFixed(1)}</ThemedText>
-        {renderStars(rating)}
-        <ThemedText style={styles.totalReviews}>
-          {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}
-        </ThemedText>
+        <View style={styles.ratingMain}>
+          <Text style={styles.averageRating}>{rating.toFixed(1)}</Text>
+          <View style={styles.starsContainer}>
+            {[...Array(5)].map((_, index) => (
+              <MaterialCommunityIcons
+                key={index}
+                name={index < Math.floor(rating) ? "star" : "star-outline"}
+                size={24}
+                color="#FFD700"
+              />
+            ))}
+          </View>
+          <Text style={styles.totalReviews}>
+            {reviewCount} đánh giá
+          </Text>
+        </View>
+        {renderRatingStats()}
       </View>
 
       {reviews.length > 0 ? (
-        <FlatList
-          data={reviews.slice(0, 3)} // Show only first 3 reviews
-          renderItem={renderReviewItem}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
+        reviews.map(renderReviewCard)
       ) : (
-        <ThemedText style={styles.noReviewsText}>
-          No reviews yet. Be the first to review!
-        </ThemedText>
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons name="star-outline" size={48} color="#94A3B8" />
+          <Text style={styles.emptyStateText}>
+            Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá!
+          </Text>
+        </View>
       )}
 
       <TouchableOpacity
         style={styles.writeReviewButton}
         onPress={onWriteReviewPress}
       >
-        <ThemedText style={styles.writeReviewText}>Write a Review</ThemedText>
+        <MaterialCommunityIcons name="pencil" size={20} color="white" />
+        <Text style={styles.writeReviewText}>Viết đánh giá</Text>
       </TouchableOpacity>
-    </ThemedView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: 'white',
+    borderRadius: 16,
     padding: 16,
     marginVertical: 8,
+    gap: 16,
   },
-  headerContainer: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E293B',
   },
   seeAllButton: {
-    fontSize: 16,
-    color: '#3498db',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: '500',
   },
   ratingOverview: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    gap: 24,
+  },
+  ratingMain: {
     alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    gap: 8,
+    flex: 1,
   },
   averageRating: {
-    fontSize: 36,
-    fontWeight:'bold',
-    marginBottom: 4,
-    paddingVertical: 12,
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#1E293B',
   },
   starsContainer: {
     flexDirection: 'row',
-    marginBottom: 4,
-  },
-  star: {
-    fontSize: 18,
-    color: '#FFD700',
-    marginHorizontal: 2,
-  },
-  emptyStar: {
-    color: '#E0E0E0',
+    gap: 4,
   },
   totalReviews: {
     fontSize: 14,
-    color: '#666',
+    color: '#64748B',
   },
-  reviewItem: {
-    marginBottom: 16,
+  ratingStats: {
+    flex: 2,
+    gap: 8,
+  },
+  ratingStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ratingStarText: {
+    width: 16,
+    textAlign: 'center',
+    color: '#64748B',
+  },
+  ratingBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+  },
+  ratingFill: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 2,
+  },
+  ratingPercentage: {
+    width: 40,
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'right',
+  },
+  reviewCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
   userAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 8,
   },
   avatarPlaceholder: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#e0e0e0',
-    marginRight: 8,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   username: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#1E293B',
   },
   date: {
     fontSize: 12,
-    color: '#666',
+    color: '#64748B',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    gap: 2,
   },
   comment: {
     fontSize: 14,
+    color: '#1E293B',
     lineHeight: 20,
-    marginBottom: 8,
   },
   photosContainer: {
-    marginTop: 8,
+    flexDirection: 'row',
+    marginVertical: 8,
+  },
+  photoWrapper: {
+    marginRight: 8,
   },
   reviewPhoto: {
     width: 100,
     height: 100,
     borderRadius: 8,
-    marginRight: 8,
   },
-  separator: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 12,
+  reviewActions: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
   },
-  noReviewsText: {
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+  },
+  actionButtonActive: {
+    color: '#EF4444',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  actionButtonTextActive: {
+    color: '#EF4444',
+  },
+  emptyState: {
+    alignItems: 'center',
+    gap: 12,
+    padding: 24,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    fontSize: 16,
-    marginVertical: 20,
-    fontStyle: 'italic',
   },
   writeReviewButton: {
-    backgroundColor: '#3498db',
-    borderRadius: 8,
-    padding: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#4A90E2',
+    padding: 16,
+    borderRadius: 12,
   },
   writeReviewText: {
     color: 'white',
@@ -251,4 +406,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ReviewSection; 
+export default ReviewSection;
