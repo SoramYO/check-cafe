@@ -14,48 +14,103 @@ import * as Location from "expo-location";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
+// Định nghĩa mảng CAFES với các quán cà phê cũ và mới
 const CAFES = [
   {
     id: "1",
     name: "The Dreamer Coffee",
-    address: "123 Đường Trần Hưng Đạo, Phường 10, Đà Lạt",
+    address: "357 Điện Biên Phủ, Phường 2, Bình Thạnh, Hồ Chí Minh 008428, Việt Nam",
     rating: 4.8,
     reviews: 256,
     image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
     coordinate: {
-      latitude: 11.9416,
-      longitude: 108.4383,
+      latitude: 10.801588,
+      longitude: 106.7105107,
     },
     status: "open",
   },
   {
     id: "2",
-    name: "Mountain View Café",
-    address: "45 Đường Lê Đại Hành, Đà Lạt",
+    name: "Still Cafe",
+    address: "59 Nguyễn Trãi, Phường 9, Đà Lạt, Lâm Đồng 66111, Việt Nam",
     rating: 4.6,
     reviews: 189,
-    image: "https://images.unsplash.com/photo-1493857671505-72967e2e2760?q=80&w=2940&auto=format&fit=crop",
+    image: "https://lh5.googleusercontent.com/p/AF1QipPogroazMq3rLIQJk3eXCEJgKuwu-wY1VRzgU0G=w408-h496-k-no",
     coordinate: {
-      latitude: 11.9426,
-      longitude: 108.4393,
+      latitude: 11.9443448,
+      longitude: 108.4481679,
     },
     status: "busy",
   },
   {
     id: "3",
-    name: "Horizon Coffee",
-    address: "78 Đường Nguyễn Chí Thanh, Đà Lạt",
+    name: "Horizon Coffee - BBQ",
+    address: "31/6 Đường 3/4, Phường 3, Đà Lạt, Lâm Đồng, Việt Nam",
     rating: 4.7,
     reviews: 210,
-    image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2940&auto=format&fit=crop",
+    image: "https://lh5.googleusercontent.com/p/AF1QipPEiKbSYh1xfix-xV0CjUgsgNc2bY-GIHtbtcBq=w408-h306-k-no",
     coordinate: {
       latitude: 11.9406,
       longitude: 108.4373,
     },
     status: "open",
   },
+  {
+    id: "4",
+    name: "Chuyện Coffee",
+    address: "55 Đường Hàn Thuyên, Phường 5, Đà Lạt, Lâm Đồng, Việt Nam",
+    rating: 4.8,
+    reviews: 0,
+    image: "https://images.didau.date/chuyen-dalat/0-Cafe-image-0.webp",
+    coordinate: {
+      latitude: 11.9475473,
+      longitude: 108.4207463,
+    },
+    status: "open",
+  },
+  {
+    id: "5",
+    name: "A.M Phin & Pour",
+    address: "58 Thân Văn Nhiếp, An Phú, Thủ Đức, Hồ Chí Minh 71000, Việt Nam",
+    rating: 4.8,
+    image: "https://images.didau.date/AM-Phin-Pour/0-Cafe-image-0.webp",
+    coordinate: {
+      latitude: 10.7849944,
+      longitude: 106.7498372,
+    },
+    status: "open",
+  },
+  {
+    id: "6",
+    name: "Y Coffee Roastery",
+    address: "428 Võ Văn Tần, Phường 5, Quận 3, Hồ Chí Minh, Việt Nam",
+    rating: 4.6,
+    image: "https://images.didau.date/Y-Coffee-Roastery/1-Cafe-image-1.webp",
+    coordinate: {
+      latitude: 10.7696522,
+      longitude: 106.6810065,
+    },
+    status: "open",
+  },
+  {
+    id: "7",
+    name: "Xóm Space",
+    address: "20 Trần Cao Vân, Đa Kao, Quận 1, Hồ Chí Minh, Việt Nam",
+    rating: 4.5,
+    image: "https://images.didau.date/Xm-Space/0-Cafe-image-0.webp",
+    coordinate: {
+      latitude: 10.7843889,
+      longitude: 106.6947912,
+    },
+    status: "open",
+  },
 ];
 
+
+
+
+
+// Component cho phiên bản web
 const WebMap = () => {
   return (
     <View style={styles.webMapContainer}>
@@ -68,11 +123,12 @@ const WebMap = () => {
   );
 };
 
+// Component chính MapScreen
 export default function MapScreen() {
   const navigation = useNavigation();
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [selectedCafe, setSelectedCafe] = useState<any>(null);
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [selectedCafe, setSelectedCafe] = useState(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -217,6 +273,7 @@ export default function MapScreen() {
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
