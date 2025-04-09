@@ -1,44 +1,26 @@
 "use strict";
-
-//!dmbg
 const mongoose = require("mongoose");
 const { model, Schema, Types } = mongoose;
 
 const DOCUMENT_NAME = "Shop";
 const COLLECTION_NAME = "Shops";
-// Declare the Schema of the Mongo model
-var shopSchema = new mongoose.Schema(
+
+const shopSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      trim: true,
-      maxLength: 150,
+    name: { type: String, trim: true },
+    address: { type: String },
+    location: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number] }
     },
-    email: {
-      type: String,
-      trim: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    status: {
-      type: String,
-      enum: ["active", "inactive"],
-      default: "active",
-    },
-    verify: {
-      type: Schema.Types.Boolean,
-      default: false,
-    },
-    roles: {
-      type: Array,
-      default: [],
-    },
+    thumbnail: { type: String },
+    open_hours: { type: String },
+    owner_id: { type: Types.ObjectId, ref: "User" },
+    vip_status: { type: Boolean, default: false },
+    rating_avg: { type: Number, default: 0 }
   },
   { timestamps: true, collection: COLLECTION_NAME }
 );
 
-//Export the model
+shopSchema.index({ location: "2dsphere" });
 module.exports = mongoose.model(DOCUMENT_NAME, shopSchema);
