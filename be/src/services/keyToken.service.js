@@ -15,6 +15,14 @@ class KeyTokenService {
       return error;
     }
   };
+
+  static findByUserId = async (userId) => {
+    return await keytokenModel.findOne({ user: userId });
+  };
+
+  static removeKeyById = async (userId) => {
+    return await keytokenModel.findOneAndDelete({ user: userId });
+  };
 }
 
 module.exports = KeyTokenService;
