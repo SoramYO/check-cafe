@@ -1,0 +1,318 @@
+openapi: 3.0.3
+info:
+  title: ChecKafe API
+  description: API for ChecKafe - A coffee shop management system.
+  version: 1.0.0
+  contact:
+    name: ChecKafe Support
+    email: support@checkafe.com
+
+servers:
+  - url: http://localhost:3000/v1/api
+    description: Local development server
+  - url: https://api.checkafe.com/v1/api
+    description: Production server (placeholder)
+
+tags:
+  - name: Access
+    description: User authentication and session management
+  - name: Users
+    description: User profile and account management (to be implemented)
+  - name: Orders
+    description: Order creation and management (to be implemented)
+  - name: Menu
+    description: Menu items and categories (to be implemented)
+  - name: Payments
+    description: Payment processing (to be implemented)
+
+paths:
+  /access/sign-up:
+    post:
+      tags:
+        - Access
+      summary: Register a new user
+      description: Creates a new customer account for ChecKafe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+      responses:
+        "200":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignUpResponse"
+        "400":
+          description: Bad request (e.g., email already exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /access/sign-in:
+    post:
+      tags:
+        - Access
+      summary: Log in a user
+      description: Authenticates a user and returns tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: User logged in successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInResponse"
+        "400":
+          description: Bad request (e.g., email not exists, password incorrect)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /access/sign-out:
+    post:
+      tags:
+        - Access
+      summary: Log out a user
+      description: Logs out a user based on their user ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignOutRequest"
+      responses:
+        "200":
+          description: User logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignOutResponse"
+        "400":
+          description: Bad request (e.g., userId missing or user not found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    SignUpRequest:
+      type: object
+      required:
+        - full_name
+        - email
+        - password
+      properties:
+        full_name:
+          type: string
+          example: "John Doe"
+          description: Full name of the user
+        email:
+          type: string
+          format: email
+          example: "john.doe@checkafe.com"
+          description: Email address of the user
+        password:
+          type: string
+          format: password
+          example: "password123"
+          description: Password for the account
+
+    SignUpResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tokens:
+          $ref: "#/components/schemas/Tokens"
+
+    SignInRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john.doe@checkafe.com"
+          description: Email address of the user
+        password:
+          type: string
+          format: password
+          example: "password123"
+          description: Password for the account
+        refreshToken:
+          type: string
+          nullable: true
+          example: null
+          description: Optional refresh token for session renewal
+
+    SignInResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tokens:
+          $ref: "#/components/schemas/Tokens"
+
+    SignOutRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+          description: Unique identifier of the user
+
+    SignOutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Logout successful"
+          description: Confirmation message
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+          description: Unique identifier of the user
+        full_name:
+          type: string
+          example: "John Doe"
+          description: Full name of the user
+        email:
+          type: string
+          format: email
+          example: "john.doe@checkafe.com"
+          description: Email address of the user
+        role:
+          type: string
+          enum:
+            - CUSTOMER
+            - STAFF
+            - ADMIN
+          example: "CUSTOMER"
+          description: Role of the user in the system
+        phone:
+          type: string
+          example: "+84987654321"
+          description: Phone number of the user
+        avatar:
+          type: string
+          example: "https://example.com/avatar.jpg"
+          description: URL to user's avatar image
+        points:
+          type: number
+          example: 100
+          description: Loyalty points of the user
+        vip_status:
+          type: boolean
+          example: false
+          description: VIP status of the user
+        is_active:
+          type: boolean
+          example: true
+          description: Whether the account is active
+
+    Tokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: JWT access token for authentication
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: JWT refresh token for renewing access
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Email already exists"
+          description: Error message describing the issue
+
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        userId:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MenuItem"
+        total:
+          type: number
+          example: 150000
+        status:
+          type: string
+          enum:
+            - PENDING
+            - PROCESSING
+            - COMPLETED
+            - CANCELLED
+          example: "PENDING"
+
+    MenuItem:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439013"
+        name:
+          type: string
+          example: "Cappuccino"
+        price:
+          type: number
+          example: 50000
+        category:
+          type: string
+          example: "Coffee"
+
+    Payment:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439014"
+        orderId:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        amount:
+          type: number
+          example: 150000
+        method:
+          type: string
+          enum:
+            - CASH
+            - CARD
+            - MOBILE
+          example: "CASH"
+        status:
+          type: string
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+          example: "COMPLETED"
