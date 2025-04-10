@@ -8,8 +8,8 @@ info:
     email: support@checkafe.com
 
 servers:
-  - url: http://localhost:3000/v1/api
-    description: Local development server
+  - url: http://localhost:3000/api/v1
+    description: Local server
   - url: https://api.checkafe.com/v1/api
     description: Production server (placeholder)
 
@@ -93,6 +93,106 @@ paths:
                 $ref: "#/components/schemas/SignOutResponse"
         "400":
           description: Bad request (e.g., userId missing or user not found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/users:
+    get:
+      tags:
+        - Users
+      summary: Get list of users
+      description: Retrieves a paginated list of users, optionally filtered by role or active status. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of users per page
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum:
+              - ADMIN
+              - SHOP_OWNER
+              - MANAGER
+              - STAFF
+              - CUSTOMER
+          description: Filter by user role
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: Filter by active status
+      responses:
+        "200":
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUsersResponse"
+        "400":
+          description: Bad request (e.g., invalid role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (not an admin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Users
+      summary: Manage user account (role and status)
+      description: Allows an admin to update a user's role and/or active status.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManageUserRequest"
+      responses:
+        "200":
+          description: User account updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManageUserResponse"
+        "400":
+          description: Bad request (e.g., user not found, invalid role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (not an admin)
           content:
             application/json:
               schema:
@@ -242,71 +342,46 @@ components:
           type: string
           example: "Email already exists"
           description: Error message describing the issue
-
-    Order:
+    GetUsersResponse:
       type: object
       properties:
-        _id:
-          type: string
-          example: "507f1f77bcf86cd799439012"
-        userId:
-          type: string
-          example: "507f1f77bcf86cd799439011"
-        items:
+        users:
           type: array
           items:
-            $ref: "#/components/schemas/MenuItem"
-        total:
-          type: number
-          example: 150000
-        status:
-          type: string
-          enum:
-            - PENDING
-            - PROCESSING
-            - COMPLETED
-            - CANCELLED
-          example: "PENDING"
-
-    MenuItem:
-      type: object
-      properties:
-        _id:
-          type: string
-          example: "507f1f77bcf86cd799439013"
-        name:
-          type: string
-          example: "Cappuccino"
-        price:
-          type: number
-          example: 50000
-        category:
-          type: string
-          example: "Coffee"
-
-    Payment:
-      type: object
-      properties:
-        _id:
-          type: string
-          example: "507f1f77bcf86cd799439014"
-        orderId:
-          type: string
-          example: "507f1f77bcf86cd799439012"
-        amount:
-          type: number
-          example: 150000
-        method:
-          type: string
-          enum:
-            - CASH
-            - CARD
-            - MOBILE
-          example: "CASH"
-        status:
-          type: string
-          enum:
-            - PENDING
-            - COMPLETED
-            - FAILED
-          example: "COMPLETED"
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "507f1f77bcf86cd799439011"
+              full_name:
+                type: string
+                example: "John Doe"
+              email:
+                type: string
+                example: "john.doe@example.com"
+              role:
+                type: string
+                example: "CUSTOMER"
+              is_active:
+                type: boolean
+                example: true
+        metadata:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 25
+            totalPages:
+              type: integer
+              example: 3
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

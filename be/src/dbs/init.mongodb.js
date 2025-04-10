@@ -8,7 +8,6 @@ const {
 
 const connectString = process.env.DB_URL || `mongodb://${host}:${port}/${name}`;
 
-console.log("🚀 ~ connectString:", connectString);
 class DataBase {
   constructor() {
     this.connect();

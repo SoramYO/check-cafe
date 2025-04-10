@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 // init DB
 require("./dbs/init.mongodb");
 // init routes
-app.use("/v1/api", router);
+app.use("/api/v1", router);
 
 // swagger
 app.use("/api-docs", swaggerUi.serve);

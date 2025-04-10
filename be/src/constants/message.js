@@ -15,6 +15,29 @@ const ACCESS_MESSAGE = {
   VERIFY_EMAIL_FAILED: "Verify email failed",
 };
 
+const USER_MESSAGE = {
+  USER_NOT_FOUND: "User not found",
+  USER_ALREADY_EXISTS: "User already exists",
+  USER_UPDATE_SUCCESS: "User updated successfully",
+  USER_UPDATE_FAILED: "User update failed",
+  USER_DELETE_SUCCESS: "User deleted successfully",
+  USER_DELETE_FAILED: "User delete failed",
+};
+
+const ADMIN_MESSAGE = {
+  ADMIN_NOT_FOUND: "Admin not found",
+  ADMIN_ALREADY_EXISTS: "Admin already exists",
+  ADMIN_UPDATE_SUCCESS: "Admin updated successfully",
+  ADMIN_UPDATE_FAILED: "Admin update failed",
+  ADMIN_DELETE_SUCCESS: "Admin deleted successfully",
+  ADMIN_DELETE_FAILED: "Admin delete failed",
+  GET_USER_LIST_SUCCESS: "Get user list successfully",
+  UPDATE_USER_STATUS_SUCCESS: "Update user status successfully",
+  MANAGE_USER_ACCOUNT_SUCCESS: "Manage user account successfully",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
+  USER_MESSAGE,
+  ADMIN_MESSAGE,
 };
