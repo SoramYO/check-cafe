@@ -1,9 +1,9 @@
-'use strict'
+"use strict";
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
-router.use('/v1/api', require('./access'));
-router.use('/v1/api/admin', require('./admin'));
+router.use("/access", require("./access"));
+router.use("/admin", require("./admin"));
 
 module.exports = router;

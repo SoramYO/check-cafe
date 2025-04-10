@@ -1,15 +1,12 @@
-'use strict'
+"use strict";
 
-const express = require('express');
-const accessController = require('../../controllers/access.controller');
+const express = require("express");
+const accessController = require("../../controllers/access.controller");
 const router = express.Router();
 
-// Shop routes
-router.post('/shop/sign-up', accessController.signUp);
-router.post('/shop/login', accessController.login);
-
-// User routes
-router.post('/user/sign-up', accessController.userSignUp);
-router.post('/user/login', accessController.userLogin);
+// access routes
+router.post("/sign-up", accessController.signUp);
+router.post("/sign-in", accessController.signIn);
+router.post("/sign-out", accessController.signOut);
 
 module.exports = router;
