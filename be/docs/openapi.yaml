@@ -18,12 +18,6 @@ tags:
     description: User authentication and session management
   - name: Users
     description: User profile and account management (to be implemented)
-  - name: Orders
-    description: Order creation and management (to be implemented)
-  - name: Menu
-    description: Menu items and categories (to be implemented)
-  - name: Payments
-    description: Payment processing (to be implemented)
 
 paths:
   /access/sign-up:
