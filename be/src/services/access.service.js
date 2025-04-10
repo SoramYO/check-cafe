@@ -1,296 +1,112 @@
 "use strict";
 
-const shopModel = require("../models/shop.model");
 const userModel = require("../models/user.model");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
-const KeyTokenService = require("./keyToken.service");
-const { createTokenPair } = require("../auth/authUtils");
 const { getInfoData } = require("../utils");
-
-const RoleShop = {
-  SHOP: "SHOP",
-  WRITER: "WRITER",
-  EDITOR: "EDITOR",
-  ADMIN: "ADMIN",
-};
-
-const RoleUser = {
-  USER: "USER",
-  ADMIN: "ADMIN",
-};
+const { USER_ROLE } = require("../constants/enum");
+const { BadRequestError } = require("../configs/error.response");
+const { createTokenPair } = require("../auth/jwt");
 
 class AccessService {
-  signUp = async ({ name, email, password }) => {
-    try {
-      // Step 1 : Check email exists
-      const hodelShop = await shopModel.findOne({ email });
-      console.log("🚀 ~ AccessService ~ signUp= ~ hodelShop:", hodelShop);
-
-      if (hodelShop) {
-        return {
-          code: "xxx",
-          message: "Shop already registered",
-          status: "error",
-        };
-      }
-
-      // Step 2 : Create new shop
-      const passwordHash = await bcrypt.hash(password, 10);
-      const newShop = await shopModel.create({
-        name,
-        email,
-        password: passwordHash,
-        roles: [RoleShop.SHOP],
-      });
-
-      if (newShop) {
-        // created privateKey, publicKey
-        const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-          modulusLength: 4096,
-          publicKeyEncoding: {
-            type: "pkcs1",
-            format: "pem",
-          },
-          privateKeyEncoding: {
-            type: "pkcs1",
-            format: "pem",
-          },
-        });
-
-        // created keyToken
-        const publicKeyString = await KeyTokenService.createKeyToken({
-          userId: newShop._id,
-          publicKey,
-        });
-
-        if (!publicKeyString) {
-          return {
-            code: "xxx",
-            message: "Sign-up failed, publicKey error",
-            status: "error",
-          };
-        }
-
-        // Create token pair
-        const tokens = await createTokenPair(
-          { userId: newShop._id, email },
-          publicKeyString,
-          privateKey
-        );
-
-        return {
-          code: "201",
-          metadata: {
-            shop: getInfoData({
-              fields: ["_id", "name", "email"],
-              object: newShop,
-            }),
-            tokens,
-          },
-          message: "Sign-up success",
-        };
-      }
-
-      return {
-        code: "200",
-        metadata: null,
-      };
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: error.message,
-        status: "error",
-      };
+  signUp = async ({ full_name, email, password }) => {
+    // Step 1: Check if email exists
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
+      throw new BadRequestError("Email already exists");
     }
-  };
 
-  login = async ({ email, password }) => {
-    try {
-      const shop = await shopModel.findOne({ email });
-      if (!shop) {
-        return {
-          code: "xxx",
-          message: "Shop not registered",
-          status: "error",
-        };
-      }
+    // Step 2: Hash password and create new user
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newUser = await userModel.create({
+      full_name,
+      email,
+      password: passwordHash,
+      role: USER_ROLE.CUSTOMER,
+    });
 
-      const match = await bcrypt.compare(password, shop.password);
-      if (!match) {
-        return {
-          code: "xxx",
-          message: "Authentication failed",
-          status: "error",
-        };
-      }
-
-      const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-        modulusLength: 4096,
-        publicKeyEncoding: {
-          type: "pkcs1",
-          format: "pem",
-        },
-        privateKeyEncoding: {
-          type: "pkcs1",
-          format: "pem",
-        },
-      });
-
-      const publicKeyString = await KeyTokenService.createKeyToken({
-        userId: shop._id,
-        publicKey,
-      });
+    if (newUser) {
+      // Step 3: Create token pair
+      const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
+      const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
 
       const tokens = await createTokenPair(
-        { userId: shop._id, email },
-        publicKeyString,
-        privateKey
+        { userId: newUser._id, email, role: newUser.role },
+        accessTokenKey,
+        refreshTokenKey
       );
 
+      // Step 5: Trả về kết quả
       return {
-        code: "200",
-        metadata: {
-          shop: getInfoData({
-            fields: ["_id", "name", "email"],
-            object: shop,
-          }),
-          tokens,
-        },
-        message: "Login success",
-      };
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: error.message,
-        status: "error",
+        user: getInfoData({
+          fields: ["_id", "full_name", "email", "role"],
+          object: newUser,
+        }),
+        tokens,
       };
     }
+
+    return {
+      data: null,
+    };
   };
 
-  userSignUp = async ({ full_name, email, password, phone }) => {
-    try {
-      const existingUser = await userModel.findOne({ email });
-      if (existingUser) {
-        return {
-          code: "xxx",
-          message: "Email already registered",
-          status: "error",
-        };
-      }
-
-      const passwordHash = await bcrypt.hash(password, 10);
-      const newUser = await userModel.create({
-        full_name,
-        email,
-        password: passwordHash,
-        phone,
-        role: RoleUser.USER,
-      });
-
-      const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-        modulusLength: 4096,
-        publicKeyEncoding: {
-          type: "pkcs1",
-          format: "pem",
-        },
-        privateKeyEncoding: {
-          type: "pkcs1",
-          format: "pem",
-        },
-      });
-
-      const publicKeyString = await KeyTokenService.createKeyToken({
-        userId: newUser._id,
-        publicKey,
-      });
-
-      const tokens = await createTokenPair(
-        { userId: newUser._id, email },
-        publicKeyString,
-        privateKey
-      );
-
-      return {
-        code: "201",
-        metadata: {
-          user: getInfoData({
-            fields: ["_id", "full_name", "email", "phone"],
-            object: newUser,
-          }),
-          tokens,
-        },
-        message: "User registration successful",
-      };
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: error.message,
-        status: "error",
-      };
+  signIn = async ({ email, password, refreshToken = null }) => {
+    // Step 1: Check if email exists
+    const foundUser = await userModel.findOne({ email });
+    if (!foundUser) {
+      throw new BadRequestError("Email not exists");
     }
+
+    // Step 2: Check if account is active
+    if (!foundUser.is_active) {
+      throw new BadRequestError("Account is inactive");
+    }
+
+    // Step 3: Check if password is correct
+    const isMatch = await bcrypt.compare(password, foundUser.password);
+    if (!isMatch) {
+      throw new BadRequestError("Password is incorrect");
+    }
+
+    const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
+    const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
+
+    // Kiểm tra xem các khóa có tồn tại không
+    if (!accessTokenKey || !refreshTokenKey) {
+      throw new Error("Secret keys are not defined in environment variables");
+    }
+
+    // Step 5: Create token pair
+    const tokens = await createTokenPair(
+      { userId: foundUser._id, email, role: foundUser.role },
+      accessTokenKey,
+      refreshTokenKey
+    );
+
+    return {
+      user: getInfoData({
+        fields: ["_id", "full_name", "email", "role"],
+        object: foundUser,
+      }),
+      tokens,
+    };
   };
 
-  userLogin = async ({ email, password }) => {
+  signOut = async ({ userId }) => {
     try {
-      const user = await userModel.findOne({ email });
-      if (!user) {
-        return {
-          code: "xxx",
-          message: "User not found",
-          status: "error",
-        };
+      if (!userId) {
+        throw new BadRequestError("userId is required");
       }
 
-      const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-        return {
-          code: "xxx",
-          message: "Invalid password",
-          status: "error",
-        };
+      const foundUser = await userModel.findById(userId);
+      if (!foundUser) {
+        throw new BadRequestError("User not found");
       }
-
-      const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-        modulusLength: 4096,
-        publicKeyEncoding: {
-          type: "pkcs1",
-          format: "pem",
-        },
-        privateKeyEncoding: {
-          type: "pkcs1",
-          format: "pem",
-        },
-      });
-
-      const publicKeyString = await KeyTokenService.createKeyToken({
-        userId: user._id,
-        publicKey,
-      });
-
-      const tokens = await createTokenPair(
-        { userId: user._id, email },
-        publicKeyString,
-        privateKey
-      );
-
       return {
-        code: "200",
-        metadata: {
-          user: getInfoData({
-            fields: ["_id", "full_name", "email", "phone"],
-            object: user,
-          }),
-          tokens,
-        },
-        message: "Login successful",
+        message: "Logout successful",
       };
     } catch (error) {
-      return {
-        code: "xxx",
-        message: error.message,
-        status: "error",
-      };
+      throw new BadRequestError(error.message || "Logout failed");
     }
   };
 }
