@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# macOS folder attributes
+Icon?
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
