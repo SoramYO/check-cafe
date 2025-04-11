@@ -22,6 +22,10 @@ const USER_MESSAGE = {
   USER_UPDATE_FAILED: "User update failed",
   USER_DELETE_SUCCESS: "User deleted successfully",
   USER_DELETE_FAILED: "User delete failed",
+  USER_GET_PROFILE_SUCCESS: "Get user profile successfully",
+  USER_UPDATE_PROFILE_SUCCESS: "Update user profile successfully",
+  USER_CHANGE_PASSWORD_SUCCESS: "Change password successfully",
+  USER_CHANGE_AVATAR_SUCCESS: "Update avatar successfully",
 };
 
 const ADMIN_MESSAGE = {

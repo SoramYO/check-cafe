@@ -12,7 +12,6 @@ router.use(checkAuth);
 router.use(checkRole(USER_ROLE.ADMIN));
 
 router.get("/users", adminController.getUsers);
-
 router.patch("/users", adminController.manageUserAccount);
 
 // Ads Management
