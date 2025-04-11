@@ -8,13 +8,17 @@ const {
   ForbiddenError,
 } = require("../configs/error.response");
 const { HEADER } = require("../constants/enum");
+
 // Hàm kiểm tra xác thực
 const checkAuth = async (req, res, next) => {
   try {
     // Step 1: Lấy accessToken từ header
     const authHeader = req.headers[HEADER.AUTHORIZATION];
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new BadRequestError("No access token provided or invalid format");
+      return res.status(BadRequestError.prototype.status).json({
+        message: "No access token provided or invalid format",
+        status: BadRequestError.prototype.status,
+      });
     }
     const accessToken = authHeader.split(" ")[1];
 
@@ -24,7 +28,10 @@ const checkAuth = async (req, res, next) => {
     // Step 3: Xác minh accessToken
     const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
     if (!accessTokenKey) {
-      throw new BadRequestError("Access token secret key not defined");
+      return res.status(BadRequestError.prototype.status).json({
+        message: "Access token secret key not defined",
+        status: BadRequestError.prototype.status,
+      });
     }
 
     try {
@@ -40,23 +47,30 @@ const checkAuth = async (req, res, next) => {
       // Nếu accessToken hết hạn và có refreshToken trong header
       if (error.name === "TokenExpiredError" && refreshToken) {
         const newTokens = await refreshTokenHandler(refreshToken);
-        req.user = newTokens.user; // Gắn thông tin user vào req
-        res.set("x-access-token", newTokens.accessToken); // Gửi token mới trong header
+        req.user = newTokens.user;
+        res.set("x-access-token", newTokens.accessToken);
         res.set("x-refresh-token", newTokens.refreshToken);
         next();
       } else {
-        throw new BadRequestError("Invalid or expired access token");
+        return res.status(AuthFailureError.prototype.status).json({
+          message: "Invalid or expired access token",
+          status: AuthFailureError.prototype.status,
+        });
       }
     }
   } catch (error) {
-    throw new AuthFailureError("Authentication failed");
+    // Bắt lỗi tổng quát và trả về response
+    const status = error.status || 401; // Mặc định là 401 nếu không có status
+    return res.status(status).json({
+      message: "User không có quyền" || error.message,
+      status,
+    });
   }
 };
 
 // Hàm xử lý làm mới token
 const refreshTokenHandler = async (refreshToken) => {
   try {
-    // Step 1: Xác minh refreshToken
     const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
     if (!refreshTokenKey) {
       throw new BadRequestError("Refresh token secret key not defined");
@@ -64,7 +78,6 @@ const refreshTokenHandler = async (refreshToken) => {
 
     const decodedRefresh = JWT.verify(refreshToken, refreshTokenKey);
 
-    // Step 2: Tạo token pair mới
     const newTokens = await createTokenPair(
       {
         userId: decodedRefresh.userId,
@@ -75,7 +88,6 @@ const refreshTokenHandler = async (refreshToken) => {
       refreshTokenKey
     );
 
-    // Step 3: Trả về thông tin user và token mới
     return {
       user: {
         userId: decodedRefresh.userId,
@@ -90,32 +102,36 @@ const refreshTokenHandler = async (refreshToken) => {
   }
 };
 
+// Hàm kiểm tra role
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     try {
-      // Step 1: Kiểm tra xem req.user có tồn tại không (từ checkAuth)
       if (!req.user || !req.user.role) {
-        throw new BadRequestError("User information or role not found");
+        return res.status(ForbiddenError.prototype.status).json({
+          message: "User information or role not found",
+          status: ForbiddenError.prototype.status,
+        });
       }
 
       const userRole = req.user.role;
 
-      // Step 2: Kiểm tra xem role của user có trong allowedRoles không
       if (!allowedRoles.includes(userRole)) {
-        throw new BadRequestError(
-          `Access denied. Required roles: ${allowedRoles.join(
+        return res.status(ForbiddenError.prototype.status).json({
+          message: `User không có quyền. Required roles: ${allowedRoles.join(
             ", "
-          )}. Your role: ${userRole}`
-        );
+          )}. Your role: ${userRole}`,
+          status: ForbiddenError.prototype.status,
+        });
       }
 
       next();
     } catch (error) {
-      throw new ForbiddenError(
-        `Access denied. Required roles: ${allowedRoles.join(
+      return res.status(ForbiddenError.prototype.status).json({
+        message: `User không có quyền. Required roles: ${allowedRoles.join(
           ", "
-        )}. Your role: ${req.user.role}`
-      );
+        )}. Your role: ${req.user?.role || "unknown"}`,
+        status: ForbiddenError.prototype.status,
+      });
     }
   };
 };
