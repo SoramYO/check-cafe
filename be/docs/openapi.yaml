@@ -8,8 +8,8 @@ info:
     email: support@checkafe.com
 
 servers:
-  - url: http://localhost:3000/v1/api
-    description: Local development server
+  - url: http://localhost:3000/api/v1
+    description: Local server
   - url: https://api.checkafe.com/v1/api
     description: Production server (placeholder)
 
@@ -18,6 +18,8 @@ tags:
     description: User authentication and session management
   - name: Users
     description: User profile and account management (to be implemented)
+  - name: Admin manage users
+    description: User management for admin (to be implemented)
 
 paths:
   /access/sign-up:
@@ -93,6 +95,240 @@ paths:
                 $ref: "#/components/schemas/SignOutResponse"
         "400":
           description: Bad request (e.g., userId missing or user not found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieves the profile of the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Updates the authenticated user's full_name and/or phone.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile/password:
+    patch:
+      tags:
+        - Users
+      summary: Change user password
+      description: Changes the authenticated user's password.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile/avatar:
+    patch:
+      tags:
+        - Users
+      summary: Update user avatar
+      description: Updates the authenticated user's avatar by uploading an image file to Cloudinary. Only JPG and PNG formats are allowed.
+      security:
+        - bearerAuth: [] # Yêu cầu xác thực bằng token
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Image file to upload as avatar (JPG or PNG)
+              required:
+                - avatar
+      responses:
+        '200':
+          description: Avatar updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          description: Bad request (e.g., no file provided, invalid format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid or missing token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin manage users
+      summary: Get list of users
+      description: Retrieves a paginated list of users, optionally filtered by role or active status. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of users per page
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum:
+              - ADMIN
+              - SHOP_OWNER
+              - MANAGER
+              - STAFF
+              - CUSTOMER
+          description: Filter by user role
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: Filter by active status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term for full_name or email
+      responses:
+        "200":
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUsersResponse"
+        "400":
+          description: Bad request (e.g., invalid role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (not an admin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Admin manage users
+      summary: Manage user account (role and status)
+      description: Allows an admin to update a user's role and/or active status.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManageUserRequest"
+      responses:
+        "200":
+          description: User account updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManageUserResponse"
+        "400":
+          description: Bad request (e.g., user not found, invalid role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (not an admin)
           content:
             application/json:
               schema:
@@ -243,70 +479,120 @@ components:
           example: "Email already exists"
           description: Error message describing the issue
 
-    Order:
+    GetUsersResponse:
       type: object
       properties:
-        _id:
-          type: string
-          example: "507f1f77bcf86cd799439012"
-        userId:
-          type: string
-          example: "507f1f77bcf86cd799439011"
-        items:
+        users:
           type: array
           items:
-            $ref: "#/components/schemas/MenuItem"
-        total:
-          type: number
-          example: 150000
-        status:
-          type: string
-          enum:
-            - PENDING
-            - PROCESSING
-            - COMPLETED
-            - CANCELLED
-          example: "PENDING"
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "507f1f77bcf86cd799439011"
+              full_name:
+                type: string
+                example: "John Doe"
+              email:
+                type: string
+                example: "john.doe@example.com"
+              role:
+                type: string
+                example: "CUSTOMER"
+              is_active:
+                type: boolean
+                example: true
+        metadata:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 25
+            totalPages:
+              type: integer
+              example: 3
 
-    MenuItem:
+    ProfileResponse:
       type: object
       properties:
-        _id:
-          type: string
-          example: "507f1f77bcf86cd799439013"
-        name:
-          type: string
-          example: "Cappuccino"
-        price:
-          type: number
-          example: 50000
-        category:
-          type: string
-          example: "Coffee"
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            full_name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              example: "john.doe@example.com"
+            phone:
+              type: string
+              example: "+84912345678"
+            avatar:
+              type: string
+              example: "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/checkafe/avatars/avatar.jpg"
+            role:
+              type: string
+              example: "CUSTOMER"
+            points:
+              type: number
+              example: 100
+            vip_status:
+              type: boolean
+              example: false
+            is_active:
+              type: boolean
+              example: true
 
-    Payment:
+    ErrorResponse:
       type: object
       properties:
-        _id:
+        message:
           type: string
-          example: "507f1f77bcf86cd799439014"
-        orderId:
+          example: "Avatar file is required"
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        full_name:
           type: string
-          example: "507f1f77bcf86cd799439012"
-        amount:
-          type: number
-          example: 150000
-        method:
+          example: "John Updated"
+        phone:
           type: string
-          enum:
-            - CASH
-            - CARD
-            - MOBILE
-          example: "CASH"
-        status:
+          example: "+84912345678"
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
           type: string
-          enum:
-            - PENDING
-            - COMPLETED
-            - FAILED
-          example: "COMPLETED"
+          example: "oldpassword123"
+        newPassword:
+          type: string
+          example: "newpassword456"
+
+    UpdateAvatarRequest:
+      type: object
+      required:
+        - avatar
+      properties:
+        avatar:
+          type: string
+          example: "https://newavatar.com/image.jpg"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
