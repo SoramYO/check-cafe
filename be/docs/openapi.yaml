@@ -20,6 +20,8 @@ tags:
     description: User profile and account management (to be implemented)
   - name: Admin manage users
     description: User management for admin (to be implemented)
+  - name: Shop Themes
+    description: Shop theme management for admin (to be implemented)
 
 paths:
   /access/sign-up:
@@ -334,6 +336,272 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /themes:
+    post:
+      tags:
+        - Shop Themes
+      summary: Create a new shop theme
+      description: Creates a new shop theme with optional image upload. Admin only.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Modern Cafe"
+                  description: Name of the shop theme
+                description:
+                  type: string
+                  example: "A modern theme with vibrant colors"
+                  description: Description of the shop theme
+                theme_image:
+                  type: string
+                  format: binary
+                  description: Image file for the theme (JPG or PNG)
+              required:
+                - name
+      responses:
+        '200':
+          description: Shop theme created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemeResponse'
+        '400':
+          description: Bad request (e.g., missing name)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Shop Themes
+      summary: Get all shop themes
+      description: Retrieves a paginated list of shop themes with optional search. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of themes per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search keyword for name or description
+      responses:
+        '200':
+          description: Shop themes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemesResponse'
+        '400':
+          description: Bad request (e.g., invalid page/limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /themes/{themeId}:
+    get:
+      tags:
+        - Shop Themes
+      summary: Get shop theme by ID
+      description: Retrieves a shop theme by its ID. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: themeId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop theme
+      responses:
+        '200':
+          description: Shop theme retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemeResponse'
+        '400':
+          description: Bad request (e.g., invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop theme not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Shop Themes
+      summary: Update shop theme
+      description: Updates a shop theme by its ID with optional image upload. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: themeId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop theme
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Modern Cafe Updated"
+                  description: New name of the shop theme
+                description:
+                  type: string
+                  example: "Updated vibrant theme"
+                  description: New description of the shop theme
+                theme_image:
+                  type: string
+                  format: binary
+                  description: New image file for the theme (JPG or PNG)
+      responses:
+        '200':
+          description: Shop theme updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemeResponse'
+        '400':
+          description: Bad request (e.g., invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop theme not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Shop Themes
+      summary: Delete shop theme
+      description: Deletes a shop theme by its ID. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: themeId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop theme
+      responses:
+        '200':
+          description: Shop theme deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Shop theme deleted successfully"
+        '400':
+          description: Bad request (e.g., invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop theme not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     SignUpRequest:
@@ -591,6 +859,76 @@ components:
           type: string
           example: "https://newavatar.com/image.jpg"
 
+    ShopThemeResponse:
+      type: object
+      properties:
+        theme:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            name:
+              type: string
+              example: "Modern Cafe"
+            description:
+              type: string
+              example: "A modern theme with vibrant colors"
+            theme_image:
+              type: string
+              example: "https://res.cloudinary.com/dqpe1pisz/image/upload/v1744747952/checkafe/themes/modern_cafe.jpg"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-04-15T12:00:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2025-04-15T12:00:00Z"
+
+    ShopThemesResponse:
+      type: object
+      properties:
+        themes:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "507f1f77bcf86cd799439011"
+              name:
+                type: string
+                example: "Modern Cafe"
+              description:
+                type: string
+                example: "A modern theme with vibrant colors"
+              theme_image:
+                type: string
+                example: "https://res.cloudinary.com/dqpe1pisz/image/upload/v1744747952/checkafe/themes/modern_cafe.jpg"
+              createdAt:
+                type: string
+                format: date-time
+                example: "2025-04-15T12:00:00Z"
+              updatedAt:
+                type: string
+                format: date-time
+                example: "2025-04-15T12:00:00Z"
+        metadata:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 5
   securitySchemes:
     bearerAuth:
       type: http

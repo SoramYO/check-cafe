@@ -40,8 +40,17 @@ const ADMIN_MESSAGE = {
   MANAGE_USER_ACCOUNT_SUCCESS: "Manage user account successfully",
 };
 
+const SHOP_THEME_MESSAGE = {
+  CREATE_SUCCESS: "Create shop theme successfully",
+  GET_ALL_SUCCESS: "Get shop themes successfully",
+  GET_BY_ID_SUCCESS: "Get shop theme by ID successfully",
+  UPDATE_SUCCESS: "Update shop theme successfully",
+  DELETE_SUCCESS: "Delete shop theme successfully",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
   ADMIN_MESSAGE,
+  SHOP_THEME_MESSAGE,
 };

@@ -8,7 +8,12 @@ const COLLECTION_NAME = "ShopThemes";
 const shopThemeSchema = new mongoose.Schema(
   {
     name: { type: String, trim: true },
-    description: { type: String }
+    description: { type: String },
+    theme_image: {
+      type: String,
+      default:
+        "https://res.cloudinary.com/dqpe1pisz/image/upload/v1744747952/logo_l5ruwq.png",
+    },
   },
   { timestamps: true, collection: COLLECTION_NAME }
 );
