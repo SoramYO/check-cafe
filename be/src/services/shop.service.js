@@ -1,0 +1,784 @@
+"use strict";
+
+const {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} = require("../configs/error.response");
+const shopModel = require("../models/shop.model");
+const shopImageModel = require("../models/shopImage.model");
+const shopSeatModel = require("../models/shopSeat.model");
+const shopMenuItemModel = require("../models/shopMenuItem.model");
+const shopTimeSlotModel = require("../models/shopTimeSlot.model");
+const shopVerificationModel = require("../models/shopVerification.model");
+const cloudinary = require("cloudinary").v2;
+const {
+  getInfoData,
+  getSelectData,
+  removeUndefinedObject,
+} = require("../utils");
+
+const createShop = async (req) => {
+  try {
+    const { userId } = req.user;
+    const { name, address, latitude, longitude, amenities, theme_ids } =
+      req.body;
+
+    // Kiểm tra input
+    if (!name || !address || !latitude || !longitude) {
+      throw new BadRequestError(
+        "Name, address, latitude, and longitude are required"
+      );
+    }
+
+    // Tạo quán mới
+    const shop = await shopModel.create({
+      name,
+      address,
+      location: {
+        type: "Point",
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+      },
+      owner_id: userId,
+      amenities,
+      theme_ids,
+    });
+
+    return {
+      shop: getInfoData({
+        fields: [
+          "_id",
+          "name",
+          "address",
+          "location",
+          "owner_id",
+          "theme_ids",
+          "vip_status",
+          "rating_avg",
+          "rating_count",
+          "status",
+          "amenities",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: shop,
+      }),
+    };
+  } catch (error) {
+    throw new BadRequestError(error.message || "Failed to create shop");
+  }
+};
+
+const updateShop = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId } = req.user;
+    const { name, address, latitude, longitude, amenities, theme_ids } =
+      req.body;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Cập nhật dữ liệu
+    const updateData = removeUndefinedObject({
+      name,
+      address,
+      location:
+        latitude && longitude
+          ? {
+              type: "Point",
+              coordinates: [parseFloat(longitude), parseFloat(latitude)],
+            }
+          : undefined,
+      amenities,
+      theme_ids,
+    });
+
+    const updatedShop = await shopModel
+      .findByIdAndUpdate(shopId, updateData, { new: true, runValidators: true })
+      .select(
+        getSelectData([
+          "_id",
+          "name",
+          "address",
+          "location",
+          "owner_id",
+          "theme_ids",
+          "vip_status",
+          "rating_avg",
+          "rating_count",
+          "status",
+          "amenities",
+          "createdAt",
+          "updatedAt",
+        ])
+      );
+
+    return {
+      shop: getInfoData({
+        fields: [
+          "_id",
+          "name",
+          "address",
+          "location",
+          "owner_id",
+          "theme_ids",
+          "vip_status",
+          "rating_avg",
+          "rating_count",
+          "status",
+          "amenities",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: updatedShop,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to update shop");
+  }
+};
+
+const getShop = async (req) => {
+  try {
+    const { shopId } = req.params;
+    // const { userId } = req.user;
+
+    const shop = await shopModel
+      .findById(shopId)
+      .populate("theme_ids", "_id name description theme_image")
+      .select(
+        getSelectData([
+          "_id",
+          "name",
+          "address",
+          "location",
+          "owner_id",
+          "theme_ids",
+          "vip_status",
+          "rating_avg",
+          "rating_count",
+          "status",
+          "amenities",
+          "createdAt",
+          "updatedAt",
+        ])
+      )
+      .lean();
+
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    // if (shop.owner_id.toString() !== userId) {
+    //   throw new ForbiddenError("You are not the owner of this shop");
+    // }
+
+    // Lấy thông tin liên quan
+    const images = await shopImageModel
+      .find({ shop_id: shopId })
+      .select("url caption created_at")
+      .lean();
+    const seats = await shopSeatModel
+      .find({ shop_id: shopId })
+      .select("seat_name image is_premium is_available capacity")
+      .lean();
+    const menuItems = await shopMenuItemModel
+      .find({ shop_id: shopId })
+      .select("name description price category is_available")
+      .lean();
+    const timeSlots = await shopTimeSlotModel
+      .find({ shop_id: shopId })
+      .select(
+        "day_of_week start_time end_time max_regular_reservations max_premium_reservations is_active"
+      )
+      .lean();
+    const verifications = await shopVerificationModel
+      .find({ shop_id: shopId })
+      .select(
+        "document_type document_url status submitted_at reviewed_at reason"
+      )
+      .lean();
+
+    return {
+      shop: {
+        ...shop,
+        images,
+        seats,
+        menuItems,
+        timeSlots,
+        verifications,
+      },
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve shop");
+  }
+};
+
+const uploadShopImage = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId } = req.user;
+    const { caption } = req.body;
+    const file = req.file;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Kiểm tra file
+    if (!file) {
+      throw new BadRequestError("Image file is required");
+    }
+
+    // Tạo ảnh mới
+    const image = await shopImageModel.create({
+      shop_id: shopId,
+      url: file.path,
+      caption,
+    });
+
+    return {
+      image: getInfoData({
+        fields: ["_id", "shop_id", "url", "caption", "created_at"],
+        object: image,
+      }),
+    };
+  } catch (error) {
+    if (req.file && req.file.filename) {
+      await cloudinary.uploader.destroy(req.file.filename);
+    }
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to upload shop image");
+  }
+};
+
+const assignThemes = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId } = req.user;
+    const { theme_ids } = req.body;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Cập nhật theme_ids
+    if (!Array.isArray(theme_ids)) {
+      throw new BadRequestError("Theme IDs must be an array");
+    }
+    if (theme_ids.length === 0) {
+      throw new BadRequestError("Theme IDs cannot be empty");
+    }
+    if (theme_ids.length > 5) {
+      throw new BadRequestError("Maximum 5 theme IDs allowed");
+    }
+    shop.theme_ids = theme_ids || [];
+    await shop.save();
+
+    return {
+      shop: getInfoData({
+        fields: ["_id", "name", "theme_ids"],
+        object: shop,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to assign themes");
+  }
+};
+
+const createSeat = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId } = req.user;
+    const { seat_name, is_premium, capacity } = req.body;
+    const file = req.file;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Kiểm tra input
+    if (!seat_name || !capacity) {
+      throw new BadRequestError("Seat name and capacity are required");
+    }
+
+    // Tạo ghế
+    const seat = await shopSeatModel.create({
+      shop_id: shopId,
+      seat_name,
+      image: file ? file.path : undefined,
+      is_premium: is_premium || false,
+      capacity,
+    });
+
+    return {
+      seat: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "seat_name",
+          "image",
+          "is_premium",
+          "is_available",
+          "capacity",
+        ],
+        object: seat,
+      }),
+    };
+  } catch (error) {
+    if (req.file && req.file.filename) {
+      await cloudinary.uploader.destroy(req.file.filename);
+    }
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to create seat");
+  }
+};
+
+const updateSeat = async (req) => {
+  try {
+    const { shopId, seatId } = req.params;
+    const { userId } = req.user;
+    const { seat_name, is_premium, is_available, capacity } = req.body;
+    const file = req.file;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Tìm ghế
+    const seat = await shopSeatModel.findById(seatId);
+    if (!seat) {
+      throw new NotFoundError("Seat not found");
+    }
+
+    // Cập nhật dữ liệu
+    const updateData = removeUndefinedObject({
+      seat_name,
+      is_premium,
+      is_available,
+      capacity,
+      image: file ? file.path : undefined,
+    });
+
+    // Xóa ảnh cũ nếu có ảnh mới
+    if (file && seat.image && seat.image.includes("cloudinary")) {
+      const publicId = seat.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    const updatedSeat = await shopSeatModel
+      .findByIdAndUpdate(seatId, updateData, { new: true, runValidators: true })
+      .select(
+        getSelectData([
+          "_id",
+          "shop_id",
+          "seat_name",
+          "image",
+          "is_premium",
+          "is_available",
+          "capacity",
+        ])
+      );
+
+    return {
+      seat: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "seat_name",
+          "image",
+          "is_premium",
+          "is_available",
+          "capacity",
+        ],
+        object: updatedSeat,
+      }),
+    };
+  } catch (error) {
+    if (req.file && req.file.filename) {
+      await cloudinary.uploader.destroy(req.file.filename);
+    }
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to update seat");
+  }
+};
+
+const createMenuItem = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId } = req.user;
+    const { name, description, price, category, is_available } = req.body;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Kiểm tra input
+    if (!name || !price) {
+      throw new BadRequestError("Name and price are required");
+    }
+
+    // Tạo món
+    const menuItem = await shopMenuItemModel.create({
+      shop_id: shopId,
+      name,
+      description,
+      price,
+      category,
+      is_available: is_available !== undefined ? is_available : true,
+    });
+
+    return {
+      menuItem: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "name",
+          "description",
+          "price",
+          "category",
+          "is_available",
+        ],
+        object: menuItem,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to create menu item");
+  }
+};
+
+const updateMenuItem = async (req) => {
+  try {
+    const { shopId, itemId } = req.params;
+    const { userId } = req.user;
+    const { name, description, price, category, is_available } = req.body;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Tìm món
+    const menuItem = await shopMenuItemModel.findById(itemId);
+    if (!menuItem) {
+      throw new NotFoundError("Menu item not found");
+    }
+
+    // Cập nhật dữ liệu
+    const updateData = removeUndefinedObject({
+      name,
+      description,
+      price,
+      category,
+      is_available,
+    });
+
+    const updatedMenuItem = await shopMenuItemModel
+      .findByIdAndUpdate(itemId, updateData, { new: true, runValidators: true })
+      .select(
+        getSelectData([
+          "_id",
+          "shop_id",
+          "name",
+          "description",
+          "price",
+          "category",
+          "is_available",
+        ])
+      );
+
+    return {
+      menuItem: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "name",
+          "description",
+          "price",
+          "category",
+          "is_available",
+        ],
+        object: updatedMenuItem,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to update menu item");
+  }
+};
+
+const createTimeSlot = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId } = req.user;
+    const {
+      day_of_week,
+      start_time,
+      end_time,
+      max_regular_reservations,
+      max_premium_reservations,
+      is_active,
+    } = req.body;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Kiểm tra input
+    if (!day_of_week || !start_time || !end_time) {
+      throw new BadRequestError(
+        "Day of week, start time, and end time are required"
+      );
+    }
+
+    // Tạo khung giờ
+    const timeSlot = await shopTimeSlotModel.create({
+      shop_id: shopId,
+      day_of_week,
+      start_time,
+      end_time,
+      max_regular_reservations,
+      max_premium_reservations,
+      is_active: is_active !== undefined ? is_active : true,
+    });
+
+    return {
+      timeSlot: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "day_of_week",
+          "start_time",
+          "end_time",
+          "max_regular_reservations",
+          "max_premium_reservations",
+          "is_active",
+        ],
+        object: timeSlot,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to create time slot");
+  }
+};
+
+const updateTimeSlot = async (req) => {
+  try {
+    const { shopId, slotId } = req.params;
+    const { userId } = req.user;
+    const {
+      day_of_week,
+      start_time,
+      end_time,
+      max_regular_reservations,
+      max_premium_reservations,
+      is_active,
+    } = req.body;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Tìm khung giờ
+    const timeSlot = await shopTimeSlotModel.findById(slotId);
+    if (!timeSlot) {
+      throw new NotFoundError("Time slot not found");
+    }
+
+    // Cập nhật dữ liệu
+    const updateData = removeUndefinedObject({
+      day_of_week,
+      start_time,
+      end_time,
+      max_regular_reservations,
+      max_premium_reservations,
+      is_active,
+    });
+
+    const updatedTimeSlot = await shopTimeSlotModel
+      .findByIdAndUpdate(slotId, updateData, { new: true, runValidators: true })
+      .select(
+        getSelectData([
+          "_id",
+          "shop_id",
+          "day_of_week",
+          "start_time",
+          "end_time",
+          "max_regular_reservations",
+          "max_premium_reservations",
+          "is_active",
+        ])
+      );
+
+    return {
+      timeSlot: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "day_of_week",
+          "start_time",
+          "end_time",
+          "max_regular_reservations",
+          "max_premium_reservations",
+          "is_active",
+        ],
+        object: updatedTimeSlot,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to update time slot");
+  }
+};
+
+const submitVerification = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId } = req.user;
+    const { document_type, reason } = req.body;
+    const file = req.file;
+
+    // Tìm quán
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Kiểm tra quyền
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Kiểm tra file
+    if (!file) {
+      throw new BadRequestError("Document file is required");
+    }
+
+    // Tạo xác minh
+    const verification = await shopVerificationModel.create({
+      shop_id: shopId,
+      document_type,
+      document_url: file.path,
+      reason,
+      submitted_at: new Date(),
+      status: "Pending",
+    });
+
+    return {
+      verification: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "document_type",
+          "document_url",
+          "status",
+          "submitted_at",
+          "reason",
+        ],
+        object: verification,
+      }),
+    };
+  } catch (error) {
+    if (req.file && req.file.filename) {
+      await cloudinary.uploader.destroy(req.file.filename);
+    }
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to submit verification");
+  }
+};
+
+module.exports = {
+  createShop,
+  updateShop,
+  getShop,
+  uploadShopImage,
+  assignThemes,
+  createSeat,
+  updateSeat,
+  createMenuItem,
+  updateMenuItem,
+  createTimeSlot,
+  updateTimeSlot,
+  submitVerification,
+};

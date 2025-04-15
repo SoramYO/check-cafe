@@ -7,5 +7,6 @@ router.use("/access", require("./access"));
 router.use("/user", require("./user"));
 router.use("/admin", require("./admin"));
 router.use("/themes", require("./shopTheme"));
+router.use("/shops", require("./shop"));
 
 module.exports = router;

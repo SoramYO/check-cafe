@@ -1,6 +1,6 @@
 "use strict";
 
-const { OK } = require("../configs/success.response");
+const { OK, CREATED } = require("../configs/success.response");
 const { SHOP_THEME_MESSAGE } = require("../constants/message");
 const asyncHandler = require("../helpers/asyncHandler");
 const shopThemeService = require("../services/shopTheme.service");
@@ -8,7 +8,7 @@ const shopThemeService = require("../services/shopTheme.service");
 class ShopThemeController {
   createTheme = asyncHandler(async (req, res) => {
     const result = await shopThemeService.createTheme(req);
-    new OK({
+    new CREATED({
       message: SHOP_THEME_MESSAGE.CREATE_SUCCESS,
       data: result,
     }).send(res);

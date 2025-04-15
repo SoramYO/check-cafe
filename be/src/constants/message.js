@@ -48,9 +48,25 @@ const SHOP_THEME_MESSAGE = {
   DELETE_SUCCESS: "Delete shop theme successfully",
 };
 
+const SHOP_MESSAGE = {
+  CREATE_SUCCESS: "Create shop successfully",
+  UPDATE_SUCCESS: "Update shop successfully",
+  GET_SUCCESS: "Get shop successfully",
+  UPLOAD_IMAGE_SUCCESS: "Upload shop image successfully",
+  ASSIGN_THEMES_SUCCESS: "Assign themes successfully",
+  CREATE_SEAT_SUCCESS: "Create seat successfully",
+  UPDATE_SEAT_SUCCESS: "Update seat successfully",
+  CREATE_MENU_ITEM_SUCCESS: "Create menu item successfully",
+  UPDATE_MENU_ITEM_SUCCESS: "Update menu item successfully",
+  CREATE_TIME_SLOT_SUCCESS: "Create time slot successfully",
+  UPDATE_TIME_SLOT_SUCCESS: "Update time slot successfully",
+  SUBMIT_VERIFICATION_SUCCESS: "Submit verification successfully",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
   ADMIN_MESSAGE,
   SHOP_THEME_MESSAGE,
+  SHOP_MESSAGE,
 };
