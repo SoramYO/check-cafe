@@ -2,11 +2,6 @@
 
 const JWT = require("jsonwebtoken");
 const { createTokenPair } = require("./jwt");
-const {
-  AuthFailureError,
-  BadRequestError,
-  ForbiddenError,
-} = require("../configs/error.response");
 const { HEADER } = require("../constants/enum");
 
 // Hàm kiểm tra xác thực
@@ -15,9 +10,10 @@ const checkAuth = async (req, res, next) => {
     // Step 1: Lấy accessToken từ header
     const authHeader = req.headers[HEADER.AUTHORIZATION];
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(BadRequestError.prototype.status).json({
+      return res.status(400).json({
+        status: "error",
+        code: 400,
         message: "No access token provided or invalid format",
-        status: BadRequestError.prototype.status,
       });
     }
     const accessToken = authHeader.split(" ")[1];
@@ -28,9 +24,10 @@ const checkAuth = async (req, res, next) => {
     // Step 3: Xác minh accessToken
     const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
     if (!accessTokenKey) {
-      return res.status(BadRequestError.prototype.status).json({
+      return res.status(500).json({
+        status: "error",
+        code: 500,
         message: "Access token secret key not defined",
-        status: BadRequestError.prototype.status,
       });
     }
 
@@ -44,7 +41,7 @@ const checkAuth = async (req, res, next) => {
       };
       next();
     } catch (error) {
-      // Nếu accessToken hết hạn và có refreshToken trong header
+      // Nếu accessToken hết hạn và có refreshToken
       if (error.name === "TokenExpiredError" && refreshToken) {
         const newTokens = await refreshTokenHandler(refreshToken);
         req.user = newTokens.user;
@@ -52,18 +49,19 @@ const checkAuth = async (req, res, next) => {
         res.set("x-refresh-token", newTokens.refreshToken);
         next();
       } else {
-        return res.status(AuthFailureError.prototype.status).json({
+        return res.status(401).json({
+          status: "error",
+          code: 401,
           message: "Invalid or expired access token",
-          status: AuthFailureError.prototype.status,
         });
       }
     }
   } catch (error) {
-    // Bắt lỗi tổng quát và trả về response
-    const status = error.status || 401; // Mặc định là 401 nếu không có status
-    return res.status(status).json({
-      message: "User không có quyền" || error.message,
-      status,
+    console.error("checkAuth error:", error.message);
+    return res.status(error.code || 401).json({
+      status: "error",
+      code: error.code || 401,
+      message: error.message || "Authentication failed",
     });
   }
 };
@@ -73,7 +71,11 @@ const refreshTokenHandler = async (refreshToken) => {
   try {
     const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
     if (!refreshTokenKey) {
-      throw new BadRequestError("Refresh token secret key not defined");
+      return {
+        status: "error",
+        code: 500,
+        message: "Refresh token secret key not defined",
+      };
     }
 
     const decodedRefresh = JWT.verify(refreshToken, refreshTokenKey);
@@ -98,7 +100,12 @@ const refreshTokenHandler = async (refreshToken) => {
       refreshToken: newTokens.refreshToken,
     };
   } catch (error) {
-    throw new BadRequestError("Invalid or expired refresh token");
+    console.error("refreshTokenHandler error:", error.message);
+    return {
+      status: "error",
+      code: 401,
+      message: error.message || "Invalid or expired refresh token",
+    };
   }
 };
 
@@ -107,30 +114,33 @@ const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     try {
       if (!req.user || !req.user.role) {
-        return res.status(ForbiddenError.prototype.status).json({
+        return res.status(403).json({
+          status: "error",
+          code: 403,
           message: "User information or role not found",
-          status: ForbiddenError.prototype.status,
         });
       }
 
       const userRole = req.user.role;
 
       if (!allowedRoles.includes(userRole)) {
-        return res.status(ForbiddenError.prototype.status).json({
-          message: `User không có quyền. Required roles: ${allowedRoles.join(
+        return res.status(403).json({
+          status: "error",
+          code: 403,
+          message: `User does not have permission. Required roles: ${allowedRoles.join(
             ", "
           )}. Your role: ${userRole}`,
-          status: ForbiddenError.prototype.status,
         });
       }
 
       next();
     } catch (error) {
-      return res.status(ForbiddenError.prototype.status).json({
-        message: `User không có quyền. Required roles: ${allowedRoles.join(
+      return res.status(403).json({
+        status: "error",
+        code: 403,
+        message: `User does not have permission. Required roles: ${allowedRoles.join(
           ", "
         )}. Your role: ${req.user?.role || "unknown"}`,
-        status: ForbiddenError.prototype.status,
       });
     }
   };
