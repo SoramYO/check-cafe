@@ -1,6 +1,5 @@
 "use strict";
 const mongoose = require("mongoose");
-const { model, Schema } = mongoose;
 
 const DOCUMENT_NAME = "User";
 const COLLECTION_NAME = "Users";
@@ -12,6 +11,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     phone: { type: String },
     avatar: { type: String },
+    avatarPublicId: { type: String },
     role: { type: String },
     points: { type: Number, default: 0 },
     vip_status: { type: Boolean, default: false },

@@ -1,0 +1,2150 @@
+openapi: 3.0.3
+info:
+  title: ChecKafe API
+  description: API for ChecKafe - A coffee shop management system.
+  version: 1.0.0
+  contact:
+    name: ChecKafe Support
+    email: support@checkafe.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local server
+  - url: https://api.checkafe.com/v1/api
+    description: Production server (placeholder)
+
+tags:
+  - name: Access
+    description: User authentication and session management
+  - name: Users
+    description: User profile and account management (to be implemented)
+  - name: Admin manage users
+    description: User management for admin (to be implemented)
+  - name: Shop Themes
+    description: Shop theme management for admin (to be implemented)
+  - name: Shops
+    description: Shop management for shop owners (to be implemented)
+
+paths:
+  /access/sign-up:
+    post:
+      tags:
+        - Access
+      summary: Register a new user
+      description: Creates a new customer account for ChecKafe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+      responses:
+        "200":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignUpResponse"
+        "400":
+          description: Bad request (e.g., email already exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /access/sign-in:
+    post:
+      tags:
+        - Access
+      summary: Log in a user
+      description: Authenticates a user and returns tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: User logged in successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInResponse"
+        "400":
+          description: Bad request (e.g., email not exists, password incorrect)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /access/sign-out:
+    post:
+      tags:
+        - Access
+      summary: Log out a user
+      description: Logs out a user based on their user ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignOutRequest"
+      responses:
+        "200":
+          description: User logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignOutResponse"
+        "400":
+          description: Bad request (e.g., userId missing or user not found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieves the profile of the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Updates the authenticated user's full_name and/or phone.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile/password:
+    patch:
+      tags:
+        - Users
+      summary: Change user password
+      description: Changes the authenticated user's password.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /profile/avatar:
+    patch:
+      tags:
+        - Users
+      summary: Update user avatar
+      description: Updates the authenticated user's avatar by uploading an image file to Cloudinary. Only JPG and PNG formats are allowed.
+      security:
+        - bearerAuth: [] # Yêu cầu xác thực bằng token
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Image file to upload as avatar (JPG or PNG)
+              required:
+                - avatar
+      responses:
+        '200':
+          description: Avatar updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          description: Bad request (e.g., no file provided, invalid format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid or missing token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin manage users
+      summary: Get list of users
+      description: Retrieves a paginated list of users, optionally filtered by role or active status. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of users per page
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum:
+              - ADMIN
+              - SHOP_OWNER
+              - MANAGER
+              - STAFF
+              - CUSTOMER
+          description: Filter by user role
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: Filter by active status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term for full_name or email
+      responses:
+        "200":
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUsersResponse"
+        "400":
+          description: Bad request (e.g., invalid role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (not an admin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Admin manage users
+      summary: Manage user account (role and status)
+      description: Allows an admin to update a user's role and/or active status.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManageUserRequest"
+      responses:
+        "200":
+          description: User account updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManageUserResponse"
+        "400":
+          description: Bad request (e.g., user not found, invalid role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (not an admin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /themes:
+    post:
+      tags:
+        - Shop Themes
+      summary: Create a new shop theme
+      description: Creates a new shop theme with optional image upload. Admin only.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Modern Cafe"
+                  description: Name of the shop theme
+                description:
+                  type: string
+                  example: "A modern theme with vibrant colors"
+                  description: Description of the shop theme
+                theme_image:
+                  type: string
+                  format: binary
+                  description: Image file for the theme (JPG or PNG)
+              required:
+                - name
+      responses:
+        '200':
+          description: Shop theme created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemeResponse'
+        '400':
+          description: Bad request (e.g., missing name)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Shop Themes
+      summary: Get all shop themes
+      description: Retrieves a paginated list of shop themes with optional search. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of themes per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search keyword for name or description
+      responses:
+        '200':
+          description: Shop themes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemesResponse'
+        '400':
+          description: Bad request (e.g., invalid page/limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /themes/{themeId}:
+    get:
+      tags:
+        - Shop Themes
+      summary: Get shop theme by ID
+      description: Retrieves a shop theme by its ID. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: themeId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop theme
+      responses:
+        '200':
+          description: Shop theme retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemeResponse'
+        '400':
+          description: Bad request (e.g., invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop theme not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Shop Themes
+      summary: Update shop theme
+      description: Updates a shop theme by its ID with optional image upload. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: themeId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop theme
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Modern Cafe Updated"
+                  description: New name of the shop theme
+                description:
+                  type: string
+                  example: "Updated vibrant theme"
+                  description: New description of the shop theme
+                theme_image:
+                  type: string
+                  format: binary
+                  description: New image file for the theme (JPG or PNG)
+      responses:
+        '200':
+          description: Shop theme updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopThemeResponse'
+        '400':
+          description: Bad request (e.g., invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop theme not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Shop Themes
+      summary: Delete shop theme
+      description: Deletes a shop theme by its ID. Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: themeId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop theme
+      responses:
+        '200':
+          description: Shop theme deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Shop theme deleted successfully"
+        '400':
+          description: Bad request (e.g., invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop theme not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops:
+    post:
+      tags:
+        - Shops
+      summary: Create a new shop
+      description: Creates a new shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Checkafe"
+                address:
+                  type: string
+                  example: "123 Đường Láng, Hà Nội"
+                latitude:
+                  type: number
+                  example: 21.0285
+                longitude:
+                  type: number
+                  example: 105.8167
+                amenities:
+                  type: array
+                  items:
+                    type: string
+                    enum: ["WiFi", "PowerOutlets", "QuietZone", "AirConditioning", "Parking", "PetFriendly"]
+                  example: ["WiFi", "QuietZone"]
+                theme_ids:
+                  type: array
+                  items:
+                    type: string
+                  example: ["507f1f77bcf86cd799439012"]
+              required:
+                - name
+                - address
+                - latitude
+                - longitude
+      responses:
+        '200':
+          description: Shop created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}:
+    get:
+      tags:
+        - Shops
+      summary: Get shop details
+      description: Retrieves details of a shop including related data. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      responses:
+        '200':
+          description: Shop retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopDetailsResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Shops
+      summary: Update shop
+      description: Updates shop information. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Checkafe Updated"
+                address:
+                  type: string
+                  example: "456 Đường Láng, Hà Nội"
+                latitude:
+                  type: number
+                  example: 21.0285
+                longitude:
+                  type: number
+                  example: 105.8167
+                amenities:
+                  type: array
+                  items:
+                    type: string
+                    enum: ["WiFi", "PowerOutlets", "QuietZone", "AirConditioning", "Parking", "PetFriendly"]
+                  example: ["WiFi", "AirConditioning"]
+                theme_ids:
+                  type: array
+                  items:
+                    type: string
+                  example: ["507f1f77bcf86cd799439013"]
+      responses:
+        '200':
+          description: Shop updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/images:
+    post:
+      tags:
+        - Shops
+      summary: Upload shop image
+      description: Uploads an image for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                caption:
+                  type: string
+                  example: "Main entrance"
+              required:
+                - image
+      responses:
+        '200':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopImageResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/themes:
+    patch:
+      tags:
+        - Shops
+      summary: Assign themes to shop
+      description: Updates the themes assigned to the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                theme_ids:
+                  type: array
+                  items:
+                    type: string
+                  example: ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"]
+              required:
+                - theme_ids
+      responses:
+        '200':
+          description: Themes assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/seats:
+    post:
+      tags:
+        - Shops
+      summary: Create a seat
+      description: Creates a new seat for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                seat_name:
+                  type: string
+                  example: "T01"
+                is_premium:
+                  type: boolean
+                  example: false
+                capacity:
+                  type: number
+                  example: 4
+                image:
+                  type: string
+                  format: binary
+              required:
+                - seat_name
+                - capacity
+      responses:
+        '200':
+          description: Seat created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopSeatResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/seats/{seatId}:
+    patch:
+      tags:
+        - Shops
+      summary: Update a seat
+      description: Updates a seat for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+        - in: path
+          name: seatId
+          schema:
+            type: string
+          required: true
+          description: ID of the seat
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                seat_name:
+                  type: string
+                  example: "T01 Updated"
+                is_premium:
+                  type: boolean
+                  example: true
+                is_available:
+                  type: boolean
+                  example: true
+                capacity:
+                  type: number
+                  example: 6
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Seat updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopSeatResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop or seat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/menu-items:
+    post:
+      tags:
+        - Shops
+      summary: Create a menu item
+      description: Creates a new menu item for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Espresso"
+                description:
+                  type: string
+                  example: "Strong black coffee"
+                price:
+                  type: number
+                  example: 35000
+                category:
+                  type: string
+                  example: "Coffee"
+                is_available:
+                  type: boolean
+                  example: true
+              required:
+                - name
+                - price
+      responses:
+        '200':
+          description: Menu item created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopMenuItemResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/menu-items/{itemId}:
+    patch:
+      tags:
+        - Shops
+      summary: Update a menu item
+      description: Updates a menu item for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+        - in: path
+          name: itemId
+          schema:
+            type: string
+          required: true
+          description: ID of the menu item
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Espresso Updated"
+                description:
+                  type: string
+                  example: "Updated strong black coffee"
+                price:
+                  type: number
+                  example: 40000
+                category:
+                  type: string
+                  example: "Coffee"
+                is_available:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: Menu item updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopMenuItemResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop or menu item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/time-slots:
+    post:
+      tags:
+        - Shops
+      summary: Create a time slot
+      description: Creates a new time slot for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                day_of_week:
+                  type: number
+                  example: 1
+                start_time:
+                  type: string
+                  example: "08:00"
+                end_time:
+                  type: string
+                  example: "22:00"
+                max_regular_reservations:
+                  type: number
+                  example: 20
+                max_premium_reservations:
+                  type: number
+                  example: 5
+                is_active:
+                  type: boolean
+                  example: true
+              required:
+                - day_of_week
+                - start_time
+                - end_time
+      responses:
+        '200':
+          description: Time slot created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopTimeSlotResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/time-slots/{slotId}:
+    patch:
+      tags:
+        - Shops
+      summary: Update a time slot
+      description: Updates a time slot for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+        - in: path
+          name: slotId
+          schema:
+            type: string
+          required: true
+          description: ID of the time slot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                day_of_week:
+                  type: number
+                  example: 1
+                start_time:
+                  type: string
+                  example: "09:00"
+                end_time:
+                  type: string
+                  example: "23:00"
+                max_regular_reservations:
+                  type: number
+                  example: 25
+                max_premium_reservations:
+                  type: number
+                  example: 10
+                is_active:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: Time slot updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopTimeSlotResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop or time slot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /shops/{shopId}/verifications:
+    post:
+      tags:
+        - Shops
+      summary: Submit shop verification
+      description: Submits a verification document for the shop. Shop owner only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          schema:
+            type: string
+          required: true
+          description: ID of the shop
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                document_type:
+                  type: string
+                  example: "BusinessLicense"
+                reason:
+                  type: string
+                  example: "Initial verification"
+                document:
+                  type: string
+                  format: binary
+              required:
+                - document
+      responses:
+        '200':
+          description: Verification submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopVerificationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    SignUpRequest:
+      type: object
+      required:
+        - full_name
+        - email
+        - password
+      properties:
+        full_name:
+          type: string
+          example: "John Doe"
+          description: Full name of the user
+        email:
+          type: string
+          format: email
+          example: "john.doe@checkafe.com"
+          description: Email address of the user
+        password:
+          type: string
+          format: password
+          example: "password123"
+          description: Password for the account
+
+    SignUpResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tokens:
+          $ref: "#/components/schemas/Tokens"
+
+    SignInRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john.doe@checkafe.com"
+          description: Email address of the user
+        password:
+          type: string
+          format: password
+          example: "password123"
+          description: Password for the account
+        refreshToken:
+          type: string
+          nullable: true
+          example: null
+          description: Optional refresh token for session renewal
+
+    SignInResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tokens:
+          $ref: "#/components/schemas/Tokens"
+
+    SignOutRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+          description: Unique identifier of the user
+
+    SignOutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Logout successful"
+          description: Confirmation message
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+          description: Unique identifier of the user
+        full_name:
+          type: string
+          example: "John Doe"
+          description: Full name of the user
+        email:
+          type: string
+          format: email
+          example: "john.doe@checkafe.com"
+          description: Email address of the user
+        role:
+          type: string
+          enum:
+            - CUSTOMER
+            - STAFF
+            - ADMIN
+          example: "CUSTOMER"
+          description: Role of the user in the system
+        phone:
+          type: string
+          example: "+84987654321"
+          description: Phone number of the user
+        avatar:
+          type: string
+          example: "https://example.com/avatar.jpg"
+          description: URL to user's avatar image
+        points:
+          type: number
+          example: 100
+          description: Loyalty points of the user
+        vip_status:
+          type: boolean
+          example: false
+          description: VIP status of the user
+        is_active:
+          type: boolean
+          example: true
+          description: Whether the account is active
+
+    Tokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: JWT access token for authentication
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: JWT refresh token for renewing access
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Email already exists"
+          description: Error message describing the issue
+
+    GetUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "507f1f77bcf86cd799439011"
+              full_name:
+                type: string
+                example: "John Doe"
+              email:
+                type: string
+                example: "john.doe@example.com"
+              role:
+                type: string
+                example: "CUSTOMER"
+              is_active:
+                type: boolean
+                example: true
+        metadata:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 25
+            totalPages:
+              type: integer
+              example: 3
+
+    ProfileResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            full_name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              example: "john.doe@example.com"
+            phone:
+              type: string
+              example: "+84912345678"
+            avatar:
+              type: string
+              example: "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/checkafe/avatars/avatar.jpg"
+            role:
+              type: string
+              example: "CUSTOMER"
+            points:
+              type: number
+              example: 100
+            vip_status:
+              type: boolean
+              example: false
+            is_active:
+              type: boolean
+              example: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Avatar file is required"
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          example: "John Updated"
+        phone:
+          type: string
+          example: "+84912345678"
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+          example: "oldpassword123"
+        newPassword:
+          type: string
+          example: "newpassword456"
+
+    UpdateAvatarRequest:
+      type: object
+      required:
+        - avatar
+      properties:
+        avatar:
+          type: string
+          example: "https://newavatar.com/image.jpg"
+
+    ShopThemeResponse:
+      type: object
+      properties:
+        theme:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            name:
+              type: string
+              example: "Modern Cafe"
+            description:
+              type: string
+              example: "A modern theme with vibrant colors"
+            theme_image:
+              type: string
+              example: "https://res.cloudinary.com/dqpe1pisz/image/upload/v1744747952/checkafe/themes/modern_cafe.jpg"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-04-15T12:00:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2025-04-15T12:00:00Z"
+
+    ShopThemesResponse:
+      type: object
+      properties:
+        themes:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "507f1f77bcf86cd799439011"
+              name:
+                type: string
+                example: "Modern Cafe"
+              description:
+                type: string
+                example: "A modern theme with vibrant colors"
+              theme_image:
+                type: string
+                example: "https://res.cloudinary.com/dqpe1pisz/image/upload/v1744747952/checkafe/themes/modern_cafe.jpg"
+              createdAt:
+                type: string
+                format: date-time
+                example: "2025-04-15T12:00:00Z"
+              updatedAt:
+                type: string
+                format: date-time
+                example: "2025-04-15T12:00:00Z"
+        metadata:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            totalPages:
+              type: integer
+              example: 5
+
+    Shop:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439013"
+        name:
+          type: string
+          example: "Checkafe"
+        address:
+          type: string
+          example: "123 Đường Láng, Hà Nội"
+        location:
+          type: object
+          properties:
+            type:
+              type: string
+              example: "Point"
+            coordinates:
+              type: array
+              items:
+                type: number
+              example: [105.8167, 21.0285]
+        owner_id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        theme_ids:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "507f1f77bcf86cd799439012"
+              name:
+                type: string
+                example: "Modern Cafe"
+              description:
+                type: string
+                example: "A modern theme"
+              theme_image:
+                type: string
+                example: "https://res.cloudinary.com/.../modern_cafe.jpg"
+        vip_status:
+          type: boolean
+          example: false
+        rating_avg:
+          type: number
+          example: 4.5
+        rating_count:
+          type: number
+          example: 120
+        status:
+          type: string
+          example: "Active"
+        amenities:
+          type: array
+          items:
+            type: string
+            enum: ["WiFi", "PowerOutlets", "QuietZone", "AirConditioning", "Parking", "PetFriendly"]
+          example: ["WiFi", "QuietZone"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-04-15T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-04-15T12:00:00Z"
+
+    ShopResponse:
+      type: object
+      properties:
+        shop:
+          $ref: '#/components/schemas/Shop'
+
+    ShopDetailsResponse:
+      type: object
+      properties:
+        shop:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439013"
+            name:
+              type: string
+              example: "Checkafe"
+            address:
+              type: string
+              example: "123 Đường Láng, Hà Nội"
+            location:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: "Point"
+                coordinates:
+                  type: array
+                  items:
+                    type: number
+                  example: [105.8167, 21.0285]
+            owner_id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            theme_ids:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439012"
+                  name:
+                    type: string
+                    example: "Modern Cafe"
+                  description:
+                    type: string
+                    example: "A modern theme"
+                  theme_image:
+                    type: string
+                    example: "https://res.cloudinary.com/.../modern_cafe.jpg"
+            vip_status:
+              type: boolean
+              example: false
+            rating_avg:
+              type: number
+              example: 4.5
+            rating_count:
+              type: number
+              example: 120
+            status:
+              type: string
+              example: "Active"
+            amenities:
+              type: array
+              items:
+                type: string
+                enum: ["WiFi", "PowerOutlets", "QuietZone", "AirConditioning", "Parking", "PetFriendly"]
+              example: ["WiFi", "QuietZone"]
+            images:
+              type: array
+              items:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    example: "https://res.cloudinary.com/.../checkafe/shops/checkafe.jpg"
+                  caption:
+                    type: string
+                    example: "Main entrance"
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2025-04-15T12:00:00Z"
+            seats:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439014"
+                  seat_name:
+                    type: string
+                    example: "T01"
+                  image:
+                    type: string
+                    example: "https://res.cloudinary.com/.../checkafe/seats/t01.jpg"
+                  is_premium:
+                    type: boolean
+                    example: false
+                  is_available:
+                    type: boolean
+                    example: true
+                  capacity:
+                    type: number
+                    example: 4
+            menuItems:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439015"
+                  name:
+                    type: string
+                    example: "Espresso"
+                  description:
+                    type: string
+                    example: "Strong black coffee"
+                  price:
+                    type: number
+                    example: 35000
+                  category:
+                    type: string
+                    example: "Coffee"
+                  is_available:
+                    type: boolean
+                    example: true
+            timeSlots:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439016"
+                  day_of_week:
+                    type: number
+                    example: 1
+                  start_time:
+                    type: string
+                    example: "08:00"
+                  end_time:
+                    type: string
+                    example: "22:00"
+                  max_regular_reservations:
+                    type: number
+                    example: 20
+                  max_premium_reservations:
+                    type: number
+                    example: 5
+                  is_active:
+                    type: boolean
+                    example: true
+            verifications:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "507f1f77bcf86cd799439017"
+                  document_type:
+                    type: string
+                    example: "BusinessLicense"
+                  document_url:
+                    type: string
+                    example: "https://res.cloudinary.com/.../checkafe/verifications/license.jpg"
+                  status:
+                    type: string
+                    example: "Pending"
+                  submitted_at:
+                    type: string
+                    format: date-time
+                    example: "2025-04-15T12:00:00Z"
+                  reason:
+                    type: string
+                    example: "Initial verification"
+
+    ShopImageResponse:
+      type: object
+      properties:
+        image:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439014"
+            shop_id:
+              type: string
+              example: "507f1f77bcf86cd799439013"
+            url:
+              type: string
+              example: "https://res.cloudinary.com/.../checkafe/shops/checkafe.jpg"
+            caption:
+              type: string
+              example: "Main entrance"
+            created_at:
+              type: string
+              format: date-time
+              example: "2025-04-15T12:00:00Z"
+
+    ShopSeatResponse:
+      type: object
+      properties:
+        seat:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439014"
+            shop_id:
+              type: string
+              example: "507f1f77bcf86cd799439013"
+            seat_name:
+              type: string
+              example: "T01"
+            image:
+              type: string
+              example: "https://res.cloudinary.com/.../checkafe/seats/t01.jpg"
+            is_premium:
+              type: boolean
+              example: false
+            is_available:
+              type: boolean
+              example: true
+            capacity:
+              type: number
+              example: 4
+
+    ShopMenuItemResponse:
+      type: object
+      properties:
+        menuItem:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439015"
+            shop_id:
+              type: string
+              example: "507f1f77bcf86cd799439013"
+            name:
+              type: string
+              example: "Espresso"
+            description:
+              type: string
+              example: "Strong black coffee"
+            price:
+              type: number
+              example: 35000
+            category:
+              type: string
+              example: "Coffee"
+            is_available:
+              type: boolean
+              example: true
+
+    ShopTimeSlotResponse:
+      type: object
+      properties:
+        timeSlot:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439016"
+            shop_id:
+              type: string
+              example: "507f1f77bcf86cd799439013"
+            day_of_week:
+              type: number
+              example: 1
+            start_time:
+              type: string
+              example: "08:00"
+            end_time:
+              type: string
+              example: "22:00"
+            max_regular_reservations:
+              type: number
+              example: 20
+            max_premium_reservations:
+              type: number
+              example: 5
+            is_active:
+              type: boolean
+              example: true
+
+    ShopVerificationResponse:
+      type: object
+      properties:
+        verification:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439017"
+            shop_id:
+              type: string
+              example: "507f1f77bcf86cd799439013"
+            document_type:
+              type: string
+              example: "BusinessLicense"
+            document_url:
+              type: string
+              example: "https://res.cloudinary.com/.../checkafe/verifications/license.jpg"
+            status:
+              type: string
+              example: "Pending"
+            submitted_at:
+              type: string
+              format: date-time
+              example: "2025-04-15T12:00:00Z"
+            reason:
+              type: string
+              example: "Initial verification"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

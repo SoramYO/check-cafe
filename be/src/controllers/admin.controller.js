@@ -1,8 +1,26 @@
 "use strict";
 
+const { OK } = require("../configs/success.response");
+const { ADMIN_MESSAGE } = require("../constants/message");
+const asyncHandler = require("../helpers/asyncHandler");
 const adminService = require("../services/admin.service");
+const userService = require("../services/user.service");
 
 class AdminController {
+  // Manage Users
+  getUsers = asyncHandler(async (req, res, next) => {
+    const result = await userService.getUsers(req.query);
+    new OK({ message: ADMIN_MESSAGE.GET_USER_LIST_SUCCESS, data: result }).send(
+      res
+    );
+  });
+  manageUserAccount = asyncHandler(async (req, res, next) => {
+    const result = await userService.manageUserAccount(req.body);
+    new OK({
+      message: ADMIN_MESSAGE.MANAGE_USER_ACCOUNT_SUCCESS,
+      data: result,
+    }).send(res);
+  });
   // Auth
   login = async (req, res, next) => {
     try {
@@ -22,7 +40,9 @@ class AdminController {
 
   changePassword = async (req, res, next) => {
     try {
-      res.status(200).json(await adminService.changePassword(req.user, req.body));
+      res
+        .status(200)
+        .json(await adminService.changePassword(req.user, req.body));
     } catch (error) {
       next(error);
     }
@@ -47,7 +67,9 @@ class AdminController {
 
   updateAd = async (req, res, next) => {
     try {
-      res.status(200).json(await adminService.updateAd(req.params.id, req.body));
+      res
+        .status(200)
+        .json(await adminService.updateAd(req.params.id, req.body));
     } catch (error) {
       next(error);
     }
