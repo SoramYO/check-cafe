@@ -13,6 +13,10 @@ class CustomerService {
                 filter.categories = { $in: Array.isArray(query.categories) ? query.categories : [query.categories] };
             }
 
+            if (query.categoryIds) {
+                filter.categories = { $in: Array.isArray(query.categoryIds) ? query.categoryIds : [query.categoryIds] };
+            }
+
             return await shopRepository.paginate(
                 filter,
                 {
