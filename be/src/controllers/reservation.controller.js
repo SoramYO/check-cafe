@@ -53,6 +53,22 @@ class ReservationController {
       data: result,
     }).send(res);
   });
+
+  checkInReservationByShop = asyncHandler(async (req, res) => {
+    const result = await reservationService.checkInReservationByShop(req);
+    new OK({
+      message: RESERVATION_MESSAGE.CHECK_IN_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  checkInReservationCustomer = asyncHandler(async (req, res) => {
+    const result = await reservationService.checkInReservationCustomer(req);
+    new OK({
+      message: RESERVATION_MESSAGE.CHECK_IN_SUCCESS,
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new ReservationController();

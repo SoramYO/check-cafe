@@ -86,6 +86,7 @@ const RESERVATION_MESSAGE = {
   COMPLETE_SUCCESS: "Reservation completed successfully",
   GET_ALL_SUCCESS: "Get all reservations successfully",
   GET_DETAIL_SUCCESS: "Get reservation details successfully",
+  CHECK_IN_SUCCESS: "Check in reservation successfully",
 };
 
 module.exports = {
