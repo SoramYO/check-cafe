@@ -480,6 +480,7 @@ const checkInReservationByShop = async (req) => {
       const { shopId } = req.params;
       const { qr_code } = req.body;
       const { userId, role } = req.user;
+      
   
       // Validate shopId
       if (!isValidObjectId(shopId)) {

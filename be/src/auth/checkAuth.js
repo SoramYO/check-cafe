@@ -2,7 +2,7 @@
 
 const JWT = require("jsonwebtoken");
 const { createTokenPair } = require("./jwt");
-const { HEADER } = require("../constants/enum");
+const { HEADER, USER_ROLE } = require("../constants/enum");
 const shopModel = require("../models/shop.model");
 
 // Hàm kiểm tra xác thực
@@ -154,7 +154,6 @@ const checkShopOwnership = async (req, res, next) => {
     const { userId, role } = req.user;
 
   if (role === USER_ROLE.ADMIN) return next();
-
   const shop = await shopModel.findById(shopId);
   if (!shop) {
     return res.status(404).json({
