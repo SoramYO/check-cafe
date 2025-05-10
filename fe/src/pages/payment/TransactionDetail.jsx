@@ -1,9 +1,9 @@
 import React from 'react';
 import * as Icons from "react-icons/tb";
-import Orders from '../../api/Orders.json'; // Import Orders data
+import Orders from '../../apis/Orders.json'; // Import Orders data
 import { Link,useParams } from 'react-router-dom';
-import Customers from '../../api/Customers.json';
-import Transactions from '../../api/Transactions.json';
+import Customers from '../../apis/Customers.json';
+import Transactions from '../../apis/Transactions.json';
 import Profile from "../../components/common/Profile.jsx";
 
 const TransactionDetail = () => {

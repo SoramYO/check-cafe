@@ -1,5 +1,5 @@
 import * as Icons from "react-icons/tb";
-import Pages from "../../api/Pages.json";
+import Pages from "../../apis/Pages.json";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";

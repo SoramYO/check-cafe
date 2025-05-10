@@ -1,7 +1,7 @@
 import React,{ useState, useEffect } from 'react';
 import * as Icons from "react-icons/tb";
-import Languages from '../../api/languages.json'
-import Currencies from '../../api/Currencies.json';
+import Languages from '../../apis/languages.json'
+import Currencies from '../../apis/Currencies.json';
 import Input from "../../components/common/Input.jsx";
 import Textarea from "../../components/common/Textarea.jsx";
 import Dropdown from "../../components/common/Dropdown.jsx";

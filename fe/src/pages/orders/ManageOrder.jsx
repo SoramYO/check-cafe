@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import * as Icons from "react-icons/tb";
-import Orders from "../../api/Orders.json";
-import Customers from "../../api/Customers.json";
+import Orders from "../../apis/Orders.json";
+import Customers from "../../apis/Customers.json";
 import React, { useState, useEffect } from "react";
 import Input from "../../components/common/Input.jsx";
 import Badge from "../../components/common/Badge.jsx";

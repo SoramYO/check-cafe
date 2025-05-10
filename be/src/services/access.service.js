@@ -85,7 +85,7 @@ class AccessService {
 
     return {
       user: getInfoData({
-        fields: ["_id", "full_name", "email", "role"],
+        fields: ["_id", "full_name", "email", "role", "avatar"],
         object: foundUser,
       }),
       tokens,

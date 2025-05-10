@@ -1,7 +1,7 @@
 import React,{ useState } from 'react';
 import * as Icons from "react-icons/tb";
-import Products from '../../api/Products.json';
-import Customers from '../../api/Customers.json';
+import Products from '../../apis/Products.json';
+import Customers from '../../apis/Customers.json';
 import Modal from "../../components/common/Modal.jsx";
 import Input from "../../components/common/Input.jsx";
 import Button from "../../components/common/Button.jsx";
