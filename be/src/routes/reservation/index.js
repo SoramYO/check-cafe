@@ -12,5 +12,6 @@ router.use(checkRole([USER_ROLE.CUSTOMER, USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]
 router.post("/", reservationController.createReservation);
 router.patch("/:reservationId/confirm", reservationController.confirmReservation);
 router.patch("/:reservationId/cancel", reservationController.cancelReservation);
+router.post("/:reservationId/checkin", reservationController.checkInReservationCustomer);
 
 module.exports = router;

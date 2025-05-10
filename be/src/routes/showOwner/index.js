@@ -18,5 +18,6 @@ router.get("/shops/:shopId/reservations/:reservationId", checkShopOwnership, res
 router.patch("/shops/:shopId/reservations/:reservationId/confirm", checkShopOwnership, reservationController.confirmReservation);
 router.patch("/shops/:shopId/reservations/:reservationId/cancel", checkShopOwnership, reservationController.cancelReservation);
 router.patch("/shops/:shopId/reservations/:reservationId/complete", checkShopOwnership, reservationController.completeReservation);
+router.post("/shops/:shopId/reservations/checkin", checkShopOwnership, reservationController.checkInReservationByShop);
 
 module.exports = router;
