@@ -4,9 +4,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from 'sonner-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+// Screens
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
@@ -19,13 +25,6 @@ import BookingScreen from './screens/BookingScreen';
 import CheckinCameraScreen from './screens/CheckinCameraScreen';
 import FeaturedDetailScreen from './screens/FeaturedDetailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
-import { useEffect, useState } from 'react';
-import { ThemeProvider } from './context/ThemeContext';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -36,7 +35,7 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
+          let iconName: keyof typeof MaterialCommunityIcons.glyphMap = 'home';
 
           if (route.name === 'Discover') {
             iconName = focused ? 'coffee' : 'coffee-outline';
@@ -48,64 +47,57 @@ function MainTabs() {
             iconName = focused ? 'account' : 'account-outline';
           }
 
-          return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
+          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#FF6B6B',
-        tabBarInactiveTintColor: '#94A3B8',
-        tabBarStyle: {
-          paddingBottom: 5,
-          height: 60,
-          backgroundColor: 'white',
-          borderTopWidth: 0,
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          paddingBottom: 5,
-        },
+        tabBarActiveTintColor: '#4A90E2',
+        tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="Discover" component={DiscoverScreen} options={{ title: 'Khám phá' }} />
-      <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Bản đồ' }} />
-      <Tab.Screen name="Bookings" component={BookingsScreen} options={{ title: 'Đặt chỗ' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Cá nhân' }} />
+      <Tab.Screen name="Discover" component={DiscoverScreen} />
+      <Tab.Screen name="Map" component={MapScreen} />
+      <Tab.Screen name="Bookings" component={BookingsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
 
 export default function App() {
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
-  const [fontsLoaded] = useFonts({
-    'Poppins_400Regular': require('@expo-google-fonts/poppins/Poppins_400Regular.ttf'),
-    'Poppins_500Medium': require('@expo-google-fonts/poppins/Poppins_500Medium.ttf'),
-    'Poppins_600SemiBold': require('@expo-google-fonts/poppins/Poppins_600SemiBold.ttf'),
-    'Poppins_700Bold': require('@expo-google-fonts/poppins/Poppins_700Bold.ttf'),
+  const [isLoaded] = useFonts({
+    "MaterialCommunityIcons": require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"),
   });
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+
   useEffect(() => {
-    async function checkOnboardingStatus() {
+    async function prepare() {
       try {
-        const value = await AsyncStorage.getItem('hasSeenOnboarding');
-        setHasSeenOnboarding(value === 'true');
-      } catch (error) {
-        console.error('Error checking onboarding status:', error);
-        setHasSeenOnboarding(false);
+        await SplashScreen.preventAutoHideAsync();
+        const onboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+        setHasSeenOnboarding(!!onboarding);
+        
+        const token = await AsyncStorage.getItem('token');
+        setIsAuthenticated(!!token);
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        await SplashScreen.hideAsync();
       }
     }
 
-    checkOnboardingStatus();
+    prepare();
   }, []);
 
-  useEffect(() => {
-    if (fontsLoaded && hasSeenOnboarding !== null) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, hasSeenOnboarding]);
-
-  if (!fontsLoaded || hasSeenOnboarding === null) {
+  if (!isLoaded) {
     return null;
   }
+
+  // Determine initial route
+  const getInitialRoute = () => {
+    if (!hasSeenOnboarding) return 'Onboarding';
+    if (!isAuthenticated) return 'Login';
+    return 'MainApp';
+  };
 
   return (
     <ThemeProvider>
@@ -114,48 +106,17 @@ export default function App() {
           <Toaster />
           <NavigationContainer>
             <Stack.Navigator
+              initialRouteName={getInitialRoute()}
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: 'white' },
                 animation: 'fade_from_bottom',
               }}
-              initialRouteName={hasSeenOnboarding ? 'Welcome' : 'Onboarding'}
             >
               <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-              <Stack.Screen name="Welcome" component={HomeScreen} />
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Register" component={RegisterScreen} />
               <Stack.Screen name="MainApp" component={MainTabs} />
-              <Stack.Screen 
-                name="CafeDetail" 
-                component={CafeDetailScreen}
-                options={{
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen 
-                name="Booking" 
-                component={BookingScreen}
-                options={{
-                  presentation: 'modal',
-                  animation: 'slide_from_bottom',
-                }}
-              />
-              <Stack.Screen 
-                name="CheckinCamera" 
-                component={CheckinCameraScreen}
-                options={{
-                  presentation: 'fullScreenModal',
-                  animation: 'fade',
-                }}
-              />
-              <Stack.Screen 
-                name="FeaturedDetail" 
-                component={FeaturedDetailScreen}
-                options={{
-                  animation: 'slide_from_right',
-                }}
-              />
             </Stack.Navigator>
           </NavigationContainer>
         </SafeAreaProvider>
@@ -167,5 +128,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  }
+  },
 });
+

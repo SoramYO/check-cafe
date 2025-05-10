@@ -1,5 +1,5 @@
 import * as Icons from "react-icons/tb";
-import Products from "../../api/Products.json";
+import Products from "../../apis/Products.json";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";

@@ -1,7 +1,7 @@
 import * as Icons from "react-icons/tb";
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import Pages from '../../api/Pages.json';
+import Pages from '../../apis/Pages.json';
 import Media from '../../pages/media/Media.jsx';
 import Input from "../../components/common/Input.jsx";
 import Modal from "../../components/common/Modal.jsx";

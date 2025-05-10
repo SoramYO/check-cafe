@@ -1,9 +1,9 @@
 import React from "react";
 import * as Icons from "react-icons/tb";
 import { Link,useParams } from "react-router-dom";
-import Reviews from "../../api/Reviews.json";
-import Products from "../../api/Products.json";
-import Customers from "../../api/Customers.json";
+import Reviews from "../../apis/Reviews.json";
+import Products from "../../apis/Products.json";
+import Customers from "../../apis/Customers.json";
 import Badge from "../../components/common/Badge.jsx";
 import Rating from "../../components/common/Rating.jsx";
 import Button from "../../components/common/Button.jsx";

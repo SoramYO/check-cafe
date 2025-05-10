@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import * as Icons from 'react-icons/tb';
 import { useDispatch } from 'react-redux';
-import Logo from '../../images/common/logo.svg';
-import { Link, NavLink } from 'react-router-dom';
-import navigation from '../../api/navigation.jsx';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {logout} from '../../store/slices/authenticationSlice.jsx';
+import navigation from './../../apis/navigation';
 
 const Sidebar = () => {
-  const dispatch = useDispatch();
   const [toggle, setToggle] = useState(null);
   const [sidebar, setSidebar] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleManu = (key) => {
     setToggle((prevToggle) => (prevToggle === key ? null : key));
@@ -20,7 +20,10 @@ const Sidebar = () => {
   };
 
   const handleIsLogout = () => {
-    dispatch(logout())
+    dispatch(logout());
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    navigate('/login');
   };
 
   return (

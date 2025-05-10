@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import * as Icons from 'react-icons/tb';
-import { useDispatch } from 'react-redux';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import * as Icons from "react-icons/tb";
+import { useDispatch } from "react-redux";
 import Logo from "../../images/common/logo-dark.svg";
-import Input from '../../components/common/Input.jsx';
-import Button from '../../components/common/Button.jsx';
-import CheckBox from '../../components/common/CheckBox.jsx';
-import {login} from '../../store/slices/authenticationSlice.jsx';
+import Input from "../../components/common/Input.jsx";
+import Button from "../../components/common/Button.jsx";
+import CheckBox from "../../components/common/CheckBox.jsx";
+import { login } from "../../store/slices/authenticationSlice.jsx";
+import authenticationAPI from "../../apis/auth";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -18,6 +19,7 @@ const Login = () => {
   const [isRemember, setIsRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (fieldName, newValue) => {
     setFormData((prevFormData) => ({
@@ -34,15 +36,27 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (formData.email === "eventadmin@gmail.com" && formData.password === "eventadmin") {
-      dispatch(login())
-    } else {
+    setIsLoading(true);
+    setLoginError(false);
+
+    try {
+      const response = await authenticationAPI.HandleAuthentication("/sign-in", formData, "post");
+      const { data } = response;
+
+      // Store tokens if remember me is checked
+      localStorage.setItem("access_token", data.tokens.accessToken);
+      localStorage.setItem("refresh_token", data.tokens.refreshToken);
+      dispatch(login(data.user));
+      navigate("/catalog/product/manage");
+    } catch (error) {
       setLoginError(true);
       setTimeout(() => {
         setLoginError(false);
       }, 5000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -50,7 +64,10 @@ const Login = () => {
     <div className="login">
       <div className="login_sidebar">
         <figure className="login_image">
-          <img src="https://images.unsplash.com/photo-1694537745985-34eacdf76139?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80" alt="" />
+          <img
+            src="https://images.unsplash.com/photo-1694537745985-34eacdf76139?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80"
+            alt=""
+          />
         </figure>
       </div>
       <div className="login_form">
@@ -65,11 +82,9 @@ const Login = () => {
             <Input
               type="text"
               value={formData.email}
-              onChange={(value) =>
-                handleInputChange("email", value)
-              }
+              onChange={(value) => handleInputChange("email", value)}
               placeholder="Email or Phone Number"
-              icon={<Icons.TbMail/>}
+              icon={<Icons.TbMail />}
               label="Email or Number"
             />
           </div>
@@ -77,13 +92,11 @@ const Login = () => {
             <Input
               type={showPassword ? "text" : "password"}
               value={formData.password}
-              onChange={(value) =>
-                handleInputChange("password", value)
-              }
+              onChange={(value) => handleInputChange("password", value)}
               placeholder="Password"
               label="Password"
               onClick={handleShowPassword}
-              icon={<Icons.TbEye/>}
+              icon={<Icons.TbEye />}
             />
           </div>
           <div className="form_control">
@@ -94,11 +107,14 @@ const Login = () => {
               onChange={handleRememberChange}
             />
           </div>
-          {loginError && <small className="incorrect">Incorrect email or password and Remember me</small>}
+          {loginError && (
+            <small className="incorrect">Incorrect email or password</small>
+          )}
           <div className="form_control">
             <Button
-              label="Login"
+              label={isLoading ? "Logging in..." : "Login"}
               type="submit"
+              disabled={isLoading}
             />
           </div>
         </form>
@@ -107,13 +123,16 @@ const Login = () => {
         </p>
         <button className="google_signin">
           <figure>
-            <img src="https://img.icons8.com/color/1000/google-logo.png" alt="" />
+            <img
+              src="https://img.icons8.com/color/1000/google-logo.png"
+              alt=""
+            />
           </figure>
           <h2>Sign in with Google</h2>
         </button>
       </div>
     </div>
   );
-}
+};
 
 export default Login;

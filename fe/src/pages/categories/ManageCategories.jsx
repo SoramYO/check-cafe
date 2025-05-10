@@ -1,6 +1,6 @@
 import * as Icons from "react-icons/tb";
 import React, { useState, useEffect } from "react";
-import Categories from "../../api/Categories.json";
+import Categories from "../../apis/Categories.json";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Badge from "../../components/common/Badge.jsx";

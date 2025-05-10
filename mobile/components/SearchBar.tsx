@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { toast } from 'sonner-native';
+import Voice from '@react-native-voice/voice';
 
 interface SearchBarProps {
   value: string;
@@ -14,47 +15,33 @@ interface SearchBarProps {
 export default function SearchBar({ value, onChangeText, onPressFilter, onPressVoice }: SearchBarProps) {
   const [isListening, setIsListening] = useState(false);
 
+  useEffect(() => {
+    Voice.onSpeechResults = onSpeechResults;
+    Voice.onSpeechError = onSpeechError;
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  const onSpeechResults = (event: any) => {
+    const results = event.value;
+    if (results && results.length > 0) {
+      onChangeText(results[0]);
+      setIsListening(false);
+      Speech.speak('Đang tìm kiếm ' + results[0], { language: 'vi-VN' });
+    }
+  };
+
+  const onSpeechError = (event: any) => {
+    setIsListening(false);
+    toast.error('Không thể nhận dạng giọng nói');
+  };
+
   const startVoiceRecognition = async () => {
     try {
       setIsListening(true);
-
-      // Stop any ongoing speech
-      Speech.stop();
-
-      // Start listening
-      const thresholds = {
-        recognitionThreshold: 0.1,
-        modelPoints: 1,
-      };
-
-      Speech.speak('Bạn muốn tìm quán cà phê nào?', {
-        language: 'vi-VN',
-        onDone: () => {
-          setTimeout(() => {
-            // Simulate voice recognition result after 3 seconds
-            const mockResults = [
-              'The Dreamer Coffee',
-              'Mountain View Café',
-              'Horizon Coffee',
-            ];
-            const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
-            onChangeText(randomResult);
-            setIsListening(false);
-            
-            // Provide feedback
-            Speech.speak('Đang tìm kiếm ' + randomResult, {
-              language: 'vi-VN',
-            });
-          }, 3000);
-        },
-        onError: (error) => {
-          console.error('Speech error:', error);
-          setIsListening(false);
-          toast.error('Không thể nhận dạng giọng nói');
-        },
-      });
+      await Voice.start('vi-VN');
     } catch (error) {
-      console.error('Voice recognition error:', error);
       setIsListening(false);
       toast.error('Không thể khởi động nhận dạng giọng nói');
     }

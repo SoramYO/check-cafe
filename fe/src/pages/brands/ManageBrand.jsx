@@ -1,5 +1,5 @@
 import * as Icons from "react-icons/tb";
-import Brands from "../../api/Brands.json";
+import Brands from "../../apis/Brands.json";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";

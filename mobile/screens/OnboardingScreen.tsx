@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -56,6 +57,14 @@ export default function OnboardingScreen({ navigation }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const flatListRef = useRef(null);
 
+    const markOnboardingComplete = async () => {
+        try {
+            await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+        } catch (error) {
+            console.error('Error saving onboarding status:', error);
+        }
+    };
+
     const renderItem = ({ item, index }) => (
         <View style={styles.slide}>
             <Image source={{ uri: item.image }} style={styles.image} />
@@ -95,7 +104,7 @@ export default function OnboardingScreen({ navigation }) {
         </View>
     );
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (currentIndex < ONBOARDING_DATA.length - 1) {
             flatListRef.current?.scrollToIndex({
                 index: currentIndex + 1,
@@ -103,12 +112,14 @@ export default function OnboardingScreen({ navigation }) {
             });
             setCurrentIndex(currentIndex + 1);
         } else {
-            navigation.replace('MainApp');
+            await markOnboardingComplete();
+            navigation.replace('Login');
         }
     };
 
-    const handleSkip = () => {
-        navigation.replace('MainApp');
+    const handleSkip = async () => {
+        await markOnboardingComplete();
+        navigation.replace('Login');
     };
 
     return (

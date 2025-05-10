@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/common/Input.jsx";
 import Badge from "../../components/common/Badge.jsx";
-import Transactions from '../../api/Transactions.json';
+import Transactions from '../../apis/Transactions.json';
 import Button from "../../components/common/Button.jsx";
 import CheckBox from "../../components/common/CheckBox.jsx";
 import Dropdown from "../../components/common/Dropdown.jsx";
