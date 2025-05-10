@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String },
     points: { type: Number, default: 0 },
     vip_status: { type: Boolean, default: false },
+    fcm_token: { type: String },
     is_active: { type: Boolean, default: true }
   },
   { timestamps: true, collection: COLLECTION_NAME }

@@ -23,6 +23,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
@@ -153,8 +154,15 @@ export default function RegisterScreen({ navigation }) {
                   placeholderTextColor="rgba(255,255,255,0.7)"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  secureTextEntry={!showPassword}
+                  secureTextEntry={!showConfirmPassword}
                 />
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <MaterialCommunityIcons 
+                    name={showConfirmPassword ? "eye-off" : "eye"} 
+                    size={24} 
+                    color="white" 
+                  />
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity 

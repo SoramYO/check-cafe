@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Thay đổi IP này thành IP của máy chủ của bạn
-const BASE_URL = 'http://192.168.1.1:3000/v1/api'; // Thay x bằng số thích hợp
+const BASE_URL = 'http://192.168.100.207:3000/v1/api'; // Thay x bằng số thích hợp
 
 const api = axios.create({
   baseURL: BASE_URL,
