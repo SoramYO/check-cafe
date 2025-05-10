@@ -1,9 +1,9 @@
 import * as Icons from "react-icons/tb";
-import Orders from '../../api/Orders.json';
-import Reviews from '../../api/Reviews.json';
-import country from '../../api/country.json';
+import Orders from '../../apis/Orders.json';
+import Reviews from '../../apis/Reviews.json';
+import country from '../../apis/country.json';
 import {useParams, Link} from 'react-router-dom'
-import Customers from '../../api/Customers.json';
+import Customers from '../../apis/Customers.json';
 import React, { useState, useEffect } from "react";
 import Modal from "../../components/common/Modal.jsx";
 import Badge from "../../components/common/Badge.jsx";

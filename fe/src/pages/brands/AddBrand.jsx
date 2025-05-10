@@ -1,6 +1,6 @@
 import * as Icons from "react-icons/tb";
 import React, { useState, useEffect } from "react";
-import Categories from '../../api/Categories.json';
+import Categories from '../../apis/Categories.json';
 import Input from "../../components/common/Input.jsx";
 import Button from "../../components/common/Button.jsx";
 import Dropdown from "../../components/common/Dropdown.jsx";

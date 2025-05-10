@@ -1,6 +1,6 @@
 import React from "react";
 import ReactApexChart from "react-apexcharts";
-import AudienceData from '../api/AudienceData.json';
+import AudienceData from '../apis/AudienceData.json';
 
 const OrdersChart = () => {
   const chartOptions = {
