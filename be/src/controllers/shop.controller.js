@@ -6,6 +6,15 @@ const asyncHandler = require("../helpers/asyncHandler");
 const shopService = require("../services/shop.service");
 
 class ShopController {
+  getAllPublicShops = asyncHandler(async (req, res) => {
+    const result = await shopService.getAllPublicShops(req);
+    new OK({
+      message: SHOP_MESSAGE.GET_ALL_PUBLIC_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+
   createShop = asyncHandler(async (req, res) => {
     const result = await shopService.createShop(req);
     new CREATED({
@@ -26,6 +35,14 @@ class ShopController {
     const result = await shopService.getShop(req);
     new OK({
       message: SHOP_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getAllShops = asyncHandler(async (req, res) => {
+    const result = await shopService.getAllShops(req);
+    new OK({
+      message: SHOP_MESSAGE.GET_ALL_SUCCESS,
       data: result,
     }).send(res);
   });
