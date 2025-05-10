@@ -162,8 +162,6 @@ const checkShopOwnership = async (req, res, next) => {
       message: "Shop not found",
     });
   }
-  console.log("🚀 ~ checkShopOwnership ~ shop.owner_id:", shop.owner_id)
-  console.log("🚀 ~ checkShopOwnership ~ userId:", userId)
   if (shop.owner_id.toString() !== userId) {
       return res.status(403).json({
         status: "error",
