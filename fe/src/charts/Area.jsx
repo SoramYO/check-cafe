@@ -1,6 +1,6 @@
 import React from "react";
 import Chart from "react-apexcharts";
-import SaleProductData from "../api/SaleProductData.json";
+import SaleProductData from "../apis/SaleProductData.json";
 
 const AreaChart = () => {
   const options = {

@@ -11,7 +11,7 @@ import CheckBox from "../../components/common/CheckBox.jsx";
 import Textarea from "../../components/common/Textarea.jsx";
 import Dropdown from "../../components/common/Dropdown.jsx";
 import Pagination from "../../components/common/Pagination.jsx";
-import ProductAttributes from "../../api/ProductAttributes.json";
+import ProductAttributes from "../../apis/ProductAttributes.json";
 import TableAction from "../../components/common/TableAction.jsx";
 import MultiSelect from "../../components/common/MultiSelect.jsx";
 

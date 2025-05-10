@@ -4,6 +4,7 @@ const app = express();
 const morgan = require("morgan");
 const helmet = require("helmet");
 const compression = require("compression");
+const cors = require("cors");
 const os = require("os");
 const router = require("./routes/index");
 const { swaggerUi, swaggerSetup } = require("./configs/swagger.config");
@@ -19,6 +20,16 @@ app.use(
     threshold: 100 * 1000, // trên 100kB thì mới compress
   })
 );
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:5173", // Frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true, // Allow cookies and authentication headers
+  maxAge: 86400 // Cache preflight requests for 24 hours
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

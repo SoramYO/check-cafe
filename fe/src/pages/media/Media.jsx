@@ -1,5 +1,5 @@
 import * as Icons from "react-icons/tb";
-import MediaData from '../../api/Media.json';
+import MediaData from '../../apis/Media.json';
 import React, { useState, useEffect } from "react";
 import Modal from "../../components/common/Modal.jsx";
 import Input from "../../components/common/Input.jsx";

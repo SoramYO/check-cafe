@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import * as Icons from "react-icons/tb";
-import Brands from '../../api/Brands.json';
-import Categories from '../../api/Categories.json';
+import Brands from '../../apis/Brands.json';
+import Categories from '../../apis/Categories.json';
 import Input from "../../components/common/Input.jsx";
 import Button from "../../components/common/Button.jsx";
 import Dropdown from "../../components/common/Dropdown.jsx";
