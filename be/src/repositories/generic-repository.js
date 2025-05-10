@@ -18,9 +18,9 @@ function createGenericRepository(model) {
       async delete(filter) {
         return model.deleteMany(filter);
       },
-      async paginate(filter = {}, { page = 1, size = 10, sort = {} } = {}) {
+      async paginate(filter = {}, { page = 1, size = 10, sort = {}, populate = [] } = {}) {
         const { getPaginatedResult } = require('../utils/paginate');
-        return getPaginatedResult(model, filter, { page, size, sort });
+        return getPaginatedResult(model, filter, { page, size, sort, populate });
       }
     };
   }

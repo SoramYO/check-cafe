@@ -4,10 +4,16 @@ function paginate(query, { page = 1, size = 10 }) {
     return { limit, skip };
   }
   
-  async function getPaginatedResult(model, filter = {}, { page = 1, size = 10, sort = {} } = {}) {
+  async function getPaginatedResult(model, filter = {}, { page = 1, size = 10, sort = {}, populate = [] } = {}) {
     const { limit, skip } = paginate({}, { page, size });
+    let query = model.find(filter).sort(sort).skip(skip).limit(limit);
+    if (populate && populate.length) {
+      populate.forEach(pop => {
+        query = query.populate(pop);
+      });
+    }
     const [items, total] = await Promise.all([
-      model.find(filter).sort(sort).skip(skip).limit(limit),
+      query,
       model.countDocuments(filter)
     ]);
     return {
