@@ -7,56 +7,48 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { toast } from "sonner-native";
+import { authApi } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isGradientSupported, setIsGradientSupported] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
-  const handleLogin = () => {
-    // if (!email || !password) {
-    //   toast.error('Vui lòng nhập đầy đủ thông tin');
-    //   return;
-    // }
-    // const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    // if (!emailRegex.test(email)) {
-    //   toast.error('Email không hợp lệ');
-    //   return;
-    // }
-
-    // // Basic password validation
-    // if (password.length < 6) {
-    //   toast.error('Mật khẩu phải có ít nhất 6 ký tự');
-    //   return;
-    // }
-
-    // Add your login logic here
-    toast.success("Đăng nhập thành công!");
-    navigation.replace("MainApp");
-  };
-  const GradientContainer = ({ children }: any) => {
-    if (!isGradientSupported) {
-      return (
-        <View style={[styles.container, { backgroundColor: "#4A90E2" }]}>
-          {children}
-        </View>
-      );
+  const handleLogin = async () => {
+    if (!email || !password) {
+      toast.error('Vui lòng nhập đầy đủ thông tin');
+      return;
     }
 
-    return (
-      <LinearGradient
-        colors={["#4A90E2", "#50E3C2"]}
-        style={styles.container}
-      >
-        {children}
-      </LinearGradient>
-    );
+    try {
+      setIsLoading(true);
+      const response = await authApi.login(email, password);
+      
+      if (response.code === "200") {
+        await login(
+          response.metadata.tokens.accessToken,
+          response.metadata.user
+        );
+        
+        toast.success('Đăng nhập thành công');
+        navigation.replace('MainApp');
+      } else {
+        toast.error(response.message || 'Đăng nhập thất bại');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Có lỗi xảy ra khi đăng nhập');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderContent = () => (
@@ -114,8 +106,19 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Đăng nhập</Text>
+        <TouchableOpacity 
+          style={[
+            styles.loginButton,
+            isLoading && styles.loginButtonDisabled
+          ]} 
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#4A90E2" />
+          ) : (
+            <Text style={styles.loginButtonText}>Đăng nhập</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.registerContainer}>
@@ -133,18 +136,12 @@ export default function LoginScreen({ navigation }: any) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      {isGradientSupported ? (
-        <LinearGradient
-          colors={["#4A90E2", "#50E3C2"]}
-          style={styles.container}
-        >
-          {renderContent()}
-        </LinearGradient>
-      ) : (
-        <View style={[styles.container, { backgroundColor: "#4A90E2" }]}>
-          {renderContent()}
-        </View>
-      )}
+      <LinearGradient
+        colors={["#4A90E2", "#50E3C2"]}
+        style={styles.container}
+      >
+        {renderContent()}
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
@@ -210,6 +207,9 @@ const styles = StyleSheet.create({
     color: "#4A90E2",
     fontSize: 18,
     fontWeight: "600",
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
   },
   registerContainer: {
     flexDirection: "row",

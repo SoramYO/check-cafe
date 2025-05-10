@@ -71,6 +71,12 @@ const shopSchema = new mongoose.Schema(
         ],
       },
     ],
+    categories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category",
+      },
+    ],
   },
   {
     timestamps: true,
@@ -82,5 +88,17 @@ const shopSchema = new mongoose.Schema(
 shopSchema.index({ location: "2dsphere" });
 // Index cho tìm kiếm theo tên
 shopSchema.index({ name: "text" });
+
+// Virtual để populate shopImages từ Shop sang ShopImage qua shop_id
+shopSchema.virtual('shopImages', {
+  ref: 'ShopImage',
+  localField: '_id',
+  foreignField: 'shop_id',
+  justOne: false
+});
+
+// Đảm bảo khi chuyển sang JSON/object sẽ có virtuals
+shopSchema.set('toObject', { virtuals: true });
+shopSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model(DOCUMENT_NAME, shopSchema);

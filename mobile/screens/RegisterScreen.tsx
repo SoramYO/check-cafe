@@ -1,30 +1,76 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { toast } from 'sonner-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { toast } from "sonner-native";
+import { authApi } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
-export default function RegisterScreen() {
+export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const navigation = useNavigation();
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
-  const handleRegister = () => {
+  const validateForm = () => {
     if (!name || !email || !phone || !password || !confirmPassword) {
       toast.error('Vui lòng nhập đầy đủ thông tin');
-      return;
+      return false;
     }
     if (password !== confirmPassword) {
       toast.error('Mật khẩu không khớp');
-      return;
+      return false;
     }
-    // Add your registration logic here
-    toast.success('Đăng ký thành công!');
+    // Có thể thêm các validation khác ở đây
+    return true;
+  };
+
+  const handleRegister = async () => {
+    if (!validateForm()) return;
+
+    try {
+      setIsLoading(true);
+      const response = await authApi.register({
+        full_name: name,
+        email,
+        password,
+        phone,
+      });
+      console.log('Register response:', response);
+
+      if (response.code === "201") {
+        // Đăng ký thành công, tự động đăng nhập
+        await login(
+          response.metadata.tokens.accessToken,
+          response.metadata.user
+        );
+        
+        toast.success('Đăng ký thành công!');
+        navigation.replace('MainApp');
+      } else {
+        toast.error(response.message || 'Đăng ký thất bại');
+      }
+    } catch (error) {
+      console.error('Register error:', error);
+      toast.error(error.message || 'Có lỗi xảy ra khi đăng ký');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -108,12 +154,30 @@ export default function RegisterScreen() {
                   placeholderTextColor="rgba(255,255,255,0.7)"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  secureTextEntry={!showPassword}
+                  secureTextEntry={!showConfirmPassword}
                 />
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <MaterialCommunityIcons 
+                    name={showConfirmPassword ? "eye-off" : "eye"} 
+                    size={24} 
+                    color="white" 
+                  />
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-                <Text style={styles.registerButtonText}>Đăng ký</Text>
+              <TouchableOpacity 
+                style={[
+                  styles.registerButton,
+                  isLoading && styles.registerButtonDisabled
+                ]} 
+                onPress={handleRegister}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.registerButtonText}>Đăng ký</Text>
+                )}
               </TouchableOpacity>
 
               <View style={styles.loginContainer}>
@@ -188,6 +252,9 @@ const styles = StyleSheet.create({
     color: '#50E3C2',
     fontSize: 18,
     fontWeight: '600',
+  },
+  registerButtonDisabled: {
+    opacity: 0.7,
   },
   loginContainer: {
     flexDirection: 'row',

@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Share } from 'react-native';
-import { useTheme } from '@react-navigation/native';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
 
@@ -45,23 +46,23 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     <ThemedView style={styles.container}>
       <View style={styles.buttonRow}>
         <ActionButton
-          icon="♥"
+          icon="heart"
           label={isFavorite ? "Favorited" : "Favorite"}
           onPress={() => onFavoritePress(!isFavorite)}
           isActive={isFavorite}
         />
         <ActionButton
-          icon="📍"
+          icon="map-marker"
           label="Check In"
           onPress={onCheckInPress}
         />
         <ActionButton
-          icon="🧭"
+          icon="compass"
           label="Directions"
           onPress={onDirectionsPress}
         />
         <ActionButton
-          icon="📤"
+          icon="share"
           label="Share"
           onPress={handleSharePress}
         />
@@ -97,7 +98,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 };
 
 interface ActionButtonProps {
-  icon: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   label: string;
   onPress: () => void;
   isActive?: boolean;
@@ -121,7 +122,11 @@ const ActionButton: React.FC<ActionButtonProps> = ({
         styles.iconContainer,
         isActive && { backgroundColor: '#ff7675' }
       ]}>
-        <ThemedText style={styles.icon}>{icon}</ThemedText>
+        <MaterialCommunityIcons 
+          name={icon} 
+          size={24} 
+          color={isActive ? '#fff' : colors.text} 
+        />
       </View>
       <ThemedText style={[
         styles.buttonLabel,
