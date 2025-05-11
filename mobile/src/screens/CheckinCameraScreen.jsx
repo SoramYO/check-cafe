@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Dimensions, Alert } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView, AnimatePresence } from 'moti';
 import { toast } from 'sonner-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import * as MediaLibrary from 'expo-media-library';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -15,35 +16,96 @@ const CAMERA_GUIDES = [
   { icon: 'image', text: 'Chụp ảnh ngang để có góc nhìn đẹp hơn' },
 ];
 
-export default function CheckinCameraScreen({ navigation, route }) {
+export default function CheckinCameraScreen({ route }) {
+  const navigation = useNavigation();
   const [permission, requestPermission] = useCameraPermissions();
-  const [cameraType, setCameraType] = useState<CameraType>('back');
+  const [cameraType, setCameraType] = useState('back');
   const [isCameraReady, setCameraReady] = useState(false);
-  const [photo, setPhoto] = useState<any>(null);
+  const [photo, setPhoto] = useState(null);
   const [showGuide, setShowGuide] = useState(true);
-  const [flash, setFlash] = useState<'off' | 'on'>('off');
+  const [flash, setFlash] = useState('off');
+  const [isCameraActive, setIsCameraActive] = useState(true);
   
-  const cameraRef = useRef<CameraView | null>(null);
-  const { spotId, spotName, cafeId } = route.params;
+  const cameraRef = useRef(null);
+  const { spotId, spotName, cafeId } = route.params || {};
 
   useEffect(() => {
-    requestPermission();
-    const timer = setTimeout(() => setShowGuide(false), 3000);
-    return () => clearTimeout(timer);
+    let isMounted = true;
+    const setupCamera = async () => {
+      try {
+        await requestPermission();
+        // Request media library permission
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Cần quyền truy cập',
+            'Ứng dụng cần quyền truy cập thư viện ảnh để lưu ảnh check-in.',
+            [{ text: 'OK' }]
+          );
+        }
+        if (isMounted) {
+          const timer = setTimeout(() => setShowGuide(false), 3000);
+          return () => {
+            clearTimeout(timer);
+            cleanupCamera();
+          };
+        }
+      } catch (error) {
+        console.error('Camera setup error:', error);
+        Alert.alert(
+          'Lỗi Camera',
+          'Không thể khởi tạo camera. Vui lòng thử lại.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
+    };
+
+    setupCamera();
+
+    return () => {
+      isMounted = false;
+      cleanupCamera();
+    };
   }, []);
 
+  const cleanupCamera = () => {
+    try {
+      if (cameraRef.current) {
+        cameraRef.current = null;
+      }
+      setIsCameraActive(false);
+    } catch (error) {
+      console.error('Camera cleanup error:', error);
+    }
+  };
+
+  const handleClose = () => {
+    try {
+      cleanupCamera();
+      navigation.goBack();
+    } catch (error) {
+      console.error('Close error:', error);
+      navigation.goBack();
+    }
+  };
+
   const handleCameraReady = () => {
-    setCameraReady(true);
+    try {
+      setCameraReady(true);
+    } catch (error) {
+      console.error('Camera ready error:', error);
+    }
   };
 
   const takePicture = async () => {
-    if (!cameraRef.current || !isCameraReady) return;
+    if (!cameraRef.current || !isCameraReady || !isCameraActive) return;
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 1,
+        quality: 0.8,
         base64: true,
-        exif: true
+        exif: true,
+        skipProcessing: true
       });
       setPhoto(photo);
     } catch (error) {
@@ -54,30 +116,58 @@ export default function CheckinCameraScreen({ navigation, route }) {
 
   const handleSave = async () => {
     try {
-      toast.promise(
-        new Promise((resolve) => setTimeout(resolve, 1500)), // Simulate upload
-        {
-          loading: 'Đang lưu ảnh...',
-          success: 'Check-in thành công!',
-          error: 'Không thể lưu ảnh. Vui lòng thử lại.',
-        }
-      );
-      setTimeout(() => navigation.goBack(), 2000);
+      cleanupCamera();
+      
+      // Save to media library
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status === 'granted') {
+        const asset = await MediaLibrary.createAssetAsync(photo.uri);
+        await MediaLibrary.createAlbumAsync('CheckCafe', asset, false);
+        toast.success('Đã lưu ảnh vào thư viện');
+      } else {
+        toast.error('Không có quyền lưu ảnh');
+      }
+
+      // Simulate upload
+      // toast.promise(
+      //   new Promise((resolve) => setTimeout(resolve, 1500)),
+      //   {
+      //     loading: 'Đang lưu ảnh...',
+      //     success: 'Check-in thành công!',
+      //     error: 'Không thể lưu ảnh. Vui lòng thử lại.',
+      //   }
+      // );
+      // setTimeout(() => navigation.goBack(), 2000);
     } catch (error) {
       console.error('Save error:', error);
+      toast.error('Không thể lưu ảnh. Vui lòng thử lại.');
+      navigation.goBack();
     }
   };
 
   const handleRetake = () => {
-    setPhoto(null);
+    try {
+      setPhoto(null);
+      setIsCameraActive(true);
+    } catch (error) {
+      console.error('Retake error:', error);
+    }
   };
 
   const toggleCameraType = () => {
-    setCameraType(current => (current === 'back' ? 'front' : 'back'));
+    try {
+      setCameraType(current => (current === 'back' ? 'front' : 'back'));
+    } catch (error) {
+      console.error('Toggle camera error:', error);
+    }
   };
 
   const toggleFlash = () => {
-    setFlash(current => (current === 'off' ? 'on' : 'off'));
+    try {
+      setFlash(current => (current === 'off' ? 'on' : 'off'));
+    } catch (error) {
+      console.error('Toggle flash error:', error);
+    }
   };
 
   if (!permission) {
@@ -110,45 +200,41 @@ export default function CheckinCameraScreen({ navigation, route }) {
     <SafeAreaView style={styles.container}>
       {!photo ? (
         <View style={styles.cameraContainer}>
-          <CameraView
-            ref={cameraRef}
-            style={styles.camera}
-            facing={cameraType}
-            onCameraReady={handleCameraReady}
-            flash={flash}
-          >
-            <LinearGradient
-              colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.overlay}
+          {isCameraActive && (
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing={cameraType}
+              onCameraReady={handleCameraReady}
+              flash={flash}
             >
-              <View style={styles.header}>
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <MaterialCommunityIcons name="close" size={24} color="white" />
-                </TouchableOpacity>
-                <Text style={styles.spotName}>{spotName}</Text>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={toggleFlash}
-                >
-                  <MaterialCommunityIcons 
-                    name={flash === 'off' ? 'flash-off' : 'flash'} 
-                    size={24} 
-                    color="white" 
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <AnimatePresence>
-                {showGuide && (
-                  <MotiView
-                    from={{ opacity: 0, translateY: -20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    exit={{ opacity: 0, translateY: -20 }}
-                    style={styles.guideContainer}
+              <LinearGradient
+                colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.7)']}
+                style={styles.overlay}
+              >
+                <View style={styles.header}>
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={handleClose}
+                    activeOpacity={0.7}
                   >
+                    <MaterialCommunityIcons name="close" size={24} color="white" />
+                  </TouchableOpacity>
+                  <Text style={styles.spotName}>{spotName}</Text>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={toggleFlash}
+                  >
+                    <MaterialCommunityIcons 
+                      name={flash === 'off' ? 'flash-off' : 'flash'} 
+                      size={24} 
+                      color="white" 
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {showGuide && (
+                  <View style={styles.guideContainer}>
                     {CAMERA_GUIDES.map((guide, index) => (
                       <View key={index} style={styles.guideItem}>
                         <MaterialCommunityIcons 
@@ -159,53 +245,49 @@ export default function CheckinCameraScreen({ navigation, route }) {
                         <Text style={styles.guideText}>{guide.text}</Text>
                       </View>
                     ))}
-                  </MotiView>
+                  </View>
                 )}
-              </AnimatePresence>
 
-              <View style={styles.gridOverlay}>
-                <View style={styles.gridRow}>
-                  <View style={styles.gridLine} />
-                  <View style={styles.gridLine} />
+                <View style={styles.gridOverlay}>
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridLine} />
+                    <View style={styles.gridLine} />
+                  </View>
+                  <View style={styles.gridCol}>
+                    <View style={styles.gridLine} />
+                    <View style={styles.gridLine} />
+                  </View>
                 </View>
-                <View style={styles.gridCol}>
-                  <View style={styles.gridLine} />
-                  <View style={styles.gridLine} />
+
+                <View style={styles.controls}>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={toggleCameraType}
+                  >
+                    <MaterialCommunityIcons name="camera-flip" size={24} color="white" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.captureButton}
+                    onPress={takePicture}
+                    disabled={!isCameraReady}
+                  >
+                    <View style={styles.captureInner} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => setShowGuide(true)}
+                  >
+                    <MaterialCommunityIcons name="help-circle" size={24} color="white" />
+                  </TouchableOpacity>
                 </View>
-              </View>
-
-              <View style={styles.controls}>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={toggleCameraType}
-                >
-                  <MaterialCommunityIcons name="camera-flip" size={24} color="white" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={takePicture}
-                  disabled={!isCameraReady}
-                >
-                  <View style={styles.captureInner} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setShowGuide(true)}
-                >
-                  <MaterialCommunityIcons name="help-circle" size={24} color="white" />
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </CameraView>
+              </LinearGradient>
+            </CameraView>
+          )}
         </View>
       ) : (
-        <MotiView
-          from={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={styles.previewContainer}
-        >
+        <View style={styles.previewContainer}>
           <Image source={{ uri: photo.uri }} style={styles.preview} />
           <LinearGradient
             colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.7)']}
@@ -215,6 +297,7 @@ export default function CheckinCameraScreen({ navigation, route }) {
               <TouchableOpacity 
                 style={styles.iconButton}
                 onPress={handleRetake}
+                activeOpacity={0.7}
               >
                 <MaterialCommunityIcons name="close" size={24} color="white" />
               </TouchableOpacity>
@@ -248,7 +331,7 @@ export default function CheckinCameraScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           </LinearGradient>
-        </MotiView>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -264,6 +347,7 @@ const styles = StyleSheet.create({
   cameraContainer: {
     flex: 1,
     width: '100%',
+    position: 'relative',
   },
   camera: {
     flex: 1,
@@ -272,12 +356,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     padding: 20,
+    zIndex: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: Platform.OS === 'android' ? 40 : 0,
+    zIndex: 10,
+    elevation: 10,
   },
   iconButton: {
     width: 40,
@@ -286,6 +373,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 11,
+    elevation: 11,
   },
   spotName: {
     color: 'white',

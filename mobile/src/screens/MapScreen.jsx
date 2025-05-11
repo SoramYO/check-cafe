@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from "react-native-maps";
 
 // Định nghĩa mảng CAFES với các quán cà phê cũ và mới
 const CAFES = [
@@ -167,7 +168,6 @@ export default function MapScreen() {
   const renderMarker = (cafe) => {
     if (Platform.OS === 'web') return null;
 
-    const { Marker } = require('react-native-maps');
     return (
       <Marker
         key={cafe.id}
@@ -202,12 +202,12 @@ export default function MapScreen() {
         <LinearGradient colors={["#18213e", "#983aa8"]}>
           {Platform.select({
             native: () => {
-              const { default: Map } = require('react-native-maps');
               
               return (
                 <>
-                  <Map
-                    ref={mapRef}
+                  <MapView
+                    // ref={mapRef}
+                    provider={MapView.PROVIDER_DEFAULT}
                     style={styles.map}
                     showsUserLocation
                     initialRegion={{
@@ -216,9 +216,10 @@ export default function MapScreen() {
                       latitudeDelta: 0.02,
                       longitudeDelta: 0.02,
                     }}
+                    apiKey="AIzaSyBS6lGj7CsMDE5O9bMEf3I3anmfn34OBlA"
                   >
                     {CAFES.map(renderMarker)}
-                  </Map>
+                  </MapView>
 
                   {selectedCafe && (
                     <TouchableOpacity 

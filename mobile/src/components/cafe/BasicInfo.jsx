@@ -2,53 +2,85 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function BasicInfo({ cafe }) {
+export default function BasicInfo({ shop }) {
   const handleCall = () => {
-    Linking.openURL(`tel:${cafe.phone}`);
+    Linking.openURL(`tel:${shop?.phone}`);
   };
+  
 
   const handleDirections = () => {
-    const address = encodeURIComponent(cafe.address);
+    const address = encodeURIComponent(shop?.address);
     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${address}`);
   };
 
   const handleWebsite = () => {
-    if (cafe.website) {
-      Linking.openURL(cafe.website);
+    if (shop?.website) {
+      Linking.openURL(shop?.website);
     }
+  };
+
+  const getCurrentDaySchedule = () => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = days[new Date().getDay()];
+    return shop?.formatted_opening_hours?.[today] || 'Không có thông tin';
+  };
+
+  const isOpenNow = () => {
+    const schedule = getCurrentDaySchedule();
+    if (schedule === 'Không có thông tin') return false;
+
+    const [openTime, closeTime] = schedule.split(' - ');
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    
+    const [openHour, openMinute] = openTime.split(':').map(Number);
+    const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+    
+    const openMinutes = openHour * 60 + openMinute;
+    const closeMinutes = closeHour * 60 + closeMinute;
+
+    return currentTime >= openMinutes && currentTime <= closeMinutes;
+  };
+
+  const getStatusColor = () => {
+    return isOpenNow() ? '#4CAF50' : '#F44336';
+  };
+
+  const getStatusText = () => {
+    return isOpenNow() ? 'Đang mở cửa' : 'Đã đóng cửa';
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.name}>{cafe.name}</Text>
+      <Text style={styles.name}>{shop?.name}</Text>
       
       <View style={styles.ratingContainer}>
         <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
-        <Text style={styles.rating}>{cafe.rating}</Text>
-        <Text style={styles.reviews}>({cafe.reviews} đánh giá)</Text>
+        <Text style={styles.rating}>{shop?.rating_avg}</Text>
+        <Text style={styles.reviews}>({shop?.rating_count} đánh giá)</Text>
       </View>
 
       <TouchableOpacity style={styles.row} onPress={handleDirections}>
         <MaterialCommunityIcons name="map-marker" size={24} color="#666" />
-        <Text style={styles.text}>{cafe.address}</Text>
+        <Text style={styles.text}>{shop?.address}</Text>
         <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.row} onPress={handleCall}>
         <MaterialCommunityIcons name="phone" size={24} color="#666" />
-        <Text style={styles.text}>{cafe.phone}</Text>
+        <Text style={styles.text}>{shop?.phone}</Text>
         <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
       </TouchableOpacity>
 
       <View style={styles.row}>
         <MaterialCommunityIcons name="clock" size={24} color="#666" />
-        <Text style={styles.text}>{cafe.hours}</Text>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>Đang mở cửa</Text>
+        <Text style={styles.text}>{getCurrentDaySchedule()}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
+          <Text style={styles.statusText}>{getStatusText()}</Text>
         </View>
       </View>
 
-      {cafe.website && (
+      {shop?.website && (
         <TouchableOpacity style={styles.row} onPress={handleWebsite}>
           <MaterialCommunityIcons name="web" size={24} color="#666" />
           <Text style={styles.text}>Website</Text>
@@ -98,7 +130,6 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   statusBadge: {
-    backgroundColor: '#4CAF50',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   ScrollView,
@@ -16,131 +16,159 @@ import CheckinGallery from "../components/cafe/CheckinGallery";
 import ReviewSection from "../components/cafe/ReviewSection";
 import ImageCarousel from "../components/cafe/ImageCarousel";
 import BasicInfo from "../components/cafe/BasicInfo";
-
-const MOCK_CAFE = {
-  id: "1",
-  name: "The Dreamer Coffee",
-  address: "123 Đường Trần Hưng Đạo, Phường 10, Đà Lạt",
-  phone: "0123456789",
-  hours: "07:00 - 22:00",
-  rating: 4.8,
-  reviews: 256,
-  website: "https://dreamercoffee.com",
-  description:
-    "Quán cà phê view đẹp với không gian thoáng đãng, phong cách hiện đại pha lẫn nét cổ điển của Đà Lạt. Địa điểm lý tưởng để thưởng thức cà phê, đọc sách và ngắm nhìn thành phố từ trên cao.",
-  images: [
-    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1493857671505-72967e2e2760?q=80&w=2940&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2940&auto=format&fit=crop",
-  ],
-  features: [
-    { icon: "wifi", label: "Wifi miễn phí" },
-    { icon: "car", label: "Bãi đỗ xe" },
-    { icon: "credit-card", label: "Thanh toán thẻ" },
-    { icon: "air-conditioner", label: "Máy lạnh" },
-  ],
-  popularDishes: [
-    {
-      id: "1",
-      name: "Cà phê sữa đá",
-      price: "35.000đ",
-      image:
-        "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
-      description: "Cà phê phin truyền thống với sữa đặc",
-    },
-    {
-      id: "2",
-      name: "Bánh mì chảo",
-      price: "55.000đ",
-      image:
-        "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=2874&auto=format&fit=crop",
-      description: "Bánh mì nướng với trứng và pate",
-    },
-  ],
-  menu: {
-    drinks: [
-      {
-        id: "1",
-        name: "Cà phê sữa đá",
-        price: "35.000đ",
-        description: "Cà phê phin truyền thống với sữa đặc",
-        image:
-          "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
-        category: "Cà phê",
-      },
-      {
-        id: "2",
-        name: "Cappuccino",
-        price: "45.000đ",
-        description: "Cà phê Ý với sữa tươi đánh bông",
-        image:
-          "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=2787&auto=format&fit=crop",
-        category: "Cà phê",
-      },
-    ],
-    food: [
-      {
-        id: "3",
-        name: "Bánh mì chảo",
-        price: "55.000đ",
-        description: "Bánh mì nướng với trứng và pate",
-        image:
-          "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=2874&auto=format&fit=crop",
-        category: "Điểm tâm",
-      },
-      {
-        id: "4",
-        name: "Croissant",
-        price: "35.000đ",
-        description: "Bánh sừng bò Pháp",
-        image:
-          "https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=2726&auto=format&fit=crop",
-        category: "Bánh ngọt",
-      },
-    ],
+import shopAPI from "../services/shopAPI";
+const popularDishes = [
+  {
+    id: "1",
+    name: "Cà phê sữa đá",
+    price: "35.000đ",
+    image:
+      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
+    description: "Cà phê phin truyền thống với sữa đặc",
   },
-  checkinSpots: [
-    {
-      id: "1",
-      image:
-        "https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?q=80&w=2940&auto=format&fit=crop",
-      description: "Góc ban công view thành phố",
-    },
-    {
-      id: "2",
-      image:
-        "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?q=80&w=2940&auto=format&fit=crop",
-      description: "Khu vườn xanh mát",
-    },
-    {
-      id: "3",
-      image:
-        "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=2940&auto=format&fit=crop",
-      description: "Góc vintage trong nhà",
-    },
-  ],
-};
+  {
+    id: "2",
+    name: "Bánh mì chảo",
+    price: "55.000đ",
+    image:
+      "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=2874&auto=format&fit=crop",
+    description: "Bánh mì nướng với trứng và pate",
+  },
+];
+// const shop = {
+//   id: "1",
+//   name: "The Dreamer Coffee",
+//   address: "123 Đường Trần Hưng Đạo, Phường 10, Đà Lạt",
+//   phone: "0123456789",
+//   hours: "07:00 - 22:00",
+//   rating: 4.8,
+//   reviews: 256,
+//   website: "https://dreamercoffee.com",
+//   description:
+//     "Quán cà phê view đẹp với không gian thoáng đãng, phong cách hiện đại pha lẫn nét cổ điển của Đà Lạt. Địa điểm lý tưởng để thưởng thức cà phê, đọc sách và ngắm nhìn thành phố từ trên cao.",
+//   images: [
+//     "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
+//     "https://images.unsplash.com/photo-1493857671505-72967e2e2760?q=80&w=2940&auto=format&fit=crop",
+//     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2940&auto=format&fit=crop",
+//   ],
+//   features: [
+//     { icon: "wifi", label: "Wifi miễn phí" },
+//     { icon: "car", label: "Bãi đỗ xe" },
+//     { icon: "credit-card", label: "Thanh toán thẻ" },
+//     { icon: "air-conditioner", label: "Máy lạnh" },
+//   ],
+//   popularDishes: [
+//     {
+//       id: "1",
+//       name: "Cà phê sữa đá",
+//       price: "35.000đ",
+//       image:
+//         "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
+//       description: "Cà phê phin truyền thống với sữa đặc",
+//     },
+//     {
+//       id: "2",
+//       name: "Bánh mì chảo",
+//       price: "55.000đ",
+//       image:
+//         "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=2874&auto=format&fit=crop",
+//       description: "Bánh mì nướng với trứng và pate",
+//     },
+//   ],
+//   menu: {
+//     drinks: [
+//       {
+//         id: "1",
+//         name: "Cà phê sữa đá",
+//         price: "35.000đ",
+//         description: "Cà phê phin truyền thống với sữa đặc",
+//         image:
+//           "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
+//         category: "Cà phê",
+//       },
+//       {
+//         id: "2",
+//         name: "Cappuccino",
+//         price: "45.000đ",
+//         description: "Cà phê Ý với sữa tươi đánh bông",
+//         image:
+//           "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=2787&auto=format&fit=crop",
+//         category: "Cà phê",
+//       },
+//     ],
+//     food: [
+//       {
+//         id: "3",
+//         name: "Bánh mì chảo",
+//         price: "55.000đ",
+//         description: "Bánh mì nướng với trứng và pate",
+//         image:
+//           "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=2874&auto=format&fit=crop",
+//         category: "Điểm tâm",
+//       },
+//       {
+//         id: "4",
+//         name: "Croissant",
+//         price: "35.000đ",
+//         description: "Bánh sừng bò Pháp",
+//         image:
+//           "https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=2726&auto=format&fit=crop",
+//         category: "Bánh ngọt",
+//       },
+//     ],
+//   },
+//   checkinSpots: [
+//     {
+//       id: "1",
+//       image:
+//         "https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?q=80&w=2940&auto=format&fit=crop",
+//       description: "Góc ban công view thành phố",
+//     },
+//     {
+//       id: "2",
+//       image:
+//         "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?q=80&w=2940&auto=format&fit=crop",
+//       description: "Khu vườn xanh mát",
+//     },
+//     {
+//       id: "3",
+//       image:
+//         "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=2940&auto=format&fit=crop",
+//       description: "Góc vintage trong nhà",
+//     },
+//   ],
+// };
 
-export default function CafeDetailScreen({ navigation }) {
+export default function CafeDetailScreen({ navigation, route }) {
   const [isFavorite, setIsFavorite] = useState(false);
+  const [shop, setShop] = useState(null);
+  const { shopId } = route.params;
+
+  useEffect(() => {
+    const fetchShop = async () => {
+      const response = await shopAPI.HandleCoffeeShops(`/${shopId}`);
+      setShop(response.data.shop);
+    };
+    fetchShop();
+  }, []);
 
   const handleBooking = () => {
     navigation.navigate("Booking", {
-      cafeName: MOCK_CAFE.name,
-      cafeAddress: MOCK_CAFE.address,
+      cafeName: shop?.name,
+      cafeAddress: shop?.address,
     });
   };
 
   const renderFeatures = () => (
     <View style={styles.featuresContainer}>
-      {MOCK_CAFE.features.map((feature, index) => (
+      {shop?.amenities?.map((amenitie, index) => (
         <View key={index} style={styles.featureItem}>
           <MaterialCommunityIcons
-            name={feature.icon}
+            name={amenitie.icon}
             size={24}
             color="#4A90E2"
           />
-          <Text style={styles.featureLabel}>{feature.label}</Text>
+          <Text style={styles.featureLabel}>{amenitie.label}</Text>
         </View>
       ))}
     </View>
@@ -154,7 +182,7 @@ export default function CafeDetailScreen({ navigation }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.popularDishesScroll}
       >
-        {MOCK_CAFE.popularDishes.map((dish) => (
+        {popularDishes.map((dish) => (
           <TouchableOpacity key={dish.id} style={styles.popularDishCard}>
             <Image
               source={{ uri: dish.image }}
@@ -163,9 +191,9 @@ export default function CafeDetailScreen({ navigation }) {
             <View style={styles.popularDishInfo}>
               <Text style={styles.popularDishName}>{dish.name}</Text>
               <Text style={styles.popularDishDescription}>
-                {dish.description}
+                {dish?.description}
               </Text>
-              <Text style={styles.popularDishPrice}>{dish.price}</Text>
+              <Text style={styles.popularDishPrice}>{dish?.price}</Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -180,22 +208,22 @@ export default function CafeDetailScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           stickyHeaderIndices={[0]}
         >
-          <ImageCarousel images={MOCK_CAFE.images} navigation={navigation} />
+          <ImageCarousel images={shop?.images} navigation={navigation} />
 
           <View style={styles.content}>
             <View style={styles.descriptionContainer}>
-              <Text style={styles.description}>{MOCK_CAFE.description}</Text>
+              <Text style={styles.description}>{shop?.description}</Text>
             </View>
 
             {renderFeatures()}
             {renderPopularDishes()}
 
-            <BasicInfo cafe={MOCK_CAFE} />
+            <BasicInfo shop={shop} />
             <MenuSection
-              menuItems={[...MOCK_CAFE.menu.drinks, ...MOCK_CAFE.menu.food]}
+              menuItems={shop?.menuItems}
             />
-            <CheckinGallery spots={MOCK_CAFE.checkinSpots} />
-            <ReviewSection cafe={MOCK_CAFE} /> 
+            <CheckinGallery spots={shop?.checkinSpots} />
+            <ReviewSection shop={shop} />
           </View>
         </ScrollView>
 

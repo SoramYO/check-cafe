@@ -7,14 +7,14 @@ const ReviewSection = ({
   reviews,
   averageRating,
   totalReviews,
-  cafe,
+  shop,
   onReviewPress,
   onSeeAllPress,
   onWriteReviewPress,
 }) => {
   const [likedReviews, setLikedReviews] = useState(new Set());
-  const rating = averageRating || (cafe?.rating || 0);
-  const reviewCount = totalReviews || (cafe?.reviews || 0);
+  const rating = averageRating || (shop?.rating_avg || 0);
+  const reviewCount = totalReviews || (shop?.rating_count || 0);
 
   const handleLikePress = (reviewId) => {
     setLikedReviews(prev => {

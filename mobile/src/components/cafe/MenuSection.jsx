@@ -16,7 +16,7 @@ const MenuSection = ({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const categories = [
     "all",
-    ...new Set(menuItems.map((item) => item.category)),
+    ...new Set(menuItems?.map((item) => item.category)),
   ];
 
   const filteredItems =
@@ -85,14 +85,14 @@ const MenuSection = ({
         showsHorizontalScrollIndicator={false}
         style={styles.categoriesContainer}
       >
-        {categories.map(renderCategoryTab)}
+        {categories?.map(renderCategoryTab)}
       </ScrollView>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.menuList}
       >
-        {filteredItems.map(renderMenuItem)}
+        {filteredItems?.map(renderMenuItem)}
       </ScrollView>
     </View>
   );
@@ -130,9 +130,11 @@ const styles = StyleSheet.create({
   categoryTab: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    height: 30,
     borderRadius: 20,
     backgroundColor: "#F1F5F9",
     marginHorizontal: 4,
+    marginBottom: 10,
   },
   categoryTabActive: {
     backgroundColor: "#4A90E2",

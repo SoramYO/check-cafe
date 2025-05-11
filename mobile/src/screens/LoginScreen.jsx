@@ -12,7 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { toast } from "sonner-native";
-import { authApi } from "../services/authAPI";
+import authenticationAPI, { authApi } from "../services/authAPI";
 import { useAuth } from "../hooks/useAuth";
 
 export default function LoginScreen({ navigation }) {
@@ -30,7 +30,12 @@ export default function LoginScreen({ navigation }) {
 
     try {
       setIsLoading(true);
-      const response = await authApi.login(email, password);
+      const response = await authenticationAPI.HandleAuthentication(
+        "/sign-in",
+        { email, password },
+        "post"
+      );
+      console.log("response", response);
       if (response.status === 200) {
         await login(response.data.tokens.accessToken, response.data.user);
         toast.success("Đăng nhập thành công");
