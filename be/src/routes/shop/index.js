@@ -8,18 +8,18 @@ const uploadCloud = require("../../configs/cloudinary.config");
 const { USER_ROLE } = require("../../constants/enum");
 
 // PUBLIC ROUTES
+router.get("/public", shopController.getAllPublicShops);
 // Get shop details
 router.get("/:shopId", shopController.getShop);
 // Get all shops
-router.get("/public", shopController.getAllPublicShops);
 
 // PRIVATE ROUTES
 router.use(checkAuth);
 
-router.get("/", shopController.getAllShops);
 
 router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]));
 
+router.get("/owner", shopController.getAllShops);
 // Create shop
 router.post("/", shopController.createShop);
 

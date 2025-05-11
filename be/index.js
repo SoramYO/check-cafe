@@ -1,16 +1,17 @@
-const app = require("./src/app");
+"use strict";
+
+const { server } = require("./src/app");
 
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-
 // Crl + C to stop the server
-process.on('SIGINT', () => {
+process.on("SIGINT", () => {
   server.close(() => {
-    console.log('Server Express stopped');
+    console.log("Server Express stopped");
     // notify.send('Server Express stopped');
     process.exit(0);
   });

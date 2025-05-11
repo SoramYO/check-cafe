@@ -11,5 +11,5 @@ router.use("/shops", require("./shop"));
 router.use("/advertisements", require("./advertisement"));
 router.use("/reservations", require("./reservation"));
 router.use("/owners", require("./showOwner"));
-
+router.use("/notifications", require("./notification"));
 module.exports = router;
