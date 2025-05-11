@@ -17,6 +17,7 @@ const {
   getSelectData,
   removeUndefinedObject,
 } = require("../utils");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 
 const getAllPublicShops = async (req) => {
   try {
@@ -29,25 +30,36 @@ const getAllPublicShops = async (req) => {
       search,
       nearLat,
       nearLon,
-      maxDistance = 5000, // meters
+      maxDistance = 5000,
     } = req.query;
+
+    // Kiểm tra tham số đầu vào
+    if ((nearLat && !nearLon) || (!nearLat && nearLon)) {
+      throw new BadRequestError("Both nearLat and nearLon must be provided");
+    }
+    if (nearLat && nearLon) {
+      if (isNaN(parseFloat(nearLat)) || isNaN(parseFloat(nearLon))) {
+        throw new BadRequestError("nearLat and nearLon must be valid numbers");
+      }
+      if (isNaN(parseInt(maxDistance)) || parseInt(maxDistance) < 0) {
+        throw new BadRequestError("maxDistance must be a non-negative number");
+      }
+    }
+    if (amenities && !Array.isArray(amenities.split(","))) {
+      throw new BadRequestError("amenities must be a comma-separated string");
+    }
 
     // Xây dựng query
     const query = {
-      status: "Active", 
+      status: "Active",
     };
 
     // Lọc theo amenities
     if (amenities) {
-      query.amenities = { $all: amenities.split(",") };
+      query.amenities = { $all: amenities.split(",").map((item) => item.trim()) };
     }
 
-    // Tìm kiếm theo tên
-    if (search) {
-      query.$text = { $search: search };
-    }
-
-    // Lọc theo vị trí gần (nếu có nearLat và nearLon)
+    // Tìm kiếm theo vị trí gần (nếu có nearLat và nearLon)
     if (nearLat && nearLon) {
       query.location = {
         $near: {
@@ -61,17 +73,26 @@ const getAllPublicShops = async (req) => {
     }
 
     // Xây dựng sort
-    const sort = {};
-    if (sortBy) {
-      sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+    const validSortFields = [
+      "rating_avg",
+      "rating_count",
+      "name",
+      "createdAt",
+      "updatedAt",
+    ];
+    if (sortBy && !validSortFields.includes(sortBy)) {
+      throw new BadRequestError(
+        `Invalid sortBy. Must be one of: ${validSortFields.join(", ")}`
+      );
     }
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
 
-    // Phân trang
-    const options = {
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      sort,
-      populate: [{ path: "theme_ids", select: "_id name description theme_image" }],
+    // Cấu hình cho getPaginatedData
+    const paginateOptions = {
+      model: shopModel,
+      query,
+      page,
+      limit,
       select: getSelectData([
         "_id",
         "name",
@@ -85,12 +106,18 @@ const getAllPublicShops = async (req) => {
         "createdAt",
         "updatedAt",
       ]),
+      populate: [
+        { path: "theme_ids", select: "_id name description theme_image" },
+      ],
+      search,
+      searchFields: ["name"], // Tìm kiếm trên trường name
+      sort,
     };
 
     // Lấy dữ liệu phân trang
-    const result = await getPaginatedData(shopModel, query, options);
+    const result = await getPaginatedData(paginateOptions);
 
-    // Lấy ảnh chính cho mỗi quán (ảnh đầu tiên trong shopImage)
+    // Lấy ảnh chính cho mỗi quán
     const shopsWithImage = await Promise.all(
       result.data.map(async (shop) => {
         const mainImage = await shopImageModel
@@ -114,7 +141,9 @@ const getAllPublicShops = async (req) => {
             ],
             object: shop,
           }),
-          mainImage: mainImage ? { url: mainImage.url, publicId: mainImage.publicId } : null,
+          mainImage: mainImage
+            ? { url: mainImage.url, publicId: mainImage.publicId }
+            : null,
         };
       })
     );
@@ -122,14 +151,18 @@ const getAllPublicShops = async (req) => {
     return {
       shops: shopsWithImage,
       metadata: {
-        totalItems: result.totalItems,
-        totalPages: result.totalPages,
-        currentPage: result.currentPage,
-        limit: result.limit,
+        totalItems: result.metadata.total,
+        totalPages: result.metadata.totalPages,
+        currentPage: result.metadata.page,
+        limit: result.metadata.limit,
       },
+      message:
+        shopsWithImage.length === 0 ? "No public shops found" : undefined,
     };
   } catch (error) {
-    throw new BadRequestError(error.message || "Failed to retrieve public shops");
+    throw error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve public shops");
   }
 };
 
@@ -357,6 +390,14 @@ const getAllShops = async (req) => {
       search,
     } = req.query;
 
+    // Kiểm tra tham số đầu vào
+    if (amenities && !Array.isArray(amenities.split(","))) {
+      throw new BadRequestError("amenities must be a comma-separated string");
+    }
+    if (status && !["Active", "Inactive", "Pending"].includes(status)) {
+      throw new BadRequestError("Invalid status");
+    }
+
     // Xây dựng query
     const query = {};
 
@@ -372,26 +413,31 @@ const getAllShops = async (req) => {
 
     // Lọc theo amenities
     if (amenities) {
-      query.amenities = { $all: amenities.split(",") };
-    }
-
-    // Tìm kiếm theo tên
-    if (search) {
-      query.$text = { $search: search };
+      query.amenities = { $all: amenities.split(",").map((item) => item.trim()) };
     }
 
     // Xây dựng sort
-    const sort = {};
-    if (sortBy) {
-      sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+    const validSortFields = [
+      "createdAt",
+      "updatedAt",
+      "name",
+      "rating_avg",
+      "rating_count",
+      "status",
+    ];
+    if (sortBy && !validSortFields.includes(sortBy)) {
+      throw new BadRequestError(
+        `Invalid sortBy. Must be one of: ${validSortFields.join(", ")}`
+      );
     }
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
 
-    // Phân trang
-    const options = {
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      sort,
-      populate: [{ path: "theme_ids", select: "_id name description theme_image" }],
+    // Cấu hình cho getPaginatedData
+    const paginateOptions = {
+      model: shopModel,
+      query,
+      page,
+      limit,
       select: getSelectData([
         "_id",
         "name",
@@ -407,41 +453,53 @@ const getAllShops = async (req) => {
         "createdAt",
         "updatedAt",
       ]),
+      populate: [
+        { path: "theme_ids", select: "_id name description theme_image" },
+      ],
+      search,
+      searchFields: ["name"], // Tìm kiếm trên trường name
+      sort,
     };
 
     // Lấy dữ liệu phân trang
-    const result = await getPaginatedData(shopModel, query, options);
+    const result = await getPaginatedData(paginateOptions);
+
+    // Format dữ liệu
+    const shops = result.data.map((shop) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "name",
+          "address",
+          "location",
+          "owner_id",
+          "theme_ids",
+          "vip_status",
+          "rating_avg",
+          "rating_count",
+          "status",
+          "amenities",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: shop,
+      })
+    );
 
     return {
-      shops: result.data.map((shop) =>
-        getInfoData({
-          fields: [
-            "_id",
-            "name",
-            "address",
-            "location",
-            "owner_id",
-            "theme_ids",
-            "vip_status",
-            "rating_avg",
-            "rating_count",
-            "status",
-            "amenities",
-            "createdAt",
-            "updatedAt",
-          ],
-          object: shop,
-        })
-      ),
+      shops,
       metadata: {
-        totalItems: result.totalItems,
-        totalPages: result.totalPages,
-        currentPage: result.currentPage,
-        limit: result.limit,
+        totalItems: result.metadata.total,
+        totalPages: result.metadata.totalPages,
+        currentPage: result.metadata.page,
+        limit: result.metadata.limit,
       },
+      message: shops.length === 0 ? "No shops found" : undefined,
     };
   } catch (error) {
-    throw new BadRequestError(error.message || "Failed to retrieve shops");
+    throw error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve shops");
   }
 };
 

@@ -62,6 +62,7 @@ const SHOP_MESSAGE = {
   CREATE_TIME_SLOT_SUCCESS: "Create time slot successfully",
   UPDATE_TIME_SLOT_SUCCESS: "Update time slot successfully",
   SUBMIT_VERIFICATION_SUCCESS: "Submit verification successfully",
+  GET_ALL_PUBLIC_SUCCESS: "Get all public shops successfully",
 };
 
 const ADVERTISEMENT_MESSAGE = {
