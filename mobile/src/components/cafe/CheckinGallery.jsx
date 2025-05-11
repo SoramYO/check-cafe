@@ -59,7 +59,7 @@ const CheckinGallery = ({
           <MaterialCommunityIcons name="camera" size={24} color="#4A90E2" />
           <Text style={styles.title}>Điểm check-in đẹp</Text>
         </View>
-        {spots.length > 3 && (
+        {spots?.length > 3 && (
           <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
             <Text style={styles.seeAllText}>Xem tất cả</Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color="#4A90E2" />

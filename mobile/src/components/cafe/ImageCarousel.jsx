@@ -36,15 +36,15 @@ export default function ImageCarousel({ images, navigation }) {
         scrollEventThrottle={16}
         onMomentumScrollEnd={handleScroll}
       >
-        {images.map((image, index) => (
+        {images?.map((image, index) => (
           <View key={index} style={styles.slide}>
-            <Image source={{ uri: image }} style={styles.image} />
+            <Image source={{ uri: image.url }} style={styles.image} />
           </View>
         ))}
       </Animated.ScrollView>
 
       <View style={styles.pagination}>
-        {images.map((_, index) => {
+        {images?.map((_, index) => {
           const opacity = position.interpolate({
             inputRange: [index - 1, index, index + 1],
             outputRange: [0.3, 1, 0.3],

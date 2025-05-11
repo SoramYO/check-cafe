@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,75 +13,58 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import FeaturedBanner from '../components/FeaturedBanner';
 import SearchBar from '../components/SearchBar';
-
-const CATEGORIES = [
-  { id: '1', name: 'Yên tĩnh', icon: 'peace' },
-  { id: '2', name: 'View đẹp', icon: 'image-filter-hdr' },
-  { id: '3', name: 'Vintage', icon: 'camera-retro' },
-  { id: '4', name: 'Nhạc sống', icon: 'music' },
-  { id: '5', name: 'Làm việc', icon: 'laptop' },
-];
-
-const FEATURED_SHOPS = [
-  {
-    id: '1',
-    name: 'The Dreamer Coffee',
-    address: '123 Đường Trần Hưng Đạo, Đà Lạt',
-    rating: 4.8,
-    reviews: 256,
-    image: 'https://api.a0.dev/assets/image?text=cozy+dalat+coffee+shop+with+mountain+view&aspect=16:9',
-    distance: '0.8km',
-    price: '$$',
-    status: 'Mở cửa',
-    features: ['Wifi', 'Chỗ đỗ xe'],
-  },
-  {
-    id: '2',
-    name: 'Mountain View Café',
-    address: '45 Đường Lê Đại Hành, Đà Lạt',
-    rating: 4.6,
-    reviews: 189,
-    image: 'https://api.a0.dev/assets/image?text=vintage+cafe+in+dalat+with+garden&aspect=16:9',
-    distance: '1.2km',
-    price: '$$$',
-    status: 'Đông',
-    features: ['Wifi', 'Bàn ngoài trời'],
-  },
-];
+import themeAPI from '../services/shopThemeAPI';
+import shopAPI from '../services/shopAPI';
 
 export default function DiscoverScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [themes, setThemes] = useState([]);
+  const [shops, setShops] = useState([]);
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  useEffect(() => {
+    const fetchData = async () => {
+      const [responseTheme, responseShop] = await Promise.all([
+        themeAPI.HandleTheme(),
+        shopAPI.HandleCoffeeShops("/public"), 
+      ]);
+      setThemes(responseTheme.data.themes);
+      setShops(responseShop.data.shops);
+    };
+    fetchData();
+  }, []);
+  
   const renderCategory = ({ item }) => (
-    <TouchableOpacity style={styles.categoryItem}>
+    <TouchableOpacity 
+      style={styles.categoryItem}
+      key={item._id || item.id}
+    >
       <View style={styles.categoryIcon}>
-        <MaterialCommunityIcons name={item.icon} size={24} color="#4A90E2" />
+        <Image source={{ uri: item.theme_image }} style={styles.iconTheme} />
       </View>
       <Text style={styles.categoryName}>{item.name}</Text>
     </TouchableOpacity>
   );
-
+  
   const renderShopCard = ({ item }) => (
     <TouchableOpacity
       style={styles.shopCard}
-      onPress={() => navigation.navigate('CafeDetail', { cafeId: item.id })}
+      onPress={() => navigation.navigate('CafeDetail', { shopId: item._id })}
     >
-      <Image source={{ uri: item.image }} style={styles.shopImage} />
+      <Image source={{ uri: item?.mainImage?.url }} style={styles.shopImage} />
       <View style={styles.shopInfo}>
         <View style={styles.shopHeader}>
           <View>
-            <Text style={styles.shopName}>{item.name}</Text>
+            <Text style={styles.shopName}>{item?.name}</Text>
             <View style={styles.ratingContainer}>
               <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-              <Text style={styles.rating}>{item.rating}</Text>
-              <Text style={styles.reviews}>({item.reviews} đánh giá)</Text>
-              <Text style={styles.price}>{item.price}</Text>
+              <Text style={styles.rating}>{item?.rating_avg}</Text>
+              <Text style={styles.reviews}>({item?.rating_count} đánh giá)</Text>
             </View>
           </View>
           <View style={[styles.statusBadge,
-          { backgroundColor: item.status === 'Mở cửa' ? '#4CAF50' : '#FF9800' }]}>
-            <Text style={styles.statusText}>{item.status}</Text>
+          {backgroundColor: item?.is_open ? '#4CAF50' : '#FF9800' }]}>
+            <Text style={styles.statusText}>{item?.is_open ? 'Mở cửa' : 'Đóng cửa'}</Text>
           </View>
         </View>
 
@@ -97,7 +80,7 @@ export default function DiscoverScreen({ navigation }) {
         </View>
 
         <View style={styles.features}>
-          {item.features.map((feature, index) => (
+          {item?.features?.map((feature, index) => (
             <View key={index} style={styles.featureBadge}>
               <Text style={styles.featureText}>{feature}</Text>
             </View>
@@ -139,11 +122,11 @@ export default function DiscoverScreen({ navigation }) {
       >
         <FeaturedBanner />
 
-        <View style={styles.categoriesContainer}>
+        <View style={styles.themesContainer}>
           <FlatList
-            data={CATEGORIES}
+            data={themes}
             renderItem={renderCategory}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item._id || item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
           />
@@ -152,9 +135,9 @@ export default function DiscoverScreen({ navigation }) {
         <View style={styles.featuredContainer}>
           <Text style={styles.sectionTitle}>Quán cà phê hot ở Đà Lạt</Text>
           <FlatList
-            data={FEATURED_SHOPS}
+            data={shops}
             renderItem={renderShopCard}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id || item._id}
             scrollEnabled={false}
           />
         </View>
@@ -172,11 +155,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  iconTheme: {
+    width: 24,
+    height: 24,
+  },
   header: {
     backgroundColor: 'white',
     zIndex: 1000,
   },
-  categoriesContainer: {
+  themesContainer: {
     marginTop: 15,
     marginBottom: 5,
   },

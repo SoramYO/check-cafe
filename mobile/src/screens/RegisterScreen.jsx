@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,19 +9,19 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-} from 'react-native';
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { toast } from "sonner-native";
-import { useAuth } from '../hooks/useAuth';
-import { authApi } from '../services/authAPI';
+import { useAuth } from "../hooks/useAuth";
+import { authApi } from "../services/authAPI";
 
 export default function RegisterScreen({ navigation }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,11 +29,11 @@ export default function RegisterScreen({ navigation }) {
 
   const validateForm = () => {
     if (!name || !email || !phone || !password || !confirmPassword) {
-      toast.error('Vui lòng nhập đầy đủ thông tin');
+      toast.error("Vui lòng nhập đầy đủ thông tin");
       return false;
     }
     if (password !== confirmPassword) {
-      toast.error('Mật khẩu không khớp');
+      toast.error("Mật khẩu không khớp");
       return false;
     }
     // Có thể thêm các validation khác ở đây
@@ -45,13 +45,11 @@ export default function RegisterScreen({ navigation }) {
 
     try {
       setIsLoading(true);
-      const response = await authApi.register({
-        full_name: name,
-        email,
-        password,
-        phone,
-      });
-      console.log('Register response:', response);
+      const response = await authenticationAPI.HandleAuthentication(
+        "/sign-up",
+        {full_name: name, email, password, phone},
+        "post"
+      );
 
       if (response.code === "201") {
         // Đăng ký thành công, tự động đăng nhập
@@ -59,29 +57,26 @@ export default function RegisterScreen({ navigation }) {
           response.metadata.tokens.accessToken,
           response.metadata.user
         );
-        
-        toast.success('Đăng ký thành công!');
-        navigation.replace('MainApp');
+
+        toast.success("Đăng ký thành công!");
+        navigation.replace("MainApp");
       } else {
-        toast.error(response.message || 'Đăng ký thất bại');
+        toast.error(response.message || "Đăng ký thất bại");
       }
     } catch (error) {
-      console.error('Register error:', error);
-      toast.error(error.message || 'Có lỗi xảy ra khi đăng ký');
+      console.error("Register error:", error);
+      toast.error(error.message || "Có lỗi xảy ra khi đăng ký");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <LinearGradient
-        colors={['#50E3C2', '#4A90E2']}
-        style={styles.container}
-      >
+      <LinearGradient colors={["#50E3C2", "#4A90E2"]} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <View style={styles.header}>
@@ -92,7 +87,12 @@ export default function RegisterScreen({ navigation }) {
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <MaterialCommunityIcons name="account" size={24} color="white" style={styles.icon} />
+                <MaterialCommunityIcons
+                  name="account"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Họ và tên"
@@ -103,7 +103,12 @@ export default function RegisterScreen({ navigation }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <MaterialCommunityIcons name="email" size={24} color="white" style={styles.icon} />
+                <MaterialCommunityIcons
+                  name="email"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
@@ -116,7 +121,12 @@ export default function RegisterScreen({ navigation }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <MaterialCommunityIcons name="phone" size={24} color="white" style={styles.icon} />
+                <MaterialCommunityIcons
+                  name="phone"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Số điện thoại"
@@ -128,7 +138,12 @@ export default function RegisterScreen({ navigation }) {
               </View>
 
               <View style={styles.inputContainer}>
-                <MaterialCommunityIcons name="lock" size={24} color="white" style={styles.icon} />
+                <MaterialCommunityIcons
+                  name="lock"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Mật khẩu"
@@ -137,17 +152,24 @@ export default function RegisterScreen({ navigation }) {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <MaterialCommunityIcons 
-                    name={showPassword ? "eye-off" : "eye"} 
-                    size={24} 
-                    color="white" 
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <MaterialCommunityIcons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={24}
+                    color="white"
                   />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputContainer}>
-                <MaterialCommunityIcons name="lock-check" size={24} color="white" style={styles.icon} />
+                <MaterialCommunityIcons
+                  name="lock-check"
+                  size={24}
+                  color="white"
+                  style={styles.icon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Xác nhận mật khẩu"
@@ -156,20 +178,22 @@ export default function RegisterScreen({ navigation }) {
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                 />
-                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                  <MaterialCommunityIcons 
-                    name={showConfirmPassword ? "eye-off" : "eye"} 
-                    size={24} 
-                    color="white" 
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <MaterialCommunityIcons
+                    name={showConfirmPassword ? "eye-off" : "eye"}
+                    size={24}
+                    color="white"
                   />
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.registerButton,
-                  isLoading && styles.registerButtonDisabled
-                ]} 
+                  isLoading && styles.registerButtonDisabled,
+                ]}
                 onPress={handleRegister}
                 disabled={isLoading}
               >
@@ -182,7 +206,7 @@ export default function RegisterScreen({ navigation }) {
 
               <View style={styles.loginContainer}>
                 <Text style={styles.loginText}>Đã có tài khoản? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                   <Text style={styles.loginLink}>Đăng nhập</Text>
                 </TouchableOpacity>
               </View>
@@ -204,31 +228,31 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
     marginTop: 40,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "white",
     marginTop: 20,
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
     marginTop: 5,
   },
   form: {
     gap: 15,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 12,
     padding: 12,
     marginBottom: 15,
@@ -238,37 +262,37 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   registerButton: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
   registerButtonText: {
-    color: '#50E3C2',
+    color: "#50E3C2",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   registerButtonDisabled: {
     opacity: 0.7,
   },
   loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 20,
     marginBottom: 20,
   },
   loginText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
     fontSize: 16,
   },
   loginLink: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
