@@ -89,6 +89,12 @@ const RESERVATION_MESSAGE = {
   CHECK_IN_SUCCESS: "Check in reservation successfully",
 };
 
+const NOTIFICATION_MESSAGE = {
+  GET_ALL_SUCCESS: "Get all notifications successfully",
+  MARK_READ_SUCCESS: "Notification marked as read",
+  DELETE_SUCCESS: "Notification deleted successfully",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
@@ -96,4 +102,5 @@ module.exports = {
   SHOP_THEME_MESSAGE,
   SHOP_MESSAGE,
   RESERVATION_MESSAGE,
+  NOTIFICATION_MESSAGE,
 };
