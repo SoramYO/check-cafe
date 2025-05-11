@@ -74,6 +74,8 @@ const CATEGORY_MESSAGE = {
   GET_CATEGORY_LIST_SUCCESS: "Get category list successfully",
   CREATE_CATEGORY_SUCCESS: "Create category successfully",
   UPDATE_CATEGORY_SUCCESS: "Update category successfully",
+  GET_PUBLIC_CATEGORY_LIST_SUCCESS: "Get public category list successfully",
+  DELETE_CATEGORY_SUCCESS: "Delete category successfully",
 };
 
 const CUSTOMER_MESSAGE = {
@@ -104,4 +106,5 @@ module.exports = {
   SHOP_MESSAGE,
   RESERVATION_MESSAGE,
   NOTIFICATION_MESSAGE,
+  CATEGORY_MESSAGE
 };
