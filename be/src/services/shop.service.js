@@ -400,8 +400,6 @@ const getShop = async (req) => {
       throw new NotFoundError("Shop not found");
     }
 
-    // Debug: Kiểm tra dữ liệu shop
-    console.log("Raw shop data:", JSON.stringify(shop, null, 2));
 
     // Lấy thông tin liên quan
     const images = await shopImageModel
