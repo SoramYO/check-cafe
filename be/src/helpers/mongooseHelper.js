@@ -32,7 +32,6 @@ const getPaginatedData = async ({
         [field]: searchRegex,
       }));
     }
-    console.log("🚀 ~ finalQuery:", finalQuery)
 
     // Step 3: Tính toán phân trang
     const skip = (pageNum - 1) * limitNum;
@@ -44,9 +43,7 @@ const getPaginatedData = async ({
     .sort(sort)
     .skip(skip)
     .limit(limitNum)
-    .lean();
     
-    console.log("🚀 ~ dataPromise:", dataPromise)
 
 
 
