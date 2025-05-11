@@ -18,6 +18,122 @@ const {
   removeUndefinedObject,
 } = require("../utils");
 
+const getAllPublicShops = async (req) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "rating_avg",
+      sortOrder = "desc",
+      amenities,
+      search,
+      nearLat,
+      nearLon,
+      maxDistance = 5000, // meters
+    } = req.query;
+
+    // Xây dựng query
+    const query = {
+      status: "Active", 
+    };
+
+    // Lọc theo amenities
+    if (amenities) {
+      query.amenities = { $all: amenities.split(",") };
+    }
+
+    // Tìm kiếm theo tên
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    // Lọc theo vị trí gần (nếu có nearLat và nearLon)
+    if (nearLat && nearLon) {
+      query.location = {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(nearLon), parseFloat(nearLat)],
+          },
+          $maxDistance: parseInt(maxDistance, 10),
+        },
+      };
+    }
+
+    // Xây dựng sort
+    const sort = {};
+    if (sortBy) {
+      sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+    }
+
+    // Phân trang
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort,
+      populate: [{ path: "theme_ids", select: "_id name description theme_image" }],
+      select: getSelectData([
+        "_id",
+        "name",
+        "address",
+        "location",
+        "theme_ids",
+        "vip_status",
+        "rating_avg",
+        "rating_count",
+        "amenities",
+        "createdAt",
+        "updatedAt",
+      ]),
+    };
+
+    // Lấy dữ liệu phân trang
+    const result = await getPaginatedData(shopModel, query, options);
+
+    // Lấy ảnh chính cho mỗi quán (ảnh đầu tiên trong shopImage)
+    const shopsWithImage = await Promise.all(
+      result.data.map(async (shop) => {
+        const mainImage = await shopImageModel
+          .findOne({ shop_id: shop._id })
+          .select("url publicId")
+          .lean();
+        return {
+          ...getInfoData({
+            fields: [
+              "_id",
+              "name",
+              "address",
+              "location",
+              "theme_ids",
+              "vip_status",
+              "rating_avg",
+              "rating_count",
+              "amenities",
+              "createdAt",
+              "updatedAt",
+            ],
+            object: shop,
+          }),
+          mainImage: mainImage ? { url: mainImage.url, publicId: mainImage.publicId } : null,
+        };
+      })
+    );
+
+    return {
+      shops: shopsWithImage,
+      metadata: {
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+        limit: result.limit,
+      },
+    };
+  } catch (error) {
+    throw new BadRequestError(error.message || "Failed to retrieve public shops");
+  }
+};
+
+
 const createShop = async (req) => {
   try {
     const { userId } = req.user;
@@ -225,6 +341,107 @@ const getShop = async (req) => {
     throw error instanceof NotFoundError || error instanceof ForbiddenError
       ? error
       : new BadRequestError(error.message || "Failed to retrieve shop");
+  }
+};
+
+const getAllShops = async (req) => {
+  try {
+    const { userId, role } = req.user;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      status,
+      amenities,
+      search,
+    } = req.query;
+
+    // Xây dựng query
+    const query = {};
+
+    // Lọc theo owner_id nếu không phải ADMIN
+    if (role !== "ADMIN") {
+      query.owner_id = userId;
+    }
+
+    // Lọc theo status
+    if (status) {
+      query.status = status;
+    }
+
+    // Lọc theo amenities
+    if (amenities) {
+      query.amenities = { $all: amenities.split(",") };
+    }
+
+    // Tìm kiếm theo tên
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    // Xây dựng sort
+    const sort = {};
+    if (sortBy) {
+      sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+    }
+
+    // Phân trang
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort,
+      populate: [{ path: "theme_ids", select: "_id name description theme_image" }],
+      select: getSelectData([
+        "_id",
+        "name",
+        "address",
+        "location",
+        "owner_id",
+        "theme_ids",
+        "vip_status",
+        "rating_avg",
+        "rating_count",
+        "status",
+        "amenities",
+        "createdAt",
+        "updatedAt",
+      ]),
+    };
+
+    // Lấy dữ liệu phân trang
+    const result = await getPaginatedData(shopModel, query, options);
+
+    return {
+      shops: result.data.map((shop) =>
+        getInfoData({
+          fields: [
+            "_id",
+            "name",
+            "address",
+            "location",
+            "owner_id",
+            "theme_ids",
+            "vip_status",
+            "rating_avg",
+            "rating_count",
+            "status",
+            "amenities",
+            "createdAt",
+            "updatedAt",
+          ],
+          object: shop,
+        })
+      ),
+      metadata: {
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+        limit: result.limit,
+      },
+    };
+  } catch (error) {
+    throw new BadRequestError(error.message || "Failed to retrieve shops");
   }
 };
 
@@ -781,4 +998,6 @@ module.exports = {
   createTimeSlot,
   updateTimeSlot,
   submitVerification,
+  getAllShops,
+  getAllPublicShops
 };

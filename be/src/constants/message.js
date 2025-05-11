@@ -52,6 +52,7 @@ const SHOP_MESSAGE = {
   CREATE_SUCCESS: "Create shop successfully",
   UPDATE_SUCCESS: "Update shop successfully",
   GET_SUCCESS: "Get shop successfully",
+  GET_ALL_SUCCESS: "Get all shops successfully",
   UPLOAD_IMAGE_SUCCESS: "Upload shop image successfully",
   ASSIGN_THEMES_SUCCESS: "Assign themes successfully",
   CREATE_SEAT_SUCCESS: "Create seat successfully",
@@ -72,6 +73,16 @@ const CUSTOMER_MESSAGE = {
   GET_COFFEE_SHOPS_SUCCESS: "Get coffee shops successfully",
 };
 
+const RESERVATION_MESSAGE = {
+  CREATE_SUCCESS: "Reservation created successfully",
+  CONFIRM_SUCCESS: "Reservation confirmed successfully",
+  CANCEL_SUCCESS: "Reservation cancelled successfully",
+  COMPLETE_SUCCESS: "Reservation completed successfully",
+  GET_ALL_SUCCESS: "Get all reservations successfully",
+  GET_DETAIL_SUCCESS: "Get reservation details successfully",
+  CHECK_IN_SUCCESS: "Check in reservation successfully",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
@@ -80,4 +91,5 @@ module.exports = {
   SHOP_MESSAGE,
   ADVERTISEMENT_MESSAGE,
   CUSTOMER_MESSAGE,
+  RESERVATION_MESSAGE,
 };

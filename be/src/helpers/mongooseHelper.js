@@ -35,7 +35,6 @@ const getPaginatedData = async ({
 
     // Step 3: Tính toán phân trang
     const skip = (pageNum - 1) * limitNum;
-
     // Step 4: Thực hiện truy vấn
     const dataPromise = model
       .find(finalQuery)
@@ -45,6 +44,9 @@ const getPaginatedData = async ({
       .skip(skip)
       .limit(limitNum)
       .lean();
+
+
+
 
     const totalPromise = model.countDocuments(finalQuery);
 

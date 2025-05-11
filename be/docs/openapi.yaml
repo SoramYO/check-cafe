@@ -604,8 +604,162 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
+  
+  /public/shops:
+    get:
+      tags:
+        - Public Shops
+      summary: Get all public shops
+      description: Retrieves a paginated list of active shops for customers or guests, with sorting, filtering, and geolocation support.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of shops per page
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: rating_avg
+            enum: [name, rating_avg, createdAt, updatedAt]
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+          description: Sort order
+        - in: query
+          name: amenities
+          schema:
+            type: string
+            example: "WiFi,PetFriendly"
+          description: Filter by amenities (comma-separated)
+        - in: query
+          name: search
+          schema:
+            type: string
+            example: "Checkafe"
+          description: Search by shop name
+        - in: query
+          name: nearLat
+          schema:
+            type: number
+            example: 21.0285
+          description: Latitude for geolocation filtering
+        - in: query
+          name: nearLon
+          schema:
+            type: number
+            example: 105.8167
+          description: Longitude for geolocation filtering
+        - in: query
+          name: maxDistance
+          schema:
+            type: integer
+            default: 5000
+          description: Maximum distance in meters
+      responses:
+        '200':
+          description: Public shops retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicShopsResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
   /shops:
+    get:
+      tags:
+        - Shops
+      summary: Get all shops
+      description: Retrieves a paginated list of shops with sorting and filtering. Shop owner sees only their shops; admin sees all shops.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of shops per page
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+            enum: [name, rating_avg, createdAt, updatedAt]
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+          description: Sort order
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Pending, Active, Inactive, Rejected]
+          description: Filter by status
+        - in: query
+          name: amenities
+          schema:
+            type: string
+            example: "WiFi,PetFriendly"
+          description: Filter by amenities (comma-separated)
+        - in: query
+          name: search
+          schema:
+            type: string
+            example: "Checkafe"
+          description: Search by shop name
+      responses:
+        '200':
+          description: Shops retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopsResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
       tags:
         - Shops
@@ -1425,6 +1579,473 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /reservations:
+    post:
+      tags:
+        - Reservations
+      summary: Create a reservation
+      description: Creates a new reservation for a customer at a coffee shop.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shop_id:
+                  type: string
+                  example: "507f1f77bcf86cd799439013"
+                seat_id:
+                  type: string
+                  example: "507f1f77bcf86cd799439014"
+                time_slot_id:
+                  type: string
+                  example: "507f1f77bcf86cd799439015"
+                reservation_type:
+                  type: string
+                  enum: ["Standard", "Premium", "Event"]
+                  example: "Standard"
+                reservation_date:
+                  type: string
+                  format: date-time
+                  example: "2025-05-15T14:00:00Z"
+                number_of_people:
+                  type: integer
+                  example: 2
+                notes:
+                  type: string
+                  example: "Near window"
+      responses:
+        '200':
+          description: Reservation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reservations/{reservationId}/confirm:
+    patch:
+      tags:
+        - Reservations
+      summary: Confirm a reservation
+      description: Confirms a pending reservation (by customer, shop owner, or admin).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: reservationId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439016"
+          description: Reservation ID
+      responses:
+        '200':
+          description: Reservation confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reservations/{reservationId}/cancel:
+    patch:
+      tags:
+        - Reservations
+      summary: Cancel a reservation
+      description: Cancels a reservation (by customer only).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: reservationId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439016"
+          description: Reservation ID
+      responses:
+        '200':
+          description: Reservation cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /owners/shops/{shopId}/reservations:
+    get:
+      tags:
+        - Reservations
+      summary: Get all reservations for a shop
+      description: Retrieves a paginated list of reservations for a specific shop, with filtering and sorting.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+          description: Shop ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of reservations per page
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+            enum: [createdAt, reservation_date, status]
+          description: Field to sort by
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+          description: Sort order
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Pending, Confirmed, Cancelled, Completed]
+          description: Filter by status
+        - in: query
+          name: reservation_date
+          schema:
+            type: string
+            format: date
+            example: "2025-05-15"
+          description: Filter by reservation date
+      responses:
+        '200':
+          description: Reservations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationsResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /owners/shops/{shopId}/reservations/{reservationId}:
+    get:
+      tags:
+        - Reservations
+      summary: Get reservation details
+      description: Retrieves details of a specific reservation for a shop.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+          description: Shop ID
+        - in: path
+          name: reservationId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439016"
+          description: Reservation ID
+      responses:
+        '200':
+          description: Reservation details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /owners/shops/{shopId}/reservations/{reservationId}/confirm:
+    patch:
+      tags:
+        - Reservations
+      summary: Confirm a reservation
+      description: Confirms a pending reservation for a shop (by shop owner or admin).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+          description: Shop ID
+        - in: path
+          name: reservationId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439016"
+          description: Reservation ID
+      responses:
+        '200':
+          description: Reservation confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /owners/shops/{shopId}/reservations/{reservationId}/cancel:
+    patch:
+      tags:
+        - Reservations
+      summary: Cancel a reservation
+      description: Cancels a reservation for a shop (by shop owner or admin).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+          description: Shop ID
+        - in: path
+          name: reservationId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439016"
+          description: Reservation ID
+      responses:
+        '200':
+          description: Reservation cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  owners/shops/{shopId}/reservations/{reservationId}/complete:
+    patch:
+      tags:
+        - Reservations
+      summary: Complete a reservation
+      description: Marks a reservation as completed for a shop (by shop owner or admin).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439013"
+          description: Shop ID
+        - in: path
+          name: reservationId
+          required: true
+          schema:
+            type: string
+            example: "507f1f77bcf86cd799439016"
+          description: Reservation ID
+      responses:
+        '200':
+          description: Reservation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     SignUpRequest:
@@ -2005,6 +2626,124 @@ components:
                     type: string
                     example: "Initial verification"
 
+    ShopsResponse:
+      type: object
+      properties:
+        shops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shop'
+        metadata:
+          type: object
+          properties:
+            totalItems:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 10
+            currentPage:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+    
+    PublicShopsResponse:
+      type: object
+      properties:
+        shops:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicShop'
+        metadata:
+          type: object
+          properties:
+            totalItems:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 10
+            currentPage:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+    PublicShop:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439013"
+        name:
+          type: string
+          example: "Checkafe"
+        address:
+          type: string
+          example: "123 Đường Láng, Hà Nội"
+        location:
+          type: object
+          properties:
+            type:
+              type: string
+              example: "Point"
+            coordinates:
+              type: array
+              items:
+                type: number
+              example: [105.8167, 21.0285]
+        theme_ids:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "507f1f77bcf86cd799439012"
+              name:
+                type: string
+                example: "Modern Cafe"
+              description:
+                type: string
+                example: "A modern theme"
+              theme_image:
+                type: string
+                example: "https://res.cloudinary.com/.../modern_cafe.jpg"
+        vip_status:
+          type: boolean
+          example: false
+        rating_avg:
+          type: number
+          example: 4.5
+        rating_count:
+          type: integer
+          example: 120
+        amenities:
+          type: array
+          items:
+            type: string
+          example: ["WiFi", "PetFriendly"]
+        mainImage:
+          type: object
+          nullable: true
+          properties:
+            url:
+              type: string
+              example: "https://res.cloudinary.com/.../checkafe.jpg"
+            publicId:
+              type: string
+              example: "checkafe/shops/123456789_checkafe"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-04-15T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-04-15T12:00:00Z"
+
     ShopImageResponse:
       type: object
       properties:
@@ -2143,6 +2882,155 @@ components:
             reason:
               type: string
               example: "Initial verification"
+  
+    ReservationResponse:
+      type: object
+      properties:
+        reservation:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439016"
+            user_id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            shop_id:
+              type: string
+              example: "507f1f77bcf86cd799439013"
+            seat_id:
+              type: string
+              example: "507f1f77bcf86cd799439014"
+            time_slot_id:
+              type: string
+              example: "507f1f77bcf86cd799439015"
+            reservation_type:
+              type: string
+              example: "Standard"
+            reservation_date:
+              type: string
+              format: date-time
+              example: "2025-05-15T14:00:00Z"
+            number_of_people:
+              type: integer
+              example: 2
+            notes:
+              type: string
+              example: "Near window"
+            qr_code:
+              type: string
+              example: "data:image/png;base64,iVBORw0KGgo..."
+            status:
+              type: string
+              example: "Pending"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-05-15T12:00:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2025-05-15T12:00:00Z"
+  
+    ReservationsResponse:
+      type: object
+      properties:
+        reservations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reservation'
+        metadata:
+          type: object
+          properties:
+            totalItems:
+              type: integer
+              example: 100
+            totalPages:
+              type: integer
+              example: 10
+            currentPage:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+    ReservationResponse:
+      type: object
+      properties:
+        reservation:
+          $ref: '#/components/schemas/Reservation'
+    Reservation:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439016"
+        user_id:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439011"
+            email:
+              type: string
+              example: "user@example.com"
+            username:
+              type: string
+              example: "john_doe"
+        shop_id:
+          type: string
+          example: "507f1f77bcf86cd799439013"
+        seat_id:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439014"
+            name:
+              type: string
+              example: "Table 1"
+            capacity:
+              type: integer
+              example: 4
+        time_slot_id:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: "507f1f77bcf86cd799439015"
+            start_time:
+              type: string
+              example: "14:00"
+            end_time:
+              type: string
+              example: "15:00"
+        reservation_type:
+          type: string
+          example: "Standard"
+        reservation_date:
+          type: string
+          format: date-time
+          example: "2025-05-15T14:00:00Z"
+        number_of_people:
+          type: integer
+          example: 2
+        notes:
+          type: string
+          example: "Near window"
+        qr_code:
+          type: string
+          example: "data:image/png;base64,iVBORw0KGgo..."
+        status:
+          type: string
+          example: "Pending"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-05-15T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-05-15T12:00:00Z"
   securitySchemes:
     bearerAuth:
       type: http

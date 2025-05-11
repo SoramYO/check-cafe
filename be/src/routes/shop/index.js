@@ -10,9 +10,15 @@ const { USER_ROLE } = require("../../constants/enum");
 // PUBLIC ROUTES
 // Get shop details
 router.get("/:shopId", shopController.getShop);
+// Get all shops
+router.get("/public", shopController.getAllPublicShops);
 
+// PRIVATE ROUTES
 router.use(checkAuth);
-router.use(checkRole([USER_ROLE.SHOP_OWNER]));
+
+router.get("/", shopController.getAllShops);
+
+router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]));
 
 // Create shop
 router.post("/", shopController.createShop);
