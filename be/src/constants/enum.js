@@ -13,7 +13,22 @@ const HEADER = {
   REFRESH_TOKEN: "x-refresh-token",
 };
 
+const RESERVATION_TYPE = {
+  STANDARD: "Standard",
+  PREMIUM: "Premium",
+  EVENT: "Event",
+};
+
+const RESERVATION_STATUS = {
+  PENDING: "Pending",
+  CONFIRMED: "Confirmed",
+  CANCELLED: "Cancelled",
+  COMPLETED: "Completed",
+};
+
 module.exports = {
   USER_ROLE,
   HEADER,
+  RESERVATION_TYPE,
+  RESERVATION_STATUS,
 };
