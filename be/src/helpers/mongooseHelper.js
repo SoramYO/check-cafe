@@ -37,14 +37,13 @@ const getPaginatedData = async ({
     const skip = (pageNum - 1) * limitNum;
     // Step 4: Thực hiện truy vấn
     const dataPromise = model
-      .find(finalQuery)
-      .select(select)
-      .populate(populate)
-      .sort(sort)
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
-
+    .find(finalQuery)
+    .select(select)
+    .populate(populate)
+    .sort(sort)
+    .skip(skip)
+    .limit(limitNum)
+    
 
 
 

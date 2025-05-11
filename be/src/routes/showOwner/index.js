@@ -5,12 +5,18 @@ const { checkAuth, checkRole, checkShopOwnership } = require("../../auth/checkAu
 const router = express.Router();
 const reservationController = require("../../controllers/reservation.controller");
 const { USER_ROLE } = require("../../constants/enum");
+const shopController = require("../../controllers/shop.controller");
 
 
 
 
 router.use(checkAuth);
+
+router.get("/shops", shopController.getAllShops);
+
+
 router.use(checkRole([USER_ROLE.SHOP_OWNER]));
+
 
 // Reservation management
 router.get("/shops/:shopId/reservations", checkShopOwnership, reservationController.getAllReservations);
