@@ -92,7 +92,7 @@ const getReservationDetail = async (req) => {
 const createReservation = async (req) => {
   try {
     const { shopId, seatId, timeSlotId, reservation_date, number_of_people, notes, reservation_type } = req.body;
-    console.log("🚀 ~ createReservation ~ req.body:", req.body)
+
     const { userId } = req.user;
     const { emitNotification } = req.app.locals;
 

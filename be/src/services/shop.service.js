@@ -18,6 +18,7 @@ const {
   removeUndefinedObject,
 } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
+const { default: mongoose } = require("mongoose");
 
 const getAllPublicShops = async (req) => {
   try {
@@ -218,7 +219,10 @@ const createShop = async (req) => {
       address,
       location: {
         type: "Point",
-        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        coordinates: [
+          parseFloat(longitude), 
+          parseFloat(latitude)
+        ],
       },
       owner_id: userId,
       amenities,
@@ -235,10 +239,6 @@ const createShop = async (req) => {
           "location",
           "owner_id",
           "theme_ids",
-          "vip_status",
-          "rating_avg",
-          "rating_count",
-          "status",
           "amenities",
           "opening_hours",
           "createdAt",
@@ -253,6 +253,7 @@ const createShop = async (req) => {
       : new BadRequestError(error.message || "Failed to create shop");
   }
 };
+
 
 const updateShop = async (req) => {
   try {
