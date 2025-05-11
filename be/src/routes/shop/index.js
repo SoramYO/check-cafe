@@ -19,7 +19,7 @@ router.use(checkAuth);
 
 router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]));
 
-router.get("/owner", shopController.getAllShops);
+// router.get("/", shopController.getAllShops);
 // Create shop
 router.post("/", shopController.createShop);
 

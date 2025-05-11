@@ -103,6 +103,9 @@ const getAllPublicShops = async (req) => {
         "rating_avg",
         "rating_count",
         "amenities",
+        "opening_hours",
+        "formatted_opening_hours",
+        "is_open",
         "createdAt",
         "updatedAt",
       ]),
@@ -110,7 +113,7 @@ const getAllPublicShops = async (req) => {
         { path: "theme_ids", select: "_id name description theme_image" },
       ],
       search,
-      searchFields: ["name"], // Tìm kiếm trên trường name
+      searchFields: ["name"],
       sort,
     };
 
@@ -136,6 +139,9 @@ const getAllPublicShops = async (req) => {
               "rating_avg",
               "rating_count",
               "amenities",
+              "opening_hours",
+              "formatted_opening_hours",
+              "is_open",
               "createdAt",
               "updatedAt",
             ],
@@ -156,8 +162,7 @@ const getAllPublicShops = async (req) => {
         currentPage: result.metadata.page,
         limit: result.metadata.limit,
       },
-      message:
-        shopsWithImage.length === 0 ? "No public shops found" : undefined,
+      message: shopsWithImage.length === 0 ? "No public shops found" : undefined,
     };
   } catch (error) {
     throw error instanceof BadRequestError
@@ -166,18 +171,45 @@ const getAllPublicShops = async (req) => {
   }
 };
 
-
 const createShop = async (req) => {
   try {
     const { userId } = req.user;
-    const { name, address, latitude, longitude, amenities, theme_ids } =
-      req.body;
+    const { name, address, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
 
     // Kiểm tra input
     if (!name || !address || !latitude || !longitude) {
-      throw new BadRequestError(
-        "Name, address, latitude, and longitude are required"
-      );
+      throw new BadRequestError("Name, address, latitude, and longitude are required");
+    }
+
+    // Validate opening_hours
+    if (opening_hours) {
+      if (!Array.isArray(opening_hours)) {
+        throw new BadRequestError("opening_hours must be an array");
+      }
+      const validDays = [0, 1, 2, 3, 4, 5, 6];
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      for (const entry of opening_hours) {
+        if (!validDays.includes(entry.day)) {
+          throw new BadRequestError("Invalid day in opening_hours (must be 0-6)");
+        }
+        if (!entry.is_closed && (!entry.hours || !Array.isArray(entry.hours) || entry.hours.length === 0)) {
+          throw new BadRequestError(`Hours required for day ${entry.day} when not closed`);
+        }
+        if (entry.hours) {
+          for (const h of entry.hours) {
+            if (!timeRegex.test(h.open) || !timeRegex.test(h.close)) {
+              throw new BadRequestError(`Invalid time format in hours for day ${entry.day}`);
+            }
+            const [openHour, openMinute] = h.open.split(":").map(Number);
+            const [closeHour, closeMinute] = h.close.split(":").map(Number);
+            const openTime = openHour * 60 + openMinute;
+            const closeTime = closeHour * 60 + closeMinute;
+            if (openTime >= closeTime) {
+              throw new BadRequestError(`Open time must be before close time for day ${entry.day}`);
+            }
+          }
+        }
+      }
     }
 
     // Tạo quán mới
@@ -191,6 +223,7 @@ const createShop = async (req) => {
       owner_id: userId,
       amenities,
       theme_ids,
+      opening_hours,
     });
 
     return {
@@ -207,6 +240,7 @@ const createShop = async (req) => {
           "rating_count",
           "status",
           "amenities",
+          "opening_hours",
           "createdAt",
           "updatedAt",
         ],
@@ -214,7 +248,9 @@ const createShop = async (req) => {
       }),
     };
   } catch (error) {
-    throw new BadRequestError(error.message || "Failed to create shop");
+    throw error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to create shop");
   }
 };
 
@@ -222,8 +258,7 @@ const updateShop = async (req) => {
   try {
     const { shopId } = req.params;
     const { userId } = req.user;
-    const { name, address, latitude, longitude, amenities, theme_ids } =
-      req.body;
+    const { name, address, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
 
     // Tìm quán
     const shop = await shopModel.findById(shopId);
@@ -234,6 +269,37 @@ const updateShop = async (req) => {
     // Kiểm tra quyền
     if (shop.owner_id.toString() !== userId) {
       throw new ForbiddenError("You are not the owner of this shop");
+    }
+
+    // Validate opening_hours
+    if (opening_hours) {
+      if (!Array.isArray(opening_hours)) {
+        throw new BadRequestError("opening_hours must be an array");
+      }
+      const validDays = [0, 1, 2, 3, 4, 5, 6];
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      for (const entry of opening_hours) {
+        if (!validDays.includes(entry.day)) {
+          throw new BadRequestError("Invalid day in opening_hours (must be 0-6)");
+        }
+        if (!entry.is_closed && (!entry.hours || !Array.isArray(entry.hours) || entry.hours.length === 0)) {
+          throw new BadRequestError(`Hours required for day ${entry.day} when not closed`);
+        }
+        if (entry.hours) {
+          for (const h of entry.hours) {
+            if (!timeRegex.test(h.open) || !timeRegex.test(h.close)) {
+              throw new BadRequestError(`Invalid time format in hours for day ${entry.day}`);
+            }
+            const [openHour, openMinute] = h.open.split(":").map(Number);
+            const [closeHour, closeMinute] = h.close.split(":").map(Number);
+            const openTime = openHour * 60 + openMinute;
+            const closeTime = closeHour * 60 + closeMinute;
+            if (openTime >= closeTime) {
+              throw new BadRequestError(`Open time must be before close time for day ${entry.day}`);
+            }
+          }
+        }
+      }
     }
 
     // Cập nhật dữ liệu
@@ -249,6 +315,7 @@ const updateShop = async (req) => {
           : undefined,
       amenities,
       theme_ids,
+      opening_hours,
     });
 
     const updatedShop = await shopModel
@@ -266,6 +333,7 @@ const updateShop = async (req) => {
           "rating_count",
           "status",
           "amenities",
+          "opening_hours",
           "createdAt",
           "updatedAt",
         ])
@@ -285,6 +353,7 @@ const updateShop = async (req) => {
           "rating_count",
           "status",
           "amenities",
+          "opening_hours",
           "createdAt",
           "updatedAt",
         ],
@@ -301,7 +370,6 @@ const updateShop = async (req) => {
 const getShop = async (req) => {
   try {
     const { shopId } = req.params;
-    // const { userId } = req.user;
 
     const shop = await shopModel
       .findById(shopId)
@@ -319,20 +387,20 @@ const getShop = async (req) => {
           "rating_count",
           "status",
           "amenities",
+          "opening_hours",
+          "formatted_opening_hours",
+          "is_open",
           "createdAt",
           "updatedAt",
         ])
       )
-      .lean();
 
     if (!shop) {
       throw new NotFoundError("Shop not found");
     }
 
-    // Kiểm tra quyền
-    // if (shop.owner_id.toString() !== userId) {
-    //   throw new ForbiddenError("You are not the owner of this shop");
-    // }
+    // Debug: Kiểm tra dữ liệu shop
+    console.log("Raw shop data:", JSON.stringify(shop, null, 2));
 
     // Lấy thông tin liên quan
     const images = await shopImageModel
@@ -360,9 +428,29 @@ const getShop = async (req) => {
       )
       .lean();
 
-    return {
+    const result = {
       shop: {
-        ...shop,
+        ...getInfoData({
+          fields: [
+            "_id",
+            "name",
+            "address",
+            "location",
+            "owner_id",
+            "theme_ids",
+            "vip_status",
+            "rating_avg",
+            "rating_count",
+            "status",
+            "amenities",
+            "opening_hours",
+            "formatted_opening_hours",
+            "is_open",
+            "createdAt",
+            "updatedAt",
+          ],
+          object: shop,
+        }),
         images,
         seats,
         menuItems,
@@ -370,6 +458,11 @@ const getShop = async (req) => {
         verifications,
       },
     };
+
+    // Debug: Kiểm tra dữ liệu sau getInfoData
+    console.log("Formatted shop data:", JSON.stringify(result.shop, null, 2));
+
+    return result;
   } catch (error) {
     throw error instanceof NotFoundError || error instanceof ForbiddenError
       ? error
@@ -394,7 +487,7 @@ const getAllShops = async (req) => {
     if (amenities && !Array.isArray(amenities.split(","))) {
       throw new BadRequestError("amenities must be a comma-separated string");
     }
-    if (status && !["Active", "Inactive", "Pending"].includes(status)) {
+    if (status && !["Active", "Inactive", "Pending", "Rejected"].includes(status)) {
       throw new BadRequestError("Invalid status");
     }
 
@@ -450,6 +543,9 @@ const getAllShops = async (req) => {
         "rating_count",
         "status",
         "amenities",
+        "opening_hours",
+        "formatted_opening_hours",
+        "is_open",
         "createdAt",
         "updatedAt",
       ]),
@@ -457,7 +553,7 @@ const getAllShops = async (req) => {
         { path: "theme_ids", select: "_id name description theme_image" },
       ],
       search,
-      searchFields: ["name"], // Tìm kiếm trên trường name
+      searchFields: ["name"],
       sort,
     };
 
@@ -479,6 +575,9 @@ const getAllShops = async (req) => {
           "rating_count",
           "status",
           "amenities",
+          "opening_hours",
+          "formatted_opening_hours",
+          "is_open",
           "createdAt",
           "updatedAt",
         ],
@@ -502,6 +601,7 @@ const getAllShops = async (req) => {
       : new BadRequestError(error.message || "Failed to retrieve shops");
   }
 };
+
 
 const uploadShopImage = async (req) => {
   try {
