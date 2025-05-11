@@ -18,7 +18,7 @@ const {
   removeUndefinedObject,
 } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
-const { default: mongoose } = require("mongoose");
+const menuItemCategoryModel = require("../models/menuItemCategory.model");
 
 const getAllPublicShops = async (req) => {
   try {
@@ -832,30 +832,58 @@ const createMenuItem = async (req) => {
     const { userId } = req.user;
     const { name, description, price, category, is_available } = req.body;
 
-    // Tìm quán
+    // Kiểm tra shop tồn tại
     const shop = await shopModel.findById(shopId);
     if (!shop) {
       throw new NotFoundError("Shop not found");
     }
 
-    // Kiểm tra quyền
+    // Kiểm tra quyền sở hữu
     if (shop.owner_id.toString() !== userId) {
       throw new ForbiddenError("You are not the owner of this shop");
     }
 
-    // Kiểm tra input
+    // Kiểm tra danh mục
+    if (!category) {
+      throw new BadRequestError("Category is required");
+    }
+    const categoryExists = await menuItemCategoryModel.findById(category);
+    if (!categoryExists) {
+      throw new BadRequestError("Invalid category");
+    }
+
+    // Kiểm tra và xử lý ảnh
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      if (req.files.length > 3) {
+        throw new BadRequestError("Maximum 3 images allowed");
+      }
+      images = await Promise.all(
+        req.files.map(async (file) => {
+          const result = await cloudinary.uploader.upload(file.path, {
+            folder: `shops/${shopId}/menu-items`,
+          });
+          return { url: result.secure_url, publicId: result.public_id };
+        })
+      );
+    } else {
+      throw new BadRequestError("At least one image is required");
+    }
+
+    // Validate các trường bắt buộc
     if (!name || !price) {
       throw new BadRequestError("Name and price are required");
     }
 
-    // Tạo món
+    // Tạo menu item
     const menuItem = await shopMenuItemModel.create({
       shop_id: shopId,
       name,
       description,
-      price,
+      price: Number(price),
       category,
       is_available: is_available !== undefined ? is_available : true,
+      images,
     });
 
     return {
@@ -868,11 +896,21 @@ const createMenuItem = async (req) => {
           "price",
           "category",
           "is_available",
+          "images",
+          "createdAt",
+          "updatedAt",
         ],
         object: menuItem,
       }),
     };
   } catch (error) {
+    if (req.files && req.files.length > 0) {
+      await Promise.all(
+        req.files.map((file) =>
+          cloudinary.uploader.destroy(file.filename).catch((err) => console.error("Failed to delete image:", err))
+        )
+      );
+    }
     throw error instanceof NotFoundError || error instanceof ForbiddenError
       ? error
       : new BadRequestError(error.message || "Failed to create menu item");
@@ -885,45 +923,80 @@ const updateMenuItem = async (req) => {
     const { userId } = req.user;
     const { name, description, price, category, is_available } = req.body;
 
-    // Tìm quán
+    // Kiểm tra shop tồn tại
     const shop = await shopModel.findById(shopId);
     if (!shop) {
       throw new NotFoundError("Shop not found");
     }
 
-    // Kiểm tra quyền
+    // Kiểm tra quyền sở hữu
     if (shop.owner_id.toString() !== userId) {
       throw new ForbiddenError("You are not the owner of this shop");
     }
 
-    // Tìm món
-    const menuItem = await shopMenuItemModel.findById(itemId);
+    // Tìm menu item
+    const menuItem = await shopMenuItemModel.findOne({ _id: itemId, shop_id: shopId });
     if (!menuItem) {
       throw new NotFoundError("Menu item not found");
     }
 
-    // Cập nhật dữ liệu
-    const updateData = removeUndefinedObject({
-      name,
-      description,
-      price,
-      category,
-      is_available,
-    });
+    // Kiểm tra danh mục nếu được cung cấp
+    if (category) {
+      const categoryExists = await menuItemCategoryModel.findById(category);
+      if (!categoryExists) {
+        throw new BadRequestError("Invalid category");
+      }
+    }
 
-    const updatedMenuItem = await shopMenuItemModel
-      .findByIdAndUpdate(itemId, updateData, { new: true, runValidators: true })
-      .select(
-        getSelectData([
-          "_id",
-          "shop_id",
-          "name",
-          "description",
-          "price",
-          "category",
-          "is_available",
-        ])
+    // Xử lý ảnh
+    let images = menuItem.images;
+    if (req.files && req.files.length > 0) {
+      if (req.files.length > 3) {
+        throw new BadRequestError("Maximum 3 images allowed");
+      }
+      images = await Promise.all(
+        req.files.map(async (file) => {
+          const result = await cloudinary.uploader.upload(file.path, {
+            folder: `shops/${shopId}/menu-items`,
+          });
+          return { url: result.secure_url, publicId: result.public_id };
+        })
       );
+      if (menuItem.images && menuItem.images.length > 0) {
+        await Promise.all(
+          menuItem.images.map((img) => cloudinary.uploader.destroy(img.publicId))
+        );
+      }
+    } else if (req.body.images) {
+      images = req.body.images;
+      if (!Array.isArray(images) || images.length < 1 || images.length > 3) {
+        throw new BadRequestError("Images must be an array with 1 to 3 items");
+      }
+      for (const img of images) {
+        if (!img.url || !img.publicId) {
+          throw new BadRequestError("Each image must have url and publicId");
+        }
+      }
+      if (menuItem.images && menuItem.images.length > 0) {
+        await Promise.all(
+          menuItem.images.map((img) => cloudinary.uploader.destroy(img.publicId))
+        );
+      }
+    }
+
+    // Cập nhật menu item
+    const updatedMenuItem = await shopMenuItemModel.findOneAndUpdate(
+      { _id: itemId, shop_id: shopId },
+      removeUndefinedObject({
+        name,
+        description,
+        price: price ? Number(price) : undefined,
+        category,
+        is_available,
+        images,
+      }),
+      { new: true }
+    );
 
     return {
       menuItem: getInfoData({
@@ -935,11 +1008,21 @@ const updateMenuItem = async (req) => {
           "price",
           "category",
           "is_available",
+          "images",
+          "createdAt",
+          "updatedAt",
         ],
         object: updatedMenuItem,
       }),
     };
   } catch (error) {
+    if (req.files && req.files.length > 0) {
+      await Promise.all(
+        req.files.map((file) =>
+          cloudinary.uploader.destroy(file.filename).catch((err) => console.error("Failed to delete image:", err))
+        )
+      );
+    }
     throw error instanceof NotFoundError || error instanceof ForbiddenError
       ? error
       : new BadRequestError(error.message || "Failed to update menu item");
@@ -1092,9 +1175,8 @@ const submitVerification = async (req) => {
     const { shopId } = req.params;
     const { userId } = req.user;
     const { document_type, reason } = req.body;
-    const file = req.file;
 
-    // Tìm quán
+    // Kiểm tra shop tồn tại
     const shop = await shopModel.findById(shopId);
     if (!shop) {
       throw new NotFoundError("Shop not found");
@@ -1105,16 +1187,35 @@ const submitVerification = async (req) => {
       throw new ForbiddenError("You are not the owner of this shop");
     }
 
-    // Kiểm tra file
-    if (!file) {
-      throw new BadRequestError("Document file is required");
+    // Kiểm tra và xử lý ảnh
+    let documents = [];
+    if (req.files && req.files.length > 0) {
+      // Validate số lượng ảnh
+      if (req.files.length > 5) {
+        throw new BadRequestError("Maximum 5 documents allowed");
+      }
+      documents = await Promise.all(
+        req.files.map(async (file) => {
+          const result = await cloudinary.uploader.upload(file.path, {
+            folder: `shops/${shopId}/verifications`,
+          });
+          return { url: result.secure_url, publicId: result.public_id };
+        })
+      );
+    } else {
+      throw new BadRequestError("At least one document is required");
+    }
+
+    // Validate document_type
+    if (!document_type) {
+      throw new BadRequestError("Document type is required");
     }
 
     // Tạo xác minh
     const verification = await shopVerificationModel.create({
       shop_id: shopId,
       document_type,
-      document_url: file.path,
+      documents,
       reason,
       submitted_at: new Date(),
       status: "Pending",
@@ -1126,17 +1227,24 @@ const submitVerification = async (req) => {
           "_id",
           "shop_id",
           "document_type",
-          "document_url",
+          "documents",
           "status",
           "submitted_at",
           "reason",
+          "createdAt",
+          "updatedAt",
         ],
         object: verification,
       }),
     };
   } catch (error) {
-    if (req.file && req.file.filename) {
-      await cloudinary.uploader.destroy(req.file.filename);
+    // Xóa ảnh đã upload nếu có lỗi
+    if (req.files && req.files.length > 0) {
+      await Promise.all(
+        req.files.map((file) =>
+          cloudinary.uploader.destroy(file.filename).catch((err) => console.error("Failed to delete image:", err))
+        )
+      );
     }
     throw error instanceof NotFoundError || error instanceof ForbiddenError
       ? error

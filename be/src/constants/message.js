@@ -70,6 +70,14 @@ const ADVERTISEMENT_MESSAGE = {
   GET_ADVERTISEMENT_BY_ID_SUCCESS: "Get advertisement by ID successfully",
 };
 
+const CATEGORY_MESSAGE = {
+  GET_CATEGORY_LIST_SUCCESS: "Get category list successfully",
+  CREATE_CATEGORY_SUCCESS: "Create category successfully",
+  UPDATE_CATEGORY_SUCCESS: "Update category successfully",
+  GET_PUBLIC_CATEGORY_LIST_SUCCESS: "Get public category list successfully",
+  DELETE_CATEGORY_SUCCESS: "Delete category successfully",
+};
+
 const CUSTOMER_MESSAGE = {
   GET_COFFEE_SHOPS_SUCCESS: "Get coffee shops successfully",
 };
@@ -100,4 +108,5 @@ module.exports = {
   CUSTOMER_MESSAGE,
   RESERVATION_MESSAGE,
   NOTIFICATION_MESSAGE,
+  CATEGORY_MESSAGE
 };

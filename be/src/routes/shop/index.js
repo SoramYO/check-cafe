@@ -50,11 +50,19 @@ router.patch(
   shopController.updateSeat
 );
 
-// Create menu item
-router.post("/:shopId/menu-items", shopController.createMenuItem);
+// Create menu item (hỗ trợ upload 1-3 ảnh)
+router.post(
+  "/:shopId/menu-items",
+  uploadCloud.array("images", 3),
+  shopController.createMenuItem
+);
 
-// Update menu item
-router.patch("/:shopId/menu-items/:itemId", shopController.updateMenuItem);
+// Update menu item (hỗ trợ upload 1-3 ảnh)
+router.patch(
+  "/:shopId/menu-items/:itemId",
+  uploadCloud.array("images", 3),
+  shopController.updateMenuItem
+);
 
 // Create time slot
 router.post("/:shopId/time-slots", shopController.createTimeSlot);
@@ -62,10 +70,10 @@ router.post("/:shopId/time-slots", shopController.createTimeSlot);
 // Update time slot
 router.patch("/:shopId/time-slots/:slotId", shopController.updateTimeSlot);
 
-// Submit verification
+// Submit verification (hỗ trợ upload 1-5 ảnh)
 router.post(
   "/:shopId/verifications",
-  uploadCloud.single("document"),
+  uploadCloud.array("documents", 5),
   shopController.submitVerification
 );
 
