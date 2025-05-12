@@ -13,86 +13,9 @@ const { isValidObjectId } = require("mongoose");
 const pointModel = require("../models/point.model");
 const { createNotification } = require("./notification.service");
 
-
-
-const getReservationDetail = async (req) => {
-    try {
-      const { shopId, reservationId } = req.params;
-      const { userId, role } = req.user;
-  
-      // Kiểm tra quán
-      const shop = await shopModel.findById(shopId);
-      if (!shop) {
-        throw new NotFoundError("Shop not found");
-      }
-  
-      // Kiểm tra quyền
-      if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
-        throw new ForbiddenError("You are not authorized to view this reservation");
-      }
-  
-      // Lấy chi tiết đơn
-      const reservation = await reservationModel
-        .findOne({ _id: reservationId, shop_id: shopId })
-        .populate([
-          { path: "user_id", select: "_id email username" },
-          { path: "seat_id", select: "_id name capacity" },
-          { path: "time_slot_id", select: "_id start_time end_time" },
-        ])
-        .select(
-          getSelectData([
-            "_id",
-            "user_id",
-            "shop_id",
-            "seat_id",
-            "time_slot_id",
-            "reservation_type",
-            "reservation_date",
-            "number_of_people",
-            "notes",
-            "qr_code",
-            "status",
-            "createdAt",
-            "updatedAt",
-          ])
-        )
-        .lean();
-  
-      if (!reservation) {
-        throw new NotFoundError("Reservation not found");
-      }
-  
-      return {
-        reservation: getInfoData({
-          fields: [
-            "_id",
-            "user_id",
-            "shop_id",
-            "seat_id",
-            "time_slot_id",
-            "reservation_type",
-            "reservation_date",
-            "number_of_people",
-            "notes",
-            "qr_code",
-            "status",
-            "createdAt",
-            "updatedAt",
-          ],
-          object: reservation,
-        }),
-      };
-    } catch (error) {
-      throw error instanceof NotFoundError || error instanceof ForbiddenError
-        ? error
-        : new BadRequestError(error.message || "Failed to retrieve reservation details");
-    }
-};
-
 const createReservation = async (req) => {
   try {
     const { shopId, seatId, timeSlotId, reservation_date, number_of_people, notes, reservation_type } = req.body;
-
     const { userId } = req.user;
     const { emitNotification } = req.app.locals;
 
@@ -115,14 +38,44 @@ const createReservation = async (req) => {
 
     // Kiểm tra khung giờ
     const timeSlot = await shopTimeSlotModel.findById(timeSlotId);
-    if (!timeSlot || timeSlot.shop_id.toString() !== shopId) {
-      throw new BadRequestError("Invalid time slot");
+    if (!timeSlot || timeSlot.shop_id.toString() !== shopId || !timeSlot.is_active) {
+      throw new BadRequestError("Invalid or inactive time slot");
     }
 
     // Kiểm tra ngày đặt
     const reservationDate = new Date(reservation_date);
     if (isNaN(reservationDate.getTime()) || reservationDate < new Date()) {
       throw new BadRequestError("Invalid reservation date");
+    }
+
+    // Kiểm tra trùng reservation
+    const startOfDay = new Date(reservationDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(reservationDate.setHours(23, 59, 59, 999));
+    const existingReservation = await reservationModel.findOne({
+      shop_id: shopId,
+      seat_id: seatId,
+      time_slot_id: timeSlotId,
+      reservation_date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CHECKED_IN] },
+    });
+    if (existingReservation) {
+      throw new BadRequestError("This seat and time slot are already reserved for the selected date");
+    }
+
+    // Kiểm tra giới hạn reservation của time slot
+    const reservationCount = await reservationModel.countDocuments({
+      shop_id: shopId,
+      time_slot_id: timeSlotId,
+      reservation_date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CHECKED_IN] },
+      reservation_type,
+    });
+    const maxReservations =
+      reservation_type === RESERVATION_TYPE.PRIORITY
+        ? timeSlot.max_premium_reservations
+        : timeSlot.max_regular_reservations;
+    if (reservationCount >= maxReservations) {
+      throw new BadRequestError(`Maximum ${reservation_type.toLowerCase()} reservations reached for this time slot`);
     }
 
     // Tạo mã QR
@@ -207,8 +160,30 @@ const confirmReservation = async (req) => {
       throw new ForbiddenError("You are not authorized to confirm this reservation");
     }
 
+    if(reservation.status === RESERVATION_STATUS.CONFIRMED) {
+      throw new BadRequestError("Reservation is already confirmed");
+    }
+
+
     if (reservation.status !== RESERVATION_STATUS.PENDING) {
       throw new BadRequestError("Reservation is not in Pending status");
+    }
+
+
+    // Kiểm tra trùng reservation
+    const reservationDate = new Date(reservation.reservation_date);
+    const startOfDay = new Date(reservationDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(reservationDate.setHours(23, 59, 59, 999));
+    const existingReservation = await reservationModel.findOne({
+      _id: { $ne: reservationId },
+      shop_id: reservation.shop_id,
+      seat_id: reservation.seat_id,
+      time_slot_id: reservation.time_slot_id,
+      reservation_date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CHECKED_IN] },
+    });
+    if (existingReservation) {
+      throw new BadRequestError("This seat and time slot are already confirmed for another reservation on the same date");
     }
 
     reservation.status = RESERVATION_STATUS.CONFIRMED;
@@ -229,7 +204,7 @@ const confirmReservation = async (req) => {
       fields: [
         "_id",
         "user_id",
-        "shop_id",
+        // "shop_id",
         "seat_id",
         "time_slot_id",
         "reservation_type",
@@ -397,12 +372,10 @@ const checkInReservationCustomer = async (req) => {
     const { userId } = req.user;
     const { emitNotification } = req.app.locals;
 
-    // Validate reservationId
     if (!isValidObjectId(reservationId)) {
       throw new BadRequestError("Invalid reservationId");
     }
 
-    // Tìm đơn đặt chỗ
     const reservation = await reservationModel
       .findById(reservationId)
       .populate([
@@ -416,22 +389,18 @@ const checkInReservationCustomer = async (req) => {
       throw new NotFoundError("Reservation not found");
     }
 
-    // Kiểm tra quyền
     if (reservation.user_id.toString() !== userId) {
       throw new ForbiddenError("You are not authorized to check-in this reservation");
     }
 
-    // Kiểm tra trạng thái
     if (reservation.status !== RESERVATION_STATUS.CONFIRMED) {
       throw new BadRequestError("Reservation is not in Confirmed status");
     }
 
-    // Kiểm tra mã QR
     if (reservation.qr_code !== qr_code) {
       throw new BadRequestError("Invalid QR code");
     }
 
-    // Kiểm tra thời gian check-in
     const now = new Date();
     const reservationDate = new Date(reservation.reservation_date);
     const startOfDay = new Date(reservationDate.setHours(0, 0, 0, 0));
@@ -440,12 +409,10 @@ const checkInReservationCustomer = async (req) => {
       throw new BadRequestError("Check-in is only allowed on the reservation date");
     }
 
-    // Kiểm tra quán Active
     if (reservation.shop_id.status !== "Active") {
       throw new BadRequestError("Shop is not active");
     }
 
-    // Cập nhật trạng thái check-in
     const updatedReservation = await reservationModel
       .findByIdAndUpdate(
         reservationId,
@@ -476,11 +443,9 @@ const checkInReservationCustomer = async (req) => {
       )
       .lean();
 
-    // Tính điểm (10 điểm/người)
     const pointsPerPerson = 10;
     const pointsEarned = reservation.number_of_people * pointsPerPerson;
 
-    // Lưu lịch sử tích điểm
     await pointModel.create({
       user_id: userId,
       reservation_id: reservationId,
@@ -489,13 +454,11 @@ const checkInReservationCustomer = async (req) => {
       description: `Points earned from check-in reservation ${reservationId}`,
     });
 
-    // Tính tổng điểm của user
     const totalPoints = await pointModel.aggregate([
       { $match: { user_id: mongoose.Types.ObjectId(userId) } },
       { $group: { _id: null, total: { $sum: "$points" } } },
     ]);
 
-    // Tạo thông báo cho SHOP_OWNER
     await createNotification({
       user_id: reservation.shop_id.owner_id,
       title: "Customer Check-in",
@@ -541,23 +504,19 @@ const checkInReservationByShop = async (req) => {
     const { userId, role } = req.user;
     const { emitNotification } = req.app.locals;
 
-    // Validate shopId
     if (!isValidObjectId(shopId)) {
       throw new BadRequestError("Invalid shopId");
     }
 
-    // Kiểm tra quán
     const shop = await shopModel.findById(shopId);
     if (!shop) {
       throw new NotFoundError("Shop not found");
     }
 
-    // Kiểm tra quyền
     if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
       throw new ForbiddenError("You are not authorized to perform this action");
     }
 
-    // Tìm đơn đặt chỗ theo qr_code và shop_id
     const reservation = await reservationModel
       .findOne({ qr_code, shop_id: shopId })
       .populate([
@@ -571,12 +530,10 @@ const checkInReservationByShop = async (req) => {
       throw new NotFoundError("Reservation not found or invalid QR code");
     }
 
-    // Kiểm tra trạng thái
     if (reservation.status !== RESERVATION_STATUS.CONFIRMED) {
       throw new BadRequestError("Reservation is not in Confirmed status");
     }
 
-    // Kiểm tra thời gian check-in
     const now = new Date();
     const reservationDate = new Date(reservation.reservation_date);
     const startOfDay = new Date(reservationDate.setHours(0, 0, 0, 0));
@@ -585,12 +542,10 @@ const checkInReservationByShop = async (req) => {
       throw new BadRequestError("Check-in is only allowed on the reservation date");
     }
 
-    // Kiểm tra quán Active
     if (reservation.shop_id.status !== "Active") {
       throw new BadRequestError("Shop is not active");
     }
 
-    // Cập nhật trạng thái check-in
     const updatedReservation = await reservationModel
       .findByIdAndUpdate(
         reservation._id,
@@ -621,11 +576,9 @@ const checkInReservationByShop = async (req) => {
       )
       .lean();
 
-    // Tính điểm (10 điểm/người)
     const pointsPerPerson = 10;
     const pointsEarned = reservation.number_of_people * pointsPerPerson;
 
-    // Lưu lịch sử tích điểm
     await pointModel.create({
       user_id: reservation.user_id,
       reservation_id: reservation._id,
@@ -634,7 +587,6 @@ const checkInReservationByShop = async (req) => {
       description: `Points earned from check-in reservation ${reservation._id}`,
     });
 
-    // Tạo thông báo cho CUSTOMER
     await createNotification({
       user_id: reservation.user_id,
       title: "Check-in Confirmed",
@@ -686,24 +638,198 @@ const getAllReservations = async (req) => {
       reservation_date,
     } = req.query;
 
-    // Validate shopId
     if (!isValidObjectId(shopId)) {
       throw new BadRequestError("Invalid shopId");
     }
 
-    // Kiểm tra quán
     const shop = await shopModel.findById(shopId);
     if (!shop) {
       throw new NotFoundError("Shop not found");
     }
 
-    // Kiểm tra quyền
     if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
       throw new ForbiddenError("You are not authorized to view reservations for this shop");
     }
 
-    // Xây dựng query
     const query = { shop_id: shopId };
+    if (status && Object.values(RESERVATION_STATUS).includes(status)) {
+      query.status = status;
+    }
+    if (reservation_date) {
+      const date = new Date(reservation_date);
+      if (isNaN(date.getTime())) {
+        throw new BadRequestError("Invalid reservation_date format");
+      }
+      const startDate = new Date(date.setHours(0, 0, 0, 0));
+      const endDate = new Date(date.setHours(23, 59, 59, 999));
+      query.reservation_date = { $gte: startDate, $lte: endDate };
+    }
+
+    const validSortFields = ["createdAt", "reservation_date", "status", "number_of_people"];
+    if (sortBy && !validSortFields.includes(sortBy)) {
+      throw new BadRequestError(`Invalid sortBy. Must be one of: ${validSortFields.join(", ")}`);
+    }
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    const paginateOptions = {
+      model: reservationModel,
+      query,
+      page,
+      limit,
+      select: getSelectData([
+        "_id",
+        "user_id",
+        "shop_id",
+        "seat_id",
+        "time_slot_id",
+        "reservation_type",
+        "reservation_date",
+        "number_of_people",
+        "notes",
+        "qr_code",
+        "status",
+        "createdAt",
+        "updatedAt",
+      ]),
+      populate: [
+        { path: "user_id", select: "_id email username" },
+        { path: "seat_id", select: "_id name capacity" },
+        { path: "time_slot_id", select: "_id start_time end_time" },
+      ],
+      sort,
+    };
+
+    const result = await getPaginatedData(paginateOptions);
+
+    const reservations = result.data.map((reservation) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "user_id",
+          "shop_id",
+          "seat_id",
+          "time_slot_id",
+          "reservation_type",
+          "reservation_date",
+          "number_of_people",
+          "notes",
+          "qr_code",
+          "status",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: reservation,
+      })
+    );
+
+    return {
+      reservations,
+      metadata: {
+        totalItems: result.metadata.total,
+        totalPages: result.metadata.totalPages,
+        currentPage: result.metadata.page,
+        limit: result.metadata.limit,
+      },
+      message: reservations.length === 0 ? "No reservations found" : undefined,
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve reservations");
+  }
+};
+
+const getReservationDetail = async (req) => {
+  try {
+    const { reservationId } = req.params;
+    const { shopId } = req.body;
+    console.log("🚀 ~ getReservationDetail ~ shopId:", shopId)
+    const { userId, role } = req.user;
+
+    if (!isValidObjectId(shopId) || !isValidObjectId(reservationId)) {
+      throw new BadRequestError("Invalid shopId or reservationId");
+    }
+
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this reservation");
+    }
+
+    const reservation = await reservationModel
+      .findOne({ _id: reservationId, shop_id: shopId })
+      .populate([
+        { path: "user_id", select: "_id email username" },
+        { path: "seat_id", select: "_id name capacity" },
+        { path: "time_slot_id", select: "_id start_time end_time" },
+      ])
+      .select(
+        getSelectData([
+          "_id",
+          "user_id",
+          "shop_id",
+          "seat_id",
+          "time_slot_id",
+          "reservation_type",
+          "reservation_date",
+          "number_of_people",
+          "notes",
+          "qr_code",
+          "status",
+          "createdAt",
+          "updatedAt",
+        ])
+      )
+      .lean();
+
+    if (!reservation) {
+      throw new NotFoundError("Reservation not found");
+    }
+
+    return {
+      reservation: getInfoData({
+        fields: [
+          "_id",
+          "user_id",
+          "shop_id",
+          "seat_id",
+          "time_slot_id",
+          "reservation_type",
+          "reservation_date",
+          "number_of_people",
+          "notes",
+          "qr_code",
+          "status",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: reservation,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve reservation details");
+  }
+};
+
+const getAllReservationsByUser = async (req) => {
+  try {
+    const { userId } = req.user;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      status,
+      reservation_date,
+    } = req.query;
+
+    // Xây dựng query
+    const query = { user_id: userId };
     if (status && Object.values(RESERVATION_STATUS).includes(status)) {
       query.status = status;
     }
@@ -746,8 +872,8 @@ const getAllReservations = async (req) => {
         "updatedAt",
       ]),
       populate: [
-        { path: "user_id", select: "_id email username" },
-        { path: "seat_id", select: "_id name capacity" },
+        { path: "shop_id", select: "_id name address" },
+        { path: "seat_id", select: "_id seat_name capacity" },
         { path: "time_slot_id", select: "_id start_time end_time" },
       ],
       sort,
@@ -789,7 +915,7 @@ const getAllReservations = async (req) => {
       message: reservations.length === 0 ? "No reservations found" : undefined,
     };
   } catch (error) {
-    throw error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError
+    throw error instanceof BadRequestError
       ? error
       : new BadRequestError(error.message || "Failed to retrieve reservations");
   }
@@ -803,5 +929,6 @@ module.exports = {
   getReservationDetail,
   completeReservation,
   checkInReservationByShop,
-  checkInReservationCustomer
+  checkInReservationCustomer,
+  getAllReservationsByUser
 };
