@@ -60,15 +60,8 @@ const shopSchema = new mongoose.Schema(
     },
     amenities: [
       {
-        type: String,
-        enum: [
-          "WiFi",
-          "PowerOutlets",
-          "QuietZone",
-          "AirConditioning",
-          "Parking",
-          "PetFriendly",
-        ],
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "ShopAmenity",
       },
     ],
     categories: [

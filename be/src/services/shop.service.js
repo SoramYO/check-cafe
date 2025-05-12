@@ -19,6 +19,9 @@ const {
 } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const menuItemCategoryModel = require("../models/menuItemCategory.model");
+const Amenity = require("../models/shopAmenity.model");
+const mongoose = require("mongoose");
+const shopAmenityModel = require("../models/shopAmenity.model");
 
 const getAllPublicShops = async (req) => {
   try {
@@ -175,10 +178,18 @@ const getAllPublicShops = async (req) => {
 const createShop = async (req) => {
   try {
     const { userId } = req.user;
-    const { name, address, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
+    const {
+      name,
+      address,
+      latitude,
+      longitude,
+      amenities,
+      theme_ids,
+      opening_hours
+    } = req.body;
 
-    // Kiểm tra input
-    if (!name || !address || !latitude || !longitude) {
+    // Kiểm tra input bắt buộc
+    if (!name || !address || typeof latitude === 'undefined' || typeof longitude === 'undefined') {
       throw new BadRequestError("Name, address, latitude, and longitude are required");
     }
 
@@ -188,29 +199,46 @@ const createShop = async (req) => {
         throw new BadRequestError("opening_hours must be an array");
       }
       const validDays = [0, 1, 2, 3, 4, 5, 6];
-      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      const timeRegex = /^([0-1]\d|2[0-3]):[0-5]\d$/;
       for (const entry of opening_hours) {
         if (!validDays.includes(entry.day)) {
           throw new BadRequestError("Invalid day in opening_hours (must be 0-6)");
         }
-        if (!entry.is_closed && (!entry.hours || !Array.isArray(entry.hours) || entry.hours.length === 0)) {
+        // Nếu là ngày đóng cửa thì bỏ qua kiểm tra hours
+        if (entry.is_closed) continue;
+        if (!entry.hours || !Array.isArray(entry.hours) || entry.hours.length === 0) {
           throw new BadRequestError(`Hours required for day ${entry.day} when not closed`);
         }
-        if (entry.hours) {
-          for (const h of entry.hours) {
-            if (!timeRegex.test(h.open) || !timeRegex.test(h.close)) {
-              throw new BadRequestError(`Invalid time format in hours for day ${entry.day}`);
-            }
-            const [openHour, openMinute] = h.open.split(":").map(Number);
-            const [closeHour, closeMinute] = h.close.split(":").map(Number);
-            const openTime = openHour * 60 + openMinute;
-            const closeTime = closeHour * 60 + closeMinute;
-            if (openTime >= closeTime) {
-              throw new BadRequestError(`Open time must be before close time for day ${entry.day}`);
-            }
+        for (const h of entry.hours) {
+          if (!timeRegex.test(h.open) || !timeRegex.test(h.close)) {
+            throw new BadRequestError(`Invalid time format in hours for day ${entry.day}`);
+          }
+          // Nếu mở 24/24 thì open: 00:00, close: 23:59 là hợp lệ
+          const [openHour, openMinute] = h.open.split(":").map(Number);
+          const [closeHour, closeMinute] = h.close.split(":").map(Number);
+          const openTime = openHour * 60 + openMinute;
+          const closeTime = closeHour * 60 + closeMinute;
+          if (openTime >= closeTime) {
+            throw new BadRequestError(`Open time must be before close time for day ${entry.day}`);
           }
         }
       }
+    }
+
+    // Convert amenities sang ObjectId nếu là string
+    let amenitiesIds = undefined;
+    if (Array.isArray(amenities)) {
+      amenitiesIds = amenities
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+    }
+
+    // Convert theme_ids sang ObjectId nếu là string
+    let themeIds = undefined;
+    if (Array.isArray(theme_ids)) {
+      themeIds = theme_ids
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
     }
 
     // Tạo quán mới
@@ -220,13 +248,13 @@ const createShop = async (req) => {
       location: {
         type: "Point",
         coordinates: [
-          parseFloat(longitude), 
+          parseFloat(longitude),
           parseFloat(latitude)
         ],
       },
       owner_id: userId,
-      amenities,
-      theme_ids,
+      amenities: amenitiesIds,
+      theme_ids: themeIds,
       opening_hours,
     });
 
@@ -261,84 +289,103 @@ const updateShop = async (req) => {
     const { userId } = req.user;
     const { name, address, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
 
-    // Tìm quán
+    // Tìm shop
     const shop = await shopModel.findById(shopId);
-    if (!shop) {
-      throw new NotFoundError("Shop not found");
-    }
+    if (!shop) throw new NotFoundError("Shop not found");
 
-    // Kiểm tra quyền
+    // Kiểm tra quyền sở hữu
     if (shop.owner_id.toString() !== userId) {
       throw new ForbiddenError("You are not the owner of this shop");
     }
 
-    // Validate opening_hours
+    // Validate opening_hours nếu có
     if (opening_hours) {
       if (!Array.isArray(opening_hours)) {
         throw new BadRequestError("opening_hours must be an array");
       }
       const validDays = [0, 1, 2, 3, 4, 5, 6];
-      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      const timeRegex = /^([0-1]\d|2[0-3]):[0-5]\d$/;
       for (const entry of opening_hours) {
         if (!validDays.includes(entry.day)) {
           throw new BadRequestError("Invalid day in opening_hours (must be 0-6)");
         }
-        if (!entry.is_closed && (!entry.hours || !Array.isArray(entry.hours) || entry.hours.length === 0)) {
+        if (entry.is_closed) continue;
+        if (!entry.hours || !Array.isArray(entry.hours) || entry.hours.length === 0) {
           throw new BadRequestError(`Hours required for day ${entry.day} when not closed`);
         }
-        if (entry.hours) {
-          for (const h of entry.hours) {
-            if (!timeRegex.test(h.open) || !timeRegex.test(h.close)) {
-              throw new BadRequestError(`Invalid time format in hours for day ${entry.day}`);
-            }
-            const [openHour, openMinute] = h.open.split(":").map(Number);
-            const [closeHour, closeMinute] = h.close.split(":").map(Number);
-            const openTime = openHour * 60 + openMinute;
-            const closeTime = closeHour * 60 + closeMinute;
-            if (openTime >= closeTime) {
-              throw new BadRequestError(`Open time must be before close time for day ${entry.day}`);
-            }
+        for (const h of entry.hours) {
+          if (!timeRegex.test(h.open) || !timeRegex.test(h.close)) {
+            throw new BadRequestError(`Invalid time format in hours for day ${entry.day}`);
+          }
+          const [openHour, openMinute] = h.open.split(":").map(Number);
+          const [closeHour, closeMinute] = h.close.split(":").map(Number);
+          const openTime = openHour * 60 + openMinute;
+          const closeTime = closeHour * 60 + closeMinute;
+          if (openTime >= closeTime) {
+            throw new BadRequestError(`Open time must be before close time for day ${entry.day}`);
           }
         }
       }
     }
 
-    // Cập nhật dữ liệu
+    // amenities: convert sang ObjectId nếu là string
+    let amenitiesIds;
+    if (Array.isArray(amenities)) {
+      amenitiesIds = amenities
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+    }
+
+    // theme_ids: convert sang ObjectId nếu là string
+    let themeIds;
+    if (Array.isArray(theme_ids)) {
+      themeIds = theme_ids
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+    }
+
+    // location: chỉ update nếu có cả latitude và longitude
+    let location;
+    if (typeof latitude !== 'undefined' && typeof longitude !== 'undefined') {
+      location = {
+        type: "Point",
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+      };
+    }
+
+    // Chuẩn bị dữ liệu update
     const updateData = removeUndefinedObject({
       name,
       address,
-      location:
-        latitude && longitude
-          ? {
-              type: "Point",
-              coordinates: [parseFloat(longitude), parseFloat(latitude)],
-            }
-          : undefined,
-      amenities,
-      theme_ids,
+      location,
+      amenities: amenitiesIds,
+      theme_ids: themeIds,
       opening_hours,
     });
 
-    const updatedShop = await shopModel
-      .findByIdAndUpdate(shopId, updateData, { new: true, runValidators: true })
-      .select(
-        getSelectData([
-          "_id",
-          "name",
-          "address",
-          "location",
-          "owner_id",
-          "theme_ids",
-          "vip_status",
-          "rating_avg",
-          "rating_count",
-          "status",
-          "amenities",
-          "opening_hours",
-          "createdAt",
-          "updatedAt",
-        ])
-      );
+    // Update shop
+    const updatedShop = await shopModel.findByIdAndUpdate(
+      shopId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select(
+      getSelectData([
+        "_id",
+        "name",
+        "address",
+        "location",
+        "owner_id",
+        "theme_ids",
+        "vip_status",
+        "rating_avg",
+        "rating_count",
+        "status",
+        "amenities",
+        "opening_hours",
+        "createdAt",
+        "updatedAt",
+      ])
+    );
 
     return {
       shop: getInfoData({
@@ -362,11 +409,11 @@ const updateShop = async (req) => {
       }),
     };
   } catch (error) {
-    throw error instanceof NotFoundError || error instanceof ForbiddenError
-      ? error
-      : new BadRequestError(error.message || "Failed to update shop");
+    if (error instanceof NotFoundError || error instanceof ForbiddenError) throw error;
+    throw new BadRequestError(error.message || "Failed to update shop");
   }
 };
+
 
 const getShop = async (req) => {
   try {
@@ -374,7 +421,10 @@ const getShop = async (req) => {
 
     const shop = await shopModel
       .findById(shopId)
-      .populate("theme_ids", "_id name description theme_image")
+      .populate([
+        { path: "theme_ids", select: "_id name description theme_image" },
+        { path: "amenities", select: "_id icon label" }
+      ])
       .select(
         getSelectData([
           "_id",
@@ -412,7 +462,7 @@ const getShop = async (req) => {
       .lean();
     const menuItems = await shopMenuItemModel
       .find({ shop_id: shopId })
-      .select("name description price category is_available")
+      .select("name description price category images is_available")
       .lean();
     const timeSlots = await shopTimeSlotModel
       .find({ shop_id: shopId })
@@ -550,6 +600,7 @@ const getAllShops = async (req) => {
       ]),
       populate: [
         { path: "theme_ids", select: "_id name description theme_image" },
+        { path: "amenities", select: "_id icon label" }
       ],
       search,
       searchFields: ["name"],
