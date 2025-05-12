@@ -8,7 +8,7 @@ const { USER_ROLE } = require("../../constants/enum");
 
 router.use(checkAuth);
 
-router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]));
+// router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]));
 
 router.post("/", reviewController.createReview);
 

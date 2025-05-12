@@ -873,7 +873,7 @@ const getAllReservationsByUser = async (req) => {
         "updatedAt",
       ]),
       populate: [
-        { path: "shop_id", select: "_id name address opening_hours" },
+        { path: "shop_id", select: "_id name address opening_hours", populate: { path: "shopImages", select: "url " } },
         { path: "seat_id", select: "_id seat_name capacity" },
         { path: "time_slot_id", select: "_id start_time end_time" },
       ],

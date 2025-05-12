@@ -1,13 +1,15 @@
 "use strict";
 
 const express = require("express");
-const { checkAuth } = require("../../auth/checkAuth");
+const { checkAuth, checkRole } = require("../../auth/checkAuth");
 const router = express.Router();
 const userController = require("../../controllers/user.controller");
 const uploadCloud = require("../../configs/cloudinary.config");
 const { updateAvatar } = require("../../services/user.service");
+const { USER_ROLE } = require("../../constants/enum");
 
 router.use(checkAuth);
+
 
 // Get profile
 router.get("/profile", userController.getProfile);

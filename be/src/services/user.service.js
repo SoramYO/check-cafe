@@ -10,6 +10,8 @@ const {
   deleteImage,
   uploadSingleImage,
 } = require("../helpers/cloudinaryHelper");
+const reservationModel = require("../models/reservation.model");
+const reviewModel = require("../models/review.model");
 
 class userService {
   getProfile = async (req) => {
@@ -27,6 +29,14 @@ class userService {
           "_id full_name email phone avatar role points vip_status is_active"
         )
         .lean();
+      //lấy lượt đặt chỗ
+      const reservation = await reservationModel.find({ user_id: userId }).lean();
+      const reservationCount = reservation.length;
+      user.reservation_count = reservationCount;
+      //lấy lượt đánh giá
+      const review = await reviewModel.find({ user_id: userId }).lean();
+      const reviewCount = review.length;
+      user.review_count = reviewCount;
 
       if (!user) {
         throw new BadRequestError("User not found");

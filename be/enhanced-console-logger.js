@@ -322,36 +322,6 @@ function progressBar(current, total, options = {}) {
   return bar;
 }
 
-// Spin animation for loading
-function createSpinner(text, spinnerType = 'dots') {
-  const spinners = {
-    dots: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'],
-    line: ['|', '/', '-', '\\'],
-    arrow: ['←', '↖', '↑', '↗', '→', '↘', '↓', '↙'],
-    bounce: ['.  ', '.. ', '...', ' ..', '  .', '   '],
-    moon: ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'],
-  };
-  
-  const frames = spinners[spinnerType] || spinners.dots;
-  let i = 0;
-  const interval = setInterval(() => {
-    const frame = frames[i = ++i % frames.length];
-    readline.clearLine(process.stdout, 0);
-    readline.cursorTo(process.stdout, 0);
-    process.stdout.write(`${colors.fgCyan}${frame}${colors.reset} ${text}`);
-  }, 80);
-  
-  return {
-    stop: (finalText = null) => {
-      clearInterval(interval);
-      readline.clearLine(process.stdout, 0);
-      readline.cursorTo(process.stdout, 0);
-      if (finalText) {
-        process.stdout.write(`${finalText}\n`);
-      }
-    }
-  };
-}
 
 // Text animation functions
 function typeWriter(text, options = {}) {
@@ -442,37 +412,7 @@ function animateLine(text, options = {}) {
   }
 }
 
-// Display horizontal divider
-function divider(options = {}) {
-  const {
-    char = '─',
-    color = colors.fgBrightBlack,
-    width = process.stdout.columns || 80,
-    text = '',
-    textPosition = 'center'
-  } = options;
-  
-  if (!text) {
-    return `${color}${char.repeat(width)}${colors.reset}`;
-  }
-  
-  const textWithPadding = ` ${text} `;
-  const paddedTextLength = textWithPadding.length;
-  
-  let result = '';
-  if (textPosition === 'center') {
-    const sideWidth = Math.floor((width - paddedTextLength) / 2);
-    result = `${color}${char.repeat(sideWidth)}${colors.reset}${colors.bright}${textWithPadding}${colors.reset}${color}${char.repeat(width - sideWidth - paddedTextLength)}${colors.reset}`;
-  } else if (textPosition === 'left') {
-    result = `${colors.bright}${textWithPadding}${colors.reset}${color}${char.repeat(width - paddedTextLength)}${colors.reset}`;
-  } else if (textPosition === 'right') {
-    result = `${color}${char.repeat(width - paddedTextLength)}${colors.reset}${colors.bright}${textWithPadding}${colors.reset}`;
-  }
-  
-  return result;
-}
 
-// Create a table
 function table(data, options = {}) {
   const {
     headerColor = colors.fgBrightCyan,
@@ -578,136 +518,25 @@ function table(data, options = {}) {
   return tableString;
 }
 
-// Logger initialization with customizations
-function createLogger(appName = "Server", options = {}) {
-  const {
-    logLevel = 'info',
-    showTimestamp = true,
-    showLogLevel = true,
-    colorized = true,
-    useIcons = true,
-    logToFile = false,
-    logFilePath = './logs/app.log',
-    showAppName = true
-  } = options;
-  
-  const logLevelValues = {
-    error: 0,
-    warn: 1,
-    info: 2,
-    http: 3,
-    verbose: 4,
-    debug: 5,
-    silly: 6
-  };
-  
-  const currentLogLevelValue = logLevelValues[logLevel] || 2;
-  
-  // Log formatter
-  function formatLog(level, message, meta = {}) {
-    if (logLevelValues[level] > currentLogLevelValue) return null;
-    
-    let prefix = '';
-    
-    // Add timestamp
-    if (showTimestamp) {
-      const timestamp = getTime('HH:MM:SS.MS');
-      prefix += `${colors.fgBrightBlack}[${timestamp}]${colors.reset} `;
-    }
-    
-    // Add log level with color
-    if (showLogLevel) {
-      const levelColors = {
-        error: colors.fgBrightRed,
-        warn: colors.fgBrightYellow,
-        info: colors.fgBrightGreen,
-        http: colors.fgBrightMagenta,
-        verbose: colors.fgBrightCyan,
-        debug: colors.fgBrightBlue,
-        silly: colors.fgBrightWhite
-      };
-      
-      const icon = useIcons ? {
-        error: statusIcons.error,
-        warn: statusIcons.warning,
-        info: statusIcons.info,
-        http: statusIcons.route,
-        verbose: statusIcons.debug,
-        debug: statusIcons.debug,
-        silly: '🤪'
-      }[level] + ' ' : '';
-      
-      const color = colorized ? (levelColors[level] || colors.fgWhite) : '';
-      const levelDisplay = level.toUpperCase().padEnd(5);
-      prefix += `${icon}${color}${levelDisplay}${colors.reset} `;
-    }
-    
-    // Add app name
-    if (showAppName) {
-      prefix += `${colors.fgBrightMagenta}[${appName}]${colors.reset} `;
-    }
-    
-    // Convert object to string if needed
-    let messageText = message;
-    if (typeof message === 'object') {
-      try {
-        messageText = JSON.stringify(message, null, 2);
-      } catch (e) {
-        messageText = '[Object]';
-      }
-    }
-    
-    // Add meta data if present
-    let metaText = '';
-    if (Object.keys(meta).length > 0) {
-      try {
-        metaText = `\n${colors.fgBrightBlack}${JSON.stringify(meta, null, 2)}${colors.reset}`;
-      } catch (e) {
-        metaText = '\n[Meta object]';
-      }
-    }
-    
-    return `${prefix}${messageText}${metaText}`;
-  }
-  
-  return {
-    error: (message, meta = {}) => {
-      const formatted = formatLog('error', message, meta);
-      if (formatted) console.error(formatted);
-    },
-    warn: (message, meta = {}) => {
-      const formatted = formatLog('warn', message, meta);
-      if (formatted) console.warn(formatted);
-    },
-    info: (message, meta = {}) => {
-      const formatted = formatLog('info', message, meta);
-      if (formatted) console.info(formatted);
-    },
-    http: (message, meta = {}) => {
-      const formatted = formatLog('http', message, meta);
-      if (formatted) console.log(formatted);
-    },
-    verbose: (message, meta = {}) => {
-        const formatted = formatLog('verbose', message, meta);
-        if (formatted) console.log(formatted);
-      },
-      debug: (message, meta = {}) => {
-        const formatted = formatLog('debug', message, meta);
-        if (formatted) console.debug(formatted);
-      },
-      silly: (message, meta = {}) => {
-        const formatted = formatLog('silly', message, meta);
-        if (formatted) console.log(formatted);
-      }
-    };
-  }
-
-
   function logServerStart(port, appName = "Express Server") {
     const sys = getSystemInfo();
     const mem = getMemoryUsage();
+  
+    // ASCII Art ly cafe
+    const coffeeArt = [
+      "      ",
+      `${colors.fgBrightYellow}       ( (     ${colors.reset}`,
+      `${colors.fgBrightYellow}        ) )    ${colors.reset}`,
+      `${colors.fgBrightYellow}     ........  ${colors.reset}`,
+      `${colors.fgBrightYellow}     |      |] ${colors.reset}`,
+      `${colors.fgBrightYellow}     \\      /  ${colors.reset}`,
+      `${colors.fgBrightYellow}      \`----'   ${colors.reset}`,
+      ""
+    ].join('\n');
+
     const title = gradientText(`🚀 ${appName} STARTED!`, "rainbow");
     const boxContent = [
+      coffeeArt,
       title,
       "",
       `${statusIcons.start} ${colors.fgBrightGreen}Port:${colors.reset} ${port}`,
@@ -730,17 +559,20 @@ function createLogger(appName = "Server", options = {}) {
         alignments: ["left", "right"]
       })
     ];
+  
     console.log(getBoxedText(boxContent, {
-      boxStyle: "double",
-      paddingX: 3,
-      paddingY: 1,
+      boxStyle: "rounded",
+      paddingX: 0,
+      paddingY: 0,
       borderColor: colors.fgBrightMagenta,
       textColor: colors.fgBrightWhite,
       title: gradientText("SERVER ONLINE", "neon"),
       shadowEffect: true
     }));
+  
     animateLine("✨ Welcome to your beautiful server! ✨", { type: "typewriter", color: colors.fgBrightGreen, speed: 18 });
   }
+  
   
   function logServerStop() {
     const boxContent = [
@@ -761,25 +593,6 @@ function createLogger(appName = "Server", options = {}) {
     animateLine("👋 See you next time!", { type: "slide", color: colors.fgBrightCyan, speed: 8 });
   }
   
-  function logError(message, meta = {}) {
-    const boxContent = [
-      gradientText("❌ ERROR", "sunset"),
-      "",
-      `${colors.fgBrightRed}${message}${colors.reset}`,
-      meta && Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ""
-    ];
-    console.error(getBoxedText(boxContent, {
-      boxStyle: "rounded",
-      paddingX: 2,
-      paddingY: 1,
-      borderColor: colors.fgBrightRed,
-      textColor: colors.fgBrightWhite,
-      title: gradientText("ERROR LOG", "neon"),
-      shadowEffect: true
-    }));
-    animateLine("⚡ Please check the error details above.", { type: "fade", color: colors.fgBrightRed, speed: 40 });
-  }
-
   function showMemoryUsage() {
     const memoryUsage = process.memoryUsage();
     const format = (bytes) => `${Math.round(bytes / 1024 / 1024 * 100) / 100} MB`;
@@ -806,15 +619,11 @@ function createLogger(appName = "Server", options = {}) {
     gradientText,
     getBoxedText,
     progressBar,
-    createSpinner,
     typeWriter,
     animateLine,
-    divider,
     table,
-    createLogger,
     logServerStart,
     logServerStop,
-    logError,
     showMemoryUsage
   };
   

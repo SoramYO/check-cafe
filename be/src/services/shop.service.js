@@ -21,6 +21,8 @@ const { getPaginatedData } = require("../helpers/mongooseHelper");
 const menuItemCategoryModel = require("../models/menuItemCategory.model");
 const mongoose = require("mongoose");
 const shopAmenityModel = require("../models/shopAmenity.model");
+const { calculateDistance, getDistanceFromLatLonInKm } = require("../utils/distanceCaculate");
+
 const getAllPublicShops = async (req) => {
   try {
     const {
@@ -30,26 +32,31 @@ const getAllPublicShops = async (req) => {
       sortOrder = "desc",
       amenities,
       search,
-      nearLat,
-      nearLon,
-      maxDistance = 5000,
+      latitude,
+      longitude,
+      themes,
+      radius = 5000
     } = req.query;
 
     // Kiểm tra tham số đầu vào
-    if ((nearLat && !nearLon) || (!nearLat && nearLon)) {
-      throw new BadRequestError("Both nearLat and nearLon must be provided");
+    if ((latitude && !longitude) || (!latitude && longitude)) {
+      throw new BadRequestError("Both latitude and longitude must be provided");
     }
-    if (nearLat && nearLon) {
-      if (isNaN(parseFloat(nearLat)) || isNaN(parseFloat(nearLon))) {
-        throw new BadRequestError("nearLat and nearLon must be valid numbers");
+    if (latitude && longitude) {
+      if (isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))) {
+        throw new BadRequestError("latitude and longitude must be valid numbers");
       }
-      if (isNaN(parseInt(maxDistance)) || parseInt(maxDistance) < 0) {
-        throw new BadRequestError("maxDistance must be a non-negative number");
+      if (isNaN(parseInt(radius)) || parseInt(radius) < 0) {
+        throw new BadRequestError("radius must be a non-negative number");
       }
     }
     if (amenities && !Array.isArray(amenities.split(","))) {
       throw new BadRequestError("amenities must be a comma-separated string");
     }
+    if (themes && !Array.isArray(themes.split(","))) {
+      throw new BadRequestError("themes must be a comma-separated string");
+    }
+
 
     // Xây dựng query
     const query = {
@@ -58,19 +65,29 @@ const getAllPublicShops = async (req) => {
 
     // Lọc theo amenities
     if (amenities) {
-      query.amenities = { $all: amenities.split(",").map((item) => item.trim()) };
+      const amenityIds = amenities.split(",").map(id => 
+        new mongoose.Types.ObjectId(id.trim())
+      );
+      query.amenities = { $all: amenityIds };
     }
 
-    // Tìm kiếm theo vị trí gần (nếu có nearLat và nearLon)
-    if (nearLat && nearLon) {
+    if (themes) {
+      const themeIds = themes.split(",").map(id => 
+        new mongoose.Types.ObjectId(id.trim())
+      );
+      query.theme_ids = { $all: themeIds };
+    }
+
+    // Tìm kiếm theo vị trí gần (nếu có latitude và longitude)
+    if (latitude && longitude) {
+      // $geoWithin with $centerSphere for radius in kilometers
       query.location = {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [parseFloat(nearLon), parseFloat(nearLat)],
-          },
-          $maxDistance: parseInt(maxDistance, 10),
-        },
+        $geoWithin: {
+          $centerSphere: [
+            [parseFloat(longitude), parseFloat(latitude)],
+            parseFloat(radius) / 6378.1 // radius in radians (km / earth radius in km)
+          ]
+        }
       };
     }
 
@@ -129,6 +146,8 @@ const getAllPublicShops = async (req) => {
     // Lấy ảnh chính cho mỗi quán
     const shopsWithImage = await Promise.all(
       result.data.map(async (shop) => {
+
+
         const mainImage = await shopImageModel
           .findOne({ shop_id: shop._id })
           .select("url publicId")
@@ -163,8 +182,17 @@ const getAllPublicShops = async (req) => {
       })
     );
 
+    const shopsWithDistance = shopsWithImage.map(shop => {
+      const distance = getDistanceFromLatLonInKm(parseFloat(longitude), parseFloat(latitude), parseFloat(shop.location.coordinates[0]), parseFloat(shop.location.coordinates[1]));
+
+      return {
+        ...shop,
+        distance: distance
+      };
+    });
+
     return {
-      shops: shopsWithImage,
+      shops: shopsWithDistance,
       metadata: {
         totalItems: result.metadata.total,
         totalPages: result.metadata.totalPages,
@@ -1339,6 +1367,9 @@ const submitVerification = async (req) => {
       : new BadRequestError(error.message || "Failed to submit verification");
   }
 };
+
+
+
 
 module.exports = {
   createShop,

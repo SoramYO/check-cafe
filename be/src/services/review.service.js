@@ -26,13 +26,16 @@ const userModel = require("../models/user.model");
 const { USER_ROLE } = require("../constants/enum");
 
 
+
 class ReviewService {
     createReview = async (req) => {
         try {
-            const { shopId, userId, reservationId, rating, comment, images } = req.body;
+            const { shop_id, rating, comment } = req.body;
+            const  images = req.files;
+            const userId = req.user.userId;
 
             // Validate required fields
-            if (!shopId || !userId || !reservationId || !rating || !comment) {
+            if (!shop_id || !rating || !comment) {
                 throw new BadRequestError("Missing required fields");
             }
 
@@ -48,29 +51,27 @@ class ReviewService {
                     })
                 );
             }
-
-            // Check if shop exists
-            const shop = await shopModel.findById(shopId);
+            const shop = await shopModel.findById(shop_id);
             if (!shop) {
                 throw new NotFoundError("Shop not found");
             }
 
-            // Check if user exists
-            const user = await userModel.findById(userId);
-            if (!user) {
-                throw new NotFoundError("User not found");
+            //one person can only review one time one shop 
+            const existingReview = await reviewModel.findOne({ shop_id: shop_id, user_id: userId });
+            if (existingReview) {
+                throw new BadRequestError("You have already reviewed this shop");
             }
 
-            // Check if user is shop owner
-            if (user.role === USER_ROLE.SHOP_OWNER) {
-                throw new ForbiddenError("Shop owners cannot create reviews");
-            }
+            shop.rating_avg = (shop.rating_avg * shop.rating_count + rating) / (shop.rating_count + 1);
+
+            shop.rating_count = shop.rating_count + 1;
+            await shop.save();
+
 
             // Create review with correct field names
             const review = await reviewModel.create({
-                shop_id: shopId,
+                shop_id: shop_id,
                 user_id: userId,
-                reservation_id: reservationId,
                 rating,
                 comment,
                 images: imageUrls,
@@ -83,6 +84,7 @@ class ReviewService {
                 }),
             };
         } catch (error) {
+            console.log(error);
             throw error instanceof BadRequestError
                 ? error
                 : new BadRequestError(error.message || "Failed to create review");
@@ -146,21 +148,32 @@ class ReviewService {
     getReviewsByShopId = async (req) => {
         try {
             const { shopId } = req.params;
-            const reviews = await reviewModel.find({ shop_id: shopId })
+            const reviewDocs = await reviewModel.find({ shop_id: shopId })
                 .populate([
-                    { path: "user_id", select: "_id name avatar" },
-                    { path: "reservation_id", select: "_id" }
+                    { path: "user_id", select: "_id full_name avatar" },
                 ])
                 .select(getSelectData([
-                    "_id", "shop_id", "user_id", "reservation_id", "rating", "comment", "images", "createdAt", "updatedAt"
+                    "_id", "shop_id", "user_id", "rating", "comment", "images", "createdAt", "updatedAt"
                 ]))
                 .sort({ createdAt: -1 });
 
+            const reviews = reviewDocs.map((review)  =>
+                getInfoData({
+                    fields: ["_id", "shop_id", "user_id", "rating", "comment", "images", "createdAt", "updatedAt"],
+                    object: review,
+                })
+            );
+
+            // Calculate star counts
+            const starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            reviewDocs.forEach(r => {
+                const star = Math.round(r.rating);
+                if (starCounts[star] !== undefined) starCounts[star]++;
+            });
+
             return {
-                reviews: getInfoData({
-                    fields: ["_id", "shop_id", "user_id", "reservation_id", "rating", "comment", "images", "createdAt", "updatedAt"],
-                    object: reviews,
-                }),
+                reviews,
+                starCounts,
             };
         } catch (error) {
             throw error instanceof BadRequestError
@@ -174,16 +187,15 @@ class ReviewService {
             const review = await reviewModel.findById(reviewId)
                 .populate([
                     { path: "user_id", select: "_id name avatar" },
-                    { path: "reservation_id", select: "_id" }
                 ])
                 .select(getSelectData([
-                    "_id", "shop_id", "user_id", "reservation_id", "rating", "comment", "images", "createdAt", "updatedAt"
+                    "_id", "shop_id", "user_id", "rating", "comment", "images", "createdAt", "updatedAt"
                 ]))
                 .lean();
 
             return {
                 review: getInfoData({   
-                    fields: ["_id", "shop_id", "user_id", "reservation_id", "rating", "comment", "images", "createdAt", "updatedAt"],
+                    fields: ["_id", "shop_id", "user_id", "rating", "comment", "images", "createdAt", "updatedAt"],
                     object: review,
                 }),
             };
@@ -201,7 +213,7 @@ class ReviewService {
 
 
             // Check if review exists
-            const review = await reviewModel.findById(reviewId);
+            const review = await reviewModel.findById(reviewId).populate("shop_id");
             if (!review) {
                 throw new NotFoundError("Review not found");
             }
@@ -219,7 +231,7 @@ class ReviewService {
 
             return {
                 review: getInfoData({
-                    fields: ["_id", "shop_id", "user_id", "reservation_id", "rating", "comment", "images", "createdAt", "updatedAt"],
+                    fields: ["_id", "shop_id", "user_id", "rating", "comment", "images", "createdAt", "updatedAt"],
                     object: updatedReview,
                 }),
             };
