@@ -38,6 +38,14 @@ class ReservationController {
     }).send(res);
   });
 
+  getAllReservationsByUser = asyncHandler(async (req, res) => {
+    const result = await reservationService.getAllReservationsByUser(req);
+    new OK({
+      message: RESERVATION_MESSAGE.GET_ALL_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
   getReservationDetail = asyncHandler(async (req, res) => {
     const result = await reservationService.getReservationDetail(req);
     new OK({

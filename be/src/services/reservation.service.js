@@ -826,6 +826,7 @@ const getAllReservationsByUser = async (req) => {
       sortOrder = "desc",
       status,
       reservation_date,
+      search,
     } = req.query;
 
     // Xây dựng query
@@ -872,10 +873,12 @@ const getAllReservationsByUser = async (req) => {
         "updatedAt",
       ]),
       populate: [
-        { path: "shop_id", select: "_id name address" },
+        { path: "shop_id", select: "_id name address opening_hours" },
         { path: "seat_id", select: "_id seat_name capacity" },
         { path: "time_slot_id", select: "_id start_time end_time" },
       ],
+      search,
+      searchFields: ["shop_id.name", "seat_id.seat_name", "time_slot_id.start_time", "time_slot_id.end_time"],
       sort,
     };
 

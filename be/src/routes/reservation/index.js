@@ -11,6 +11,7 @@ router.use(checkRole([USER_ROLE.CUSTOMER, USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]
 
 router.post("/", reservationController.createReservation);
 router.get("/", reservationController.getAllReservations);
+router.get("/me", reservationController.getAllReservationsByUser);
 router.get("/:reservationId", reservationController.getReservationDetail);
 router.patch("/:reservationId/confirm", reservationController.confirmReservation);
 router.patch("/:reservationId/cancel", reservationController.cancelReservation);
