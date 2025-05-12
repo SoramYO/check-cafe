@@ -101,6 +101,8 @@ const getAllPublicShops = async (req) => {
         "address",
         "description",
         "location",
+        "phone",
+        "website",
         "theme_ids",
         "vip_status",
         "rating_avg",
@@ -139,6 +141,8 @@ const getAllPublicShops = async (req) => {
               "address",
               "location",
               "description",
+              "phone",
+              "website",
               "theme_ids",
               "vip_status",
               "rating_avg",
@@ -183,6 +187,8 @@ const createShop = async (req) => {
       name,
       address,
       description,
+      phone,
+      website,
       latitude,
       longitude,
       amenities,
@@ -191,8 +197,8 @@ const createShop = async (req) => {
     } = req.body;
 
     // Kiểm tra input bắt buộc
-    if (!name || !address || !description || typeof latitude === 'undefined' || typeof longitude === 'undefined') {
-      throw new BadRequestError("Name, address, description, latitude, and longitude are required");
+    if (!name || !address || !description || !phone || !website || typeof latitude === 'undefined' || typeof longitude === 'undefined') {
+      throw new BadRequestError("Name, address, description, phone, website, latitude, and longitude are required");
     }
 
     // Validate opening_hours
@@ -248,6 +254,8 @@ const createShop = async (req) => {
       name,
       address,
       description,
+      phone,
+      website,
       location: {
         type: "Point",
         coordinates: [
@@ -268,6 +276,8 @@ const createShop = async (req) => {
           "name",
           "address",
           "description",
+          "phone",
+          "website",
           "location",
           "owner_id",
           "theme_ids",
@@ -291,7 +301,7 @@ const updateShop = async (req) => {
   try {
     const { shopId } = req.params;
     const { userId } = req.user;
-    const { name, address, description, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
+    const { name, address, description, phone, website, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
 
     // Tìm shop
     const shop = await shopModel.findById(shopId);
@@ -362,6 +372,8 @@ const updateShop = async (req) => {
       name,
       address,
       description,
+      phone,
+      website,
       location,
       amenities: amenitiesIds,
       theme_ids: themeIds,
@@ -379,6 +391,8 @@ const updateShop = async (req) => {
         "name",
         "address",
         "description",
+        "phone",
+        "website",
         "location",
         "owner_id",
         "theme_ids",
@@ -400,6 +414,9 @@ const updateShop = async (req) => {
           "name",
           "address",
           "location",
+          "description",
+          "phone",
+          "website",
           "owner_id",
           "theme_ids",
           "vip_status",
@@ -438,6 +455,8 @@ const getShop = async (req) => {
           "name",
           "address",
           "description",
+          "phone",
+          "website",
           "location",
           "owner_id",
           "theme_ids",
@@ -466,7 +485,7 @@ const getShop = async (req) => {
       .lean();
     const seats = await shopSeatModel
       .find({ shop_id: shopId })
-      .select("seat_name image is_premium is_available capacity")
+      .select("seat_name description image is_premium is_available capacity")
       .lean();
     const menuItems = await shopMenuItemModel
       .find({ shop_id: shopId })
@@ -493,6 +512,8 @@ const getShop = async (req) => {
             "name",
             "address",
             "description",
+            "phone",
+            "website",
             "location",
             "owner_id",
             "theme_ids",
@@ -592,6 +613,8 @@ const getAllShops = async (req) => {
         "name",
         "address",
         "description",
+        "phone",
+        "website",
         "location",
         "owner_id",
         "theme_ids",
@@ -626,6 +649,8 @@ const getAllShops = async (req) => {
           "name",
           "address",
           "description",
+          "phone",
+          "website",
           "location",
           "owner_id",
           "theme_ids",
@@ -755,7 +780,7 @@ const createSeat = async (req) => {
   try {
     const { shopId } = req.params;
     const { userId } = req.user;
-    const { seat_name, is_premium, capacity } = req.body;
+    const { seat_name, description, is_premium, capacity } = req.body;
     const file = req.file;
 
     // Tìm quán
@@ -778,6 +803,7 @@ const createSeat = async (req) => {
     const seat = await shopSeatModel.create({
       shop_id: shopId,
       seat_name,
+      description,
       image: file ? file.path : undefined,
       is_premium: is_premium || false,
       capacity,
@@ -789,6 +815,7 @@ const createSeat = async (req) => {
           "_id",
           "shop_id",
           "seat_name",
+          "description",
           "image",
           "is_premium",
           "is_available",
@@ -811,7 +838,7 @@ const updateSeat = async (req) => {
   try {
     const { shopId, seatId } = req.params;
     const { userId } = req.user;
-    const { seat_name, is_premium, is_available, capacity } = req.body;
+    const { seat_name, description, is_premium, is_available, capacity } = req.body;
     const file = req.file;
 
     // Tìm quán
@@ -834,6 +861,7 @@ const updateSeat = async (req) => {
     // Cập nhật dữ liệu
     const updateData = removeUndefinedObject({
       seat_name,
+      description,
       is_premium,
       is_available,
       capacity,
@@ -853,6 +881,7 @@ const updateSeat = async (req) => {
           "_id",
           "shop_id",
           "seat_name",
+          "description",
           "image",
           "is_premium",
           "is_available",
@@ -866,6 +895,7 @@ const updateSeat = async (req) => {
           "_id",
           "shop_id",
           "seat_name",
+          "description",
           "image",
           "is_premium",
           "is_available",

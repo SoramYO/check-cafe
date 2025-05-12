@@ -9,6 +9,7 @@ const shopSeatSchema = new mongoose.Schema(
   {
     shop_id: { type: Types.ObjectId, ref: "Shop" },
     seat_name: { type: String },
+    description: { type: String },
     image: { type: String },
     is_premium: { type: Boolean, default: false },
     is_available: { type: Boolean, default: true },
