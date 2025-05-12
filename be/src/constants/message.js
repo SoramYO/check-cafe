@@ -98,6 +98,13 @@ const NOTIFICATION_MESSAGE = {
   DELETE_SUCCESS: "Notification deleted successfully",
 };
 
+const VERIFICATION_MESSAGE = {
+  GET_VERIFICATIONS_SUCCESS: "Retrieved verifications successfully",
+  GET_VERIFICATION_SUCCESS: "Retrieved verification successfully",
+  REVIEW_VERIFICATION_SUCCESS: "Reviewed verification successfully",
+  DELETE_VERIFICATION_SUCCESS: "Deleted verification successfully",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
@@ -108,5 +115,6 @@ module.exports = {
   CUSTOMER_MESSAGE,
   RESERVATION_MESSAGE,
   NOTIFICATION_MESSAGE,
-  CATEGORY_MESSAGE
+  CATEGORY_MESSAGE,
+  VERIFICATION_MESSAGE
 };

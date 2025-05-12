@@ -12,4 +12,5 @@ router.use("/reservations", require("./reservation"));
 router.use("/owners", require("./showOwner"));
 router.use("/notifications", require("./notification"));
 router.use("/menu-item-categories", require("./menuItemCategory"));
+router.use("/verifications", require("./verification"));
 module.exports = router;
