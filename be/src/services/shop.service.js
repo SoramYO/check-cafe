@@ -19,10 +19,8 @@ const {
 } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const menuItemCategoryModel = require("../models/menuItemCategory.model");
-const Amenity = require("../models/shopAmenity.model");
 const mongoose = require("mongoose");
 const shopAmenityModel = require("../models/shopAmenity.model");
-
 const getAllPublicShops = async (req) => {
   try {
     const {
@@ -101,6 +99,7 @@ const getAllPublicShops = async (req) => {
         "_id",
         "name",
         "address",
+        "description",
         "location",
         "theme_ids",
         "vip_status",
@@ -115,6 +114,7 @@ const getAllPublicShops = async (req) => {
       ]),
       populate: [
         { path: "theme_ids", select: "_id name description theme_image" },
+        { path: "amenities", select: "_id icon label" },
       ],
       search,
       searchFields: ["name"],
@@ -138,6 +138,7 @@ const getAllPublicShops = async (req) => {
               "name",
               "address",
               "location",
+              "description",
               "theme_ids",
               "vip_status",
               "rating_avg",
@@ -181,6 +182,7 @@ const createShop = async (req) => {
     const {
       name,
       address,
+      description,
       latitude,
       longitude,
       amenities,
@@ -189,8 +191,8 @@ const createShop = async (req) => {
     } = req.body;
 
     // Kiểm tra input bắt buộc
-    if (!name || !address || typeof latitude === 'undefined' || typeof longitude === 'undefined') {
-      throw new BadRequestError("Name, address, latitude, and longitude are required");
+    if (!name || !address || !description || typeof latitude === 'undefined' || typeof longitude === 'undefined') {
+      throw new BadRequestError("Name, address, description, latitude, and longitude are required");
     }
 
     // Validate opening_hours
@@ -245,6 +247,7 @@ const createShop = async (req) => {
     const shop = await shopModel.create({
       name,
       address,
+      description,
       location: {
         type: "Point",
         coordinates: [
@@ -264,6 +267,7 @@ const createShop = async (req) => {
           "_id",
           "name",
           "address",
+          "description",
           "location",
           "owner_id",
           "theme_ids",
@@ -287,7 +291,7 @@ const updateShop = async (req) => {
   try {
     const { shopId } = req.params;
     const { userId } = req.user;
-    const { name, address, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
+    const { name, address, description, latitude, longitude, amenities, theme_ids, opening_hours } = req.body;
 
     // Tìm shop
     const shop = await shopModel.findById(shopId);
@@ -357,6 +361,7 @@ const updateShop = async (req) => {
     const updateData = removeUndefinedObject({
       name,
       address,
+      description,
       location,
       amenities: amenitiesIds,
       theme_ids: themeIds,
@@ -373,6 +378,7 @@ const updateShop = async (req) => {
         "_id",
         "name",
         "address",
+        "description",
         "location",
         "owner_id",
         "theme_ids",
@@ -400,6 +406,7 @@ const updateShop = async (req) => {
           "rating_avg",
           "rating_count",
           "status",
+          "description",
           "amenities",
           "opening_hours",
           "createdAt",
@@ -430,6 +437,7 @@ const getShop = async (req) => {
           "_id",
           "name",
           "address",
+          "description",
           "location",
           "owner_id",
           "theme_ids",
@@ -484,6 +492,7 @@ const getShop = async (req) => {
             "_id",
             "name",
             "address",
+            "description",
             "location",
             "owner_id",
             "theme_ids",
@@ -508,8 +517,6 @@ const getShop = async (req) => {
       },
     };
 
-    // Debug: Kiểm tra dữ liệu sau getInfoData
-    console.log("Formatted shop data:", JSON.stringify(result.shop, null, 2));
 
     return result;
   } catch (error) {
@@ -584,6 +591,7 @@ const getAllShops = async (req) => {
         "_id",
         "name",
         "address",
+        "description",
         "location",
         "owner_id",
         "theme_ids",
@@ -617,6 +625,7 @@ const getAllShops = async (req) => {
           "_id",
           "name",
           "address",
+          "description",
           "location",
           "owner_id",
           "theme_ids",

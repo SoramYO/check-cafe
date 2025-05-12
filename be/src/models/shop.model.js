@@ -17,6 +17,10 @@ const shopSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    description: {
+      type: String,
+      required: true,
+    },
     location: {
       type: {
         type: String,
@@ -62,12 +66,6 @@ const shopSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ShopAmenity",
-      },
-    ],
-    categories: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
       },
     ],
     opening_hours: [
