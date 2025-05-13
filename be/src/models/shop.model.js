@@ -17,6 +17,18 @@ const shopSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    description: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
+    website: {
+      type: String,
+      required: true,
+    },
     location: {
       type: {
         type: String,
@@ -60,21 +72,8 @@ const shopSchema = new mongoose.Schema(
     },
     amenities: [
       {
-        type: String,
-        enum: [
-          "WiFi",
-          "PowerOutlets",
-          "QuietZone",
-          "AirConditioning",
-          "Parking",
-          "PetFriendly",
-        ],
-      },
-    ],
-    categories: [
-      {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
+        ref: "ShopAmenity",
       },
     ],
     opening_hours: [

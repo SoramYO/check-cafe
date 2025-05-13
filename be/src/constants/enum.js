@@ -15,8 +15,7 @@ const HEADER = {
 
 const RESERVATION_TYPE = {
   STANDARD: "Standard",
-  PREMIUM: "Premium",
-  EVENT: "Event",
+  PRIORITY: "Priority",
 };
 
 const RESERVATION_STATUS = {

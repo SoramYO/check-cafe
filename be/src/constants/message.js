@@ -63,6 +63,7 @@ const SHOP_MESSAGE = {
   UPDATE_TIME_SLOT_SUCCESS: "Update time slot successfully",
   SUBMIT_VERIFICATION_SUCCESS: "Submit verification successfully",
   GET_ALL_PUBLIC_SUCCESS: "Get all public shops successfully",
+  GET_SHOPS_IN_RANGE_SUCCESS: "Get shops in range successfully",
 };
 
 const ADVERTISEMENT_MESSAGE = {
@@ -98,13 +99,23 @@ const NOTIFICATION_MESSAGE = {
   DELETE_SUCCESS: "Notification deleted successfully",
 };
 
+const VERIFICATION_MESSAGE = {
+  GET_VERIFICATIONS_SUCCESS: "Retrieved verifications successfully",
+  GET_VERIFICATION_SUCCESS: "Retrieved verification successfully",
+  REVIEW_VERIFICATION_SUCCESS: "Reviewed verification successfully",
+  DELETE_VERIFICATION_SUCCESS: "Deleted verification successfully",
+};
+
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
   ADMIN_MESSAGE,
   SHOP_THEME_MESSAGE,
   SHOP_MESSAGE,
+  ADVERTISEMENT_MESSAGE,
+  CUSTOMER_MESSAGE,
   RESERVATION_MESSAGE,
   NOTIFICATION_MESSAGE,
-  CATEGORY_MESSAGE
+  CATEGORY_MESSAGE,
+  VERIFICATION_MESSAGE
 };

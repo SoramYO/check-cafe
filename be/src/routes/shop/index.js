@@ -9,6 +9,7 @@ const { USER_ROLE } = require("../../constants/enum");
 
 // PUBLIC ROUTES
 router.get("/public", shopController.getAllPublicShops);
+
 // Get shop details
 router.get("/:shopId", shopController.getShop);
 // Get all shops
