@@ -16,6 +16,7 @@ import MapView, { Marker } from "react-native-maps";
 import { useLocation } from "../context/LocationContext";
 import shopAPI from "../services/shopAPI";
 import CustomMapViewDirections from "../components/CustomMapViewDirections";
+import { formatDurationRoute } from "../utils/formatHelpers";
 
 // Định nghĩa mảng CAFES với các quán cà phê cũ và mới
 const CAFES = [
@@ -324,9 +325,30 @@ export default function MapScreen() {
                             ({selectedCafe.rating_count} đánh giá)
                           </Text>
                         </View>
-                        <Text style={styles.cafeAddress} numberOfLines={1}>
-                          Khoảng cách: {selectedCafe.distance.toFixed(2)} km
-                        </Text>
+                        {routeInfo && (
+                          <View style={styles.routeInfo}>
+                            <View style={styles.routeDetail}>
+                              <MaterialCommunityIcons
+                                name="map-marker-distance"
+                                size={16}
+                                color="#64748B"
+                              />
+                              <Text style={styles.routeText}>
+                                {routeInfo.distance.toFixed(1)} km
+                              </Text>
+                            </View>
+                            <View style={styles.routeDetail}>
+                              <MaterialCommunityIcons
+                                name="clock-outline"
+                                size={16}
+                                color="#64748B"
+                              />
+                              <Text style={styles.routeText}>
+                                {formatDurationRoute(routeInfo.duration)}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
                         <Text style={styles.cafeAddress} numberOfLines={1}>
                           Địa chỉ: {selectedCafe.address}
                         </Text>
@@ -503,5 +525,21 @@ const styles = StyleSheet.create({
     color: "#64748B",
     textAlign: "center",
     lineHeight: 24,
+  },
+  routeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 4,
+  },
+  routeDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  routeText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
 });
