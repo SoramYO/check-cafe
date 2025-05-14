@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import themeAPI from "../services/shopThemeAPI";
 import shopAPI from "../services/shopAPI";
 import { useLocation } from "../context/LocationContext";
 import * as Location from "expo-location";
+import { getFavoriteShops, toggleFavorite } from "../utils/favoritesStorage";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function DiscoverScreen({ navigation }) {
   const { location } = useLocation();
@@ -26,6 +28,7 @@ export default function DiscoverScreen({ navigation }) {
   const [activeFilters, setActiveFilters] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [favoriteShops, setFavoriteShops] = useState([]);
 
   useEffect(() => {
     if (!location) return;
@@ -58,6 +61,26 @@ export default function DiscoverScreen({ navigation }) {
     };
     updateCurrentLocation();
   }, [location]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
+
+  const loadFavorites = async () => {
+    const favorites = await getFavoriteShops();
+    setFavoriteShops(favorites);
+  };
+
+  const handleToggleFavorite = async (shop) => {
+    await toggleFavorite(shop);
+    loadFavorites();
+  };
+
+  const isShopFavorite = (shopId) => {
+    return favoriteShops.some((shop) => shop._id === shopId);
+  };
 
   const getAddressFromCoords = async (latitude, longitude) => {
     try {
@@ -155,13 +178,30 @@ export default function DiscoverScreen({ navigation }) {
           ))}
         </View>
 
-        <TouchableOpacity
-          style={styles.bookButton}
-          onPress={() => navigation.navigate("Booking", { shopId: item._id })}
-        >
-          <Text style={styles.bookButtonText}>Đặt chỗ</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color="white" />
-        </TouchableOpacity>
+        <View style={styles.cardFooter}>
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={() => navigation.navigate("Booking", { shopId: item._id })}
+          >
+            <Text style={styles.bookButtonText}>Đặt chỗ</Text>
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={20}
+              color="white"
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={() => handleToggleFavorite(item)}
+          >
+            <MaterialCommunityIcons
+              name={isShopFavorite(item._id) ? "heart" : "heart-outline"}
+              size={24}
+              color={isShopFavorite(item._id) ? "#EF4444" : "#666"}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -253,6 +293,9 @@ export default function DiscoverScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
+  },
+  headerContainer: {
     backgroundColor: "#fff",
   },
   iconTheme: {
@@ -397,20 +440,34 @@ const styles = StyleSheet.create({
     color: "#4A90E2",
     fontSize: 12,
   },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 15,
+    gap: 10,
+  },
   bookButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#4A90E2",
     padding: 12,
     borderRadius: 8,
-    marginTop: 15,
     gap: 8,
   },
   bookButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  favoriteButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   locationContainer: {
     backgroundColor: "#4A90E2",
