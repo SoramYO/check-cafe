@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { authSelector } from '../redux/reducers/authReducer';
+import { authSelector, setUser } from '../redux/reducers/authReducer';
+import userAPI from '../services/userAPI';
 
 const MENU_SECTIONS = [
   {
@@ -49,8 +50,21 @@ const MENU_SECTIONS = [
 export default function ProfileScreen() {
   const { logout } = useAuth();
   const { user } = useSelector(authSelector);
+  const [userInfo, setUserInfo] = useState(null);
 
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+
+  const getUserInfo = async () => {
+    const response = await userAPI.HandleUser("/profile");
+    setUserInfo(response.data.user);
+    dispatch(setUser(response.data.user));
+  };
+
+  useEffect(() => {
+    getUserInfo();
+  }, []);
+
 
   const handleLogout = async () => {
     try {
@@ -66,17 +80,17 @@ export default function ProfileScreen() {
   const renderStats = () => (
     <View style={styles.statsContainer}>
       <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{user.bookings}8</Text>
+        <Text style={styles.statNumber}>{userInfo?.reservation_count}</Text>
         <Text style={styles.statLabel}>Lượt đặt chỗ</Text>
       </View>
       <View style={styles.statDivider} />
       <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{user.reviews}9</Text>
+        <Text style={styles.statNumber}>{userInfo?.review_count}</Text>
         <Text style={styles.statLabel}>Đánh giá</Text>
       </View>
       <View style={styles.statDivider} />
       <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{user.points}10</Text>
+        <Text style={styles.statNumber}>{userInfo?.points}</Text>
         <Text style={styles.statLabel}>Điểm thưởng</Text>
       </View>
     </View>
@@ -117,7 +131,17 @@ export default function ProfileScreen() {
           <View style={styles.userInfo}>
             <Image source={{ uri: user?.avatar }} style={styles.avatar} />
             <View style={styles.userDetails}>
-              <Text style={styles.userName}>{user?.full_name}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.userName}>{userInfo?.full_name}</Text>
+                {userInfo?.vip_status && (
+                  <MaterialCommunityIcons
+                    name="crown"
+                    size={22}
+                    color="#FFD700"
+                    style={{ marginLeft: 4 }}
+                  />
+                )}
+              </View>
               <View style={styles.levelBadge}>
                 <MaterialCommunityIcons name="shield-star" size={16} color="#6366F1" />
                 <Text style={styles.levelText}>{user?.role}</Text>

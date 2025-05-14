@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,10 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { toast } from 'sonner-native';
 import { authSelector } from '../redux/reducers/authReducer';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import userAPI from '../services/userAPI';
+import { useIsFocused } from '@react-navigation/native';
+import { setUser } from '../redux/reducers/authReducer';
 
 const MOCK_USER = {
   name: 'Nguyễn Văn A',
@@ -26,20 +29,25 @@ const MOCK_USER = {
 export default function EditProfileScreen({ navigation }) {
   const { user } = useSelector(authSelector);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const dispatch = useDispatch();
 
-  const handleSave = () => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1000)),
-      {
-        loading: 'Đang cập nhật...',
-        success: (result) => {
-          console.log(result);
-          return 'Cập nhật thành công!';
-        },
-        error: 'Có lỗi xảy ra',
-      }
-    );
+  const [isEditing, setIsEditing] = useState(false);
+  const [userInfo, setUserInfo] = useState(user);
+
+
+
+  const handleSave = async () => {
+    const response = await userAPI.HandleUser("/profile", {
+      full_name: userInfo.full_name,
+      email: userInfo.email,
+      phone: userInfo.phone,
+      address: userInfo.address,
+      birthday: userInfo.birthday,
+    }, "PATCH");
+    
+    toast.success("Cập nhật thành công!");
+    dispatch(setUser(response.data.user));
+    setUserInfo(response.data.user);
     setIsEditing(false);
   };
 
@@ -80,8 +88,8 @@ export default function EditProfileScreen({ navigation }) {
               <MaterialCommunityIcons name="account" size={24} color="#4A90E2" />
               <TextInput
                 style={styles.input}
-                value={user.full_name}
-                onChangeText={(text) => setUser({ ...user, full_name: text })}
+                value={userInfo.full_name}
+                  onChangeText={(text) => setUserInfo({ ...userInfo, full_name: text })}
                 editable={isEditing}
               />
             </View>
@@ -93,8 +101,8 @@ export default function EditProfileScreen({ navigation }) {
               <MaterialCommunityIcons name="email" size={24} color="#4A90E2" />
               <TextInput
                 style={styles.input}
-                value={user.email}
-                onChangeText={(text) => setUser({ ...user, email: text })}
+                value={userInfo.email}
+                onChangeText={(text) => setUserInfo({ ...userInfo, email: text })}
                 editable={isEditing}
                 keyboardType="email-address"
               />
@@ -107,8 +115,8 @@ export default function EditProfileScreen({ navigation }) {
               <MaterialCommunityIcons name="phone" size={24} color="#4A90E2" />
               <TextInput
                 style={styles.input}
-                value={user.phone}
-                onChangeText={(text) => setUser({ ...user, phone: text })}
+                value={userInfo.phone}
+                onChangeText={(text) => setUserInfo({ ...userInfo, phone: text })}
                 editable={isEditing}
                 keyboardType="phone-pad"
               />
@@ -121,8 +129,8 @@ export default function EditProfileScreen({ navigation }) {
               <MaterialCommunityIcons name="map-marker" size={24} color="#4A90E2" />
               <TextInput
                 style={styles.input}
-                value={user.address}
-                onChangeText={(text) => setUser({ ...user, address: text })}
+                value={userInfo.address}
+                onChangeText={(text) => setUserInfo({ ...userInfo, address: text })}
                 editable={isEditing}
               />
             </View>
@@ -134,8 +142,8 @@ export default function EditProfileScreen({ navigation }) {
               <MaterialCommunityIcons name="calendar" size={24} color="#4A90E2" />
               <TextInput
                 style={styles.input}
-                value={user.birthday}
-                onChangeText={(text) => setUser({ ...user, birthday: text })}
+                value={userInfo.birthday}
+                onChangeText={(text) => setUserInfo({ ...userInfo, birthday: text })}
                 editable={isEditing}
               />
             </View>
