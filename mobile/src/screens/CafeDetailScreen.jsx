@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Text,
   Image,
+  Modal,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -142,6 +144,9 @@ const popularDishes = [
 export default function CafeDetailScreen({ navigation, route }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [shop, setShop] = useState(null);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
+  const [reviewComment, setReviewComment] = useState("");
   const { shopId } = route.params;
 
   useEffect(() => {
@@ -154,9 +159,20 @@ export default function CafeDetailScreen({ navigation, route }) {
 
   const handleBooking = () => {
     navigation.navigate("Booking", {
-      cafeName: shop?.name,
-      cafeAddress: shop?.address,
+      shopId: shop._id,
     });
+  };
+
+  const handleSubmitReview = () => {
+    // Here you would typically send the review to your backend
+    console.log("Submitting review:", {
+      rating: selectedRating,
+      comment: reviewComment,
+    });
+    // Reset the form
+    setSelectedRating(0);
+    setReviewComment("");
+    setIsReviewModalVisible(false);
   };
 
   const renderFeatures = () => (
@@ -176,7 +192,17 @@ export default function CafeDetailScreen({ navigation, route }) {
 
   const renderPopularDishes = () => (
     <View style={styles.popularDishesContainer}>
-      <Text style={styles.sectionTitle}>Món nổi bật</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Món nổi bật</Text>
+        <TouchableOpacity style={styles.seeAllButton}>
+          <Text style={styles.seeAllText}>Xem tất cả</Text>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={20}
+            color="#4A90E2"
+          />
+        </TouchableOpacity>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -188,12 +214,41 @@ export default function CafeDetailScreen({ navigation, route }) {
               source={{ uri: dish.image }}
               style={styles.popularDishImage}
             />
+            <View style={styles.popularDishOverlay}>
+              <MaterialCommunityIcons
+                name="heart-outline"
+                size={24}
+                color="white"
+              />
+            </View>
             <View style={styles.popularDishInfo}>
-              <Text style={styles.popularDishName}>{dish.name}</Text>
-              <Text style={styles.popularDishDescription}>
-                {dish?.description}
+              <View style={styles.popularDishHeader}>
+                <Text style={styles.popularDishName}>{dish.name}</Text>
+                <View style={styles.popularDishPriceTag}>
+                  <Text style={styles.popularDishPrice}>{dish.price}</Text>
+                </View>
+              </View>
+              <Text style={styles.popularDishDescription} numberOfLines={2}>
+                {dish.description}
               </Text>
-              <Text style={styles.popularDishPrice}>{dish?.price}</Text>
+              <View style={styles.popularDishFooter}>
+                <View style={styles.popularDishRating}>
+                  <MaterialCommunityIcons
+                    name="star"
+                    size={16}
+                    color="#FFD700"
+                  />
+                  <Text style={styles.popularDishRatingText}>4.5</Text>
+                  <Text style={styles.popularDishRatingCount}>(120)</Text>
+                </View>
+                <TouchableOpacity style={styles.addToCartButton}>
+                  <MaterialCommunityIcons
+                    name="plus"
+                    size={20}
+                    color="#4A90E2"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </TouchableOpacity>
         ))}
@@ -201,65 +256,76 @@ export default function CafeDetailScreen({ navigation, route }) {
     </View>
   );
 
-  {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          stickyHeaderIndices={[0]}
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.headerBar}>
+        {/* Back Button */}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
         >
-          <ImageCarousel images={shop?.images} navigation={navigation} />
+          <MaterialCommunityIcons name="arrow-left" size={26} color="white" />
+        </TouchableOpacity>
 
-          <View style={styles.content}>
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.description}>{shop?.description}</Text>
+        {/* Share Button */}
+        <TouchableOpacity style={styles.shareButton}>
+          <MaterialCommunityIcons
+            name="share-variant"
+            size={24}
+            color="white"
+          />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {shop && (
+          <>
+            <ImageCarousel images={shop.images} navigation={navigation} />
+
+            <View style={styles.content}>
+              {shop?.description && (
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.description}>{shop?.description}</Text>
+                </View>
+              )}
+
+              {shop.amenities && renderFeatures()}
+              {renderPopularDishes()}
+
+              <BasicInfo shop={shop} />
+              <MenuSection menuItems={shop?.menuItems} />
+              <CheckinGallery images={shop?.images} />
+              <ReviewSection shop={shop} />
             </View>
+          </>
+        )}
+      </ScrollView>
 
-            {renderFeatures()}
-            {renderPopularDishes()}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => setIsFavorite(!isFavorite)}
+        >
+          <MaterialCommunityIcons
+            name={isFavorite ? "heart" : "heart-outline"}
+            size={28}
+            color={isFavorite ? "#FF4B4B" : "#4A90E2"}
+          />
+        </TouchableOpacity>
 
-            <BasicInfo shop={shop} />
-            <MenuSection
-              menuItems={shop?.menuItems}
-            />
-            <CheckinGallery spots={shop?.checkinSpots} />
-            <ReviewSection shop={shop} />
-          </View>
-        </ScrollView>
-
-        <View style={styles.bottomBar}>
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={() => setIsFavorite(!isFavorite)}
-          >
-            <MaterialCommunityIcons
-              name={isFavorite ? "heart" : "heart-outline"}
-              size={28}
-              color={isFavorite ? "#FF4B4B" : "#4A90E2"}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.bookingButton}
-            onPress={handleBooking}
-          >
-            <Text style={styles.bookingButtonText}>Đặt chỗ ngay</Text>
-            <MaterialCommunityIcons
-              name="arrow-right"
-              size={24}
-              color="white"
-            />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+        <TouchableOpacity style={styles.bookingButton} onPress={handleBooking}>
+          <Text style={styles.bookingButtonText}>Đặt chỗ ngay</Text>
+          <MaterialCommunityIcons name="arrow-right" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   content: {
@@ -302,6 +368,22 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     marginBottom: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  seeAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: "#4A90E2",
+    fontWeight: "500",
+  },
   popularDishesContainer: {
     marginBottom: 24,
   },
@@ -310,35 +392,96 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   popularDishCard: {
-    width: 280,
+    width: 300,
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   popularDishImage: {
     width: "100%",
-    height: 160,
+    height: 180,
+    resizeMode: "cover",
+  },
+  popularDishOverlay: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   popularDishInfo: {
-    padding: 12,
-    gap: 4,
+    padding: 16,
+    gap: 8,
+  },
+  popularDishHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
   },
   popularDishName: {
-    fontSize: 16,
+    flex: 1,
+    fontSize: 18,
     fontWeight: "600",
     color: "#1E293B",
   },
-  popularDishDescription: {
-    fontSize: 14,
-    color: "#64748B",
+  popularDishPriceTag: {
+    backgroundColor: "#F0F9FF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   popularDishPrice: {
     fontSize: 16,
     fontWeight: "600",
     color: "#4A90E2",
-    marginTop: 4,
+  },
+  popularDishDescription: {
+    fontSize: 14,
+    color: "#64748B",
+    lineHeight: 20,
+  },
+  popularDishFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  popularDishRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  popularDishRatingText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  popularDishRatingCount: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+  addToCartButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F0F9FF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   bottomBar: {
     flexDirection: "row",
@@ -373,5 +516,29 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  backButton: {
+    position: "absolute",
+    top: Platform.OS === "android" ? StatusBar.currentHeight + 15 : 15,
+    left: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  shareButton: {
+    position: "absolute",
+    top: Platform.OS === "android" ? StatusBar.currentHeight + 15 : 15,
+    right: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
   },
 });

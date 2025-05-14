@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { toast } from 'sonner-native';
+import { authSelector } from '../redux/reducers/authReducer';
+import { useSelector } from 'react-redux';
 
 const MOCK_USER = {
   name: 'Nguyễn Văn A',
@@ -22,7 +24,8 @@ const MOCK_USER = {
 };
 
 export default function EditProfileScreen({ navigation }) {
-  const [user, setUser] = useState(MOCK_USER);
+  const { user } = useSelector(authSelector);
+
   const [isEditing, setIsEditing] = useState(false);
 
   const handleSave = () => {
@@ -77,8 +80,8 @@ export default function EditProfileScreen({ navigation }) {
               <MaterialCommunityIcons name="account" size={24} color="#4A90E2" />
               <TextInput
                 style={styles.input}
-                value={user.name}
-                onChangeText={(text) => setUser({ ...user, name: text })}
+                value={user.full_name}
+                onChangeText={(text) => setUser({ ...user, full_name: text })}
                 editable={isEditing}
               />
             </View>
