@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Polyline } from "react-native-maps";
 import axios from "axios";
-import { Text, View } from "react-native";
 
 const CustomMapViewDirections = ({
   origin,
@@ -11,8 +10,6 @@ const CustomMapViewDirections = ({
   strokeColor = "#4A90E2",
 }) => {
   const [coordinates, setCoordinates] = useState([]);
-  const [distance, setDistance] = useState(0);
-  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
     if (!origin || !destination) return;
@@ -25,18 +22,20 @@ const CustomMapViewDirections = ({
         if (response.data.code === "Ok" && response.data.routes.length > 0) {
           const route = response.data.routes[0];
 
+          // Convert coordinates from [longitude, latitude] to {latitude, longitude}
           const routeCoordinates = route.geometry.coordinates.map((coord) => ({
             latitude: coord[1],
             longitude: coord[0],
           }));
 
+          // Convert distance from meters to kilometers
           const routeDistance = route.distance / 1000;
+          // Convert duration from seconds to minutes
           const routeDuration = route.duration / 60;
 
           setCoordinates(routeCoordinates);
-          setDistance(routeDistance);
-          setDuration(routeDuration);
 
+          // Call onReady with route information
           onReady?.({
             coordinates: routeCoordinates,
             distance: routeDistance,
@@ -51,12 +50,7 @@ const CustomMapViewDirections = ({
     };
 
     getDirections();
-  }, [
-    origin?.latitude,
-    origin?.longitude,
-    destination?.latitude,
-    destination?.longitude,
-  ]);
+  }, [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude]);
 
   return (
     <Polyline
@@ -66,7 +60,6 @@ const CustomMapViewDirections = ({
       lineCap="round"
       lineJoin="round"
       geodesic={true}
-      tappable={true}
     />
   );
 };
