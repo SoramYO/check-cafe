@@ -15,7 +15,7 @@ export default function BasicInfo({ shop }) {
 
   const handleWebsite = () => {
     if (shop?.website) {
-      Linking.openURL(shop?.website);
+      Linking.openURL(shop?.website)
     }
   };
 
@@ -58,6 +58,11 @@ export default function BasicInfo({ shop }) {
         <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
         <Text style={styles.rating}>{shop?.rating_avg}</Text>
         <Text style={styles.reviews}>({shop?.rating_count} đánh giá)</Text>
+      </View>
+
+      <View style={styles.row}>
+        <MaterialCommunityIcons name="palette" size={24} color="#666" />
+        <Text style={styles.text}>Chủ đề: {shop?.theme_ids.map(theme => theme.name).join(', ')}</Text>
       </View>
 
       <TouchableOpacity style={styles.row} onPress={handleDirections}>

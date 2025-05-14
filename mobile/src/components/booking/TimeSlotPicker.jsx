@@ -2,36 +2,25 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-interface TimeSlot {
-  start: string;
-  end: string;
-}
-
-interface TimeSlotPickerProps {
-  selectedTimeSlot: TimeSlot | null;
-  onSelectTimeSlot: (timeSlot: TimeSlot) => void;
-  timeSlots: TimeSlot[];
-}
-
-export default function TimeSlotPicker({ selectedTimeSlot, onSelectTimeSlot, timeSlots }: TimeSlotPickerProps) {
+export default function TimeSlotPicker({ selectedTimeSlot, onSelectTimeSlot, timeSlots }) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Chọn khung giờ (2 tiếng)</Text>
       <View style={styles.timeSlotsContainer}>
-        {timeSlots.map((slot, index) => (
+        {timeSlots?.map((slot, index) => (
           <TouchableOpacity
             key={index}
             style={[
               styles.timeSlot,
-              selectedTimeSlot?.start === slot.start && styles.timeSlotActive
+              selectedTimeSlot?.start_time === slot.start_time && styles.timeSlotActive
             ]}
             onPress={() => onSelectTimeSlot(slot)}
           >
             <Text style={[
               styles.timeSlotText,
-              selectedTimeSlot?.start === slot.start && styles.timeSlotTextActive
+              selectedTimeSlot?.start_time === slot.start_time && styles.timeSlotTextActive
             ]}>
-              {slot.start} - {slot.end}
+              {slot.start_time} - {slot.end_time}
             </Text>
           </TouchableOpacity>
         ))}

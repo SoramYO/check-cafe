@@ -23,7 +23,7 @@ const MENU_SECTIONS = [
       { icon: 'account-edit', label: 'Chỉnh sửa thông tin', route: 'EditProfile' },
       { icon: 'bell-outline', label: 'Thông báo', route: 'Notifications' },
       { icon: 'ticket-percent', label: 'Voucher của tôi', route: 'Vouchers' },
-      { icon: 'heart-outline', label: 'Quán yêu thích', route: 'Favorites' },
+      { icon: 'heart-outline', label: 'Yêu thích', route: 'Favorites' },
     ],
   },
   {
