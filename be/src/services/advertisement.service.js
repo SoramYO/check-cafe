@@ -17,7 +17,7 @@ class AdvertisementService {
       } = req.query;
 
       const query = {
-        status: "Active",
+        status: 'Active',
       };
 
       if (search) {
@@ -44,18 +44,11 @@ class AdvertisementService {
         ]),
       };
 
-      const advertisementsPaginated = await getPaginatedData(paginateOptions);
+      const advertisements = await getPaginatedData(paginateOptions);
+      console.log(advertisements);
 
-      return {
-        advertisements: advertisementsPaginated,
-        metadata: {
-          totalItems: advertisementsPaginated.metadata.total,
-          totalPages: advertisementsPaginated.metadata.totalPages,
-          currentPage: advertisementsPaginated.metadata.page,
-          limit: advertisementsPaginated.metadata.limit,
-        },
-        message: advertisementsPaginated.length === 0 ? "No advertisements found" : undefined,
-      };
+
+      return advertisements;
   };
 
   getAdvertisementById = async (req) => {

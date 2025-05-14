@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 
 const CheckinGallery = ({ 
-  spots,
+  images,
   onSpotPress,
   onSeeAllPress,
   cafeId
@@ -27,21 +27,21 @@ const CheckinGallery = ({
     });
   };
 
-  const renderSpotCard = ({ item: spot }) => (
+  const renderSpotCard = ({ item: image }) => (
     <View
       style={styles.spotCard}
     >
-      <TouchableOpacity onPress={() => onSpotPress?.(spot)}>
-        <Image source={{ uri: spot.image }} style={styles.spotImage} />
+      <TouchableOpacity onPress={() => onSpotPress?.(image)}>
+        <Image source={{ uri: image.url }} style={styles.spotImage} />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.7)']}
           style={styles.gradient}
         >
           <View style={styles.spotInfo}>
-            <Text style={styles.spotDescription}>{spot.description}</Text>
+            <Text style={styles.spotDescription}>{image.caption}</Text>
             <TouchableOpacity 
               style={styles.checkInButton}
-              onPress={() => handleCheckin(spot)}
+              onPress={() => handleCheckin(image)}
             >
               <MaterialCommunityIcons name="camera" size={16} color="white" />
               <Text style={styles.checkInText}>Check-in</Text>
@@ -59,7 +59,7 @@ const CheckinGallery = ({
           <MaterialCommunityIcons name="camera" size={24} color="#4A90E2" />
           <Text style={styles.title}>Điểm check-in đẹp</Text>
         </View>
-        {spots.length > 3 && (
+        {images?.length > 3 && (
           <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
             <Text style={styles.seeAllText}>Xem tất cả</Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color="#4A90E2" />
@@ -68,9 +68,9 @@ const CheckinGallery = ({
       </View>
 
       <FlatList
-        data={spots}
+        data={images}
         renderItem={renderSpotCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.spotsContainer}

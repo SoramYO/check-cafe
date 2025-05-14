@@ -2,16 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-interface Spot {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  features: string[];
-  isAvailable: boolean;
-}
-
-const SPOTS: Spot[] = [
+const SPOTS = [
   {
     id: '1',
     name: 'Ban công tầng 2',
@@ -38,12 +29,16 @@ const SPOTS: Spot[] = [
   },
 ];
 
-interface SpotSelectionProps {
-  selectedSpot: string | null;
-  onSelectSpot: (spotId: string) => void;
-}
+export default function SpotSelection({ selectedSeat, onSelectSeat, seats, bookingType }) {
+  // Filter seats based on bookingType
+  const filteredSeats = seats?.filter(seat => {
+    if (bookingType === 'scenic') {
+      return seat.is_premium;
+    } else {
+      return !seat.is_premium;
+    }
+  });
 
-export default function SpotSelection({ selectedSpot, onSelectSpot }: SpotSelectionProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Chọn vị trí</Text>
@@ -52,30 +47,36 @@ export default function SpotSelection({ selectedSpot, onSelectSpot }: SpotSelect
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.spotsContainer}
       >
-        {SPOTS.map((spot) => (
+        {filteredSeats?.map((seat) => (
           <TouchableOpacity
-            key={spot.id}
+            key={seat._id}
             style={[
               styles.spotCard,
-              selectedSpot === spot.id && styles.spotCardSelected,
-              !spot.isAvailable && styles.spotCardUnavailable,
+              selectedSeat === seat._id && styles.spotCardSelected,
+              !seat.is_available && styles.spotCardUnavailable,
             ]}
-            onPress={() => spot.isAvailable && onSelectSpot(spot.id)}
-            disabled={!spot.isAvailable}
+            onPress={() => seat.is_available && onSelectSeat(seat._id)}
+            disabled={!seat.is_available}
           >
-            <Image source={{ uri: spot.image }} style={styles.spotImage} />
+            <Image source={{ uri: seat.image }} style={styles.spotImage} />
             <View style={styles.spotContent}>
               <View style={styles.spotHeader}>
-                <Text style={styles.spotName}>{spot.name}</Text>
-                {!spot.isAvailable && (
+                <Text style={styles.spotName}>{seat.seat_name}</Text>
+                {!seat.is_available && (
                   <View style={styles.unavailableBadge}>
                     <Text style={styles.unavailableText}>Đã đặt</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.spotDescription}>{spot.description}</Text>
+              <Text style={styles.spotDescription}>{seat.description}</Text>
+              
+              <View style={styles.capacityContainer}>
+                <MaterialCommunityIcons name="account-group" size={16} color="#64748B" />
+                <Text style={styles.capacityText}>Sức chứa: {seat.capacity} người</Text>
+              </View>
+
               <View style={styles.features}>
-                {spot.features.map((feature, index) => (
+                {seat.features?.map((feature, index) => (
                   <View key={index} style={styles.featureBadge}>
                     <Text style={styles.featureText}>{feature}</Text>
                   </View>
@@ -151,6 +152,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
     marginBottom: 12,
+  },
+  capacityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  capacityText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  regularBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  regularText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '500',
   },
   features: {
     flexDirection: 'row',

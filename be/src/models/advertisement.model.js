@@ -9,7 +9,8 @@ const advertisementSchema = new mongoose.Schema(
   {
     title: { type: String, trim: true },
     content: { type: String },
-    image_url: { type: String },
+    image: { type: String },
+    imagePublicId: { type: String },
     redirect_url: { type: String },
     shop_id: { type: Types.ObjectId, ref: "Shop" },
     created_by: { type: Types.ObjectId, ref: "User" },

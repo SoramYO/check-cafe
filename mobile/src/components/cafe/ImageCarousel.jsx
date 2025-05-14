@@ -4,11 +4,8 @@ import {
   Image,
   StyleSheet,
   Dimensions,
-  ScrollView,
-  TouchableOpacity,
   Animated,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 const height = width * 0.5625; // 16:9 aspect ratio
@@ -36,15 +33,15 @@ export default function ImageCarousel({ images, navigation }) {
         scrollEventThrottle={16}
         onMomentumScrollEnd={handleScroll}
       >
-        {images.map((image, index) => (
+        {images?.map((image, index) => (
           <View key={index} style={styles.slide}>
-            <Image source={{ uri: image }} style={styles.image} />
+            <Image source={{ uri: image.url }} style={styles.image} />
           </View>
         ))}
       </Animated.ScrollView>
 
       <View style={styles.pagination}>
-        {images.map((_, index) => {
+        {images?.map((_, index) => {
           const opacity = position.interpolate({
             inputRange: [index - 1, index, index + 1],
             outputRange: [0.3, 1, 0.3],
@@ -59,17 +56,6 @@ export default function ImageCarousel({ images, navigation }) {
           );
         })}
       </View>
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.shareButton}>
-        <MaterialCommunityIcons name="share-variant" size={24} color="white" />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -100,27 +86,5 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "white",
-  },
-  backButton: {
-    position: "absolute",
-    top: 15,
-    left: 15,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  shareButton: {
-    position: "absolute",
-    top: 15,
-    right: 15,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });

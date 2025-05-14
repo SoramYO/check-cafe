@@ -3,13 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-interface BookingHeaderProps {
-  cafeName: string;
-  cafeAddress: string;
-  onBack: () => void;
-}
-
-export default function BookingHeader({ cafeName, cafeAddress, onBack }: BookingHeaderProps) {
+export default function BookingHeader({ shop, onBack }) {
   return (
     <View style={styles.heroContainer}>
       <Image 
@@ -27,10 +21,10 @@ export default function BookingHeader({ cafeName, cafeAddress, onBack }: Booking
           <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
         </TouchableOpacity>
         <View style={styles.heroContent}>
-          <Text style={styles.cafeName}>{cafeName}</Text>
+          <Text style={styles.cafeName}>{shop?.name}</Text>
           <View style={styles.addressContainer}>
             <MaterialCommunityIcons name="map-marker" size={16} color="white" />
-            <Text style={styles.cafeAddress}>{cafeAddress}</Text>
+            <Text style={styles.cafeAddress}>{shop?.address}</Text>
           </View>
         </View>
       </LinearGradient>

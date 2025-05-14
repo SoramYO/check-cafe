@@ -24,8 +24,6 @@ const ReviewsDetail = () => {
     return product.id.toString() === review.product_id.toString()
   })
 
-  console.log(review,product);
-
   const customerData = {
     name: customer.name,
     src: customer.image,

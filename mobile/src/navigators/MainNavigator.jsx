@@ -9,6 +9,10 @@ import NotificationsScreen from "../screens/NotificationsScreen";
 import VoucherScreen from "../screens/VoucherScreen";
 import FavoritesScreen from "../screens/FavoritesScreen";
 import LanguageScreen from "../screens/LanguageScreen";
+import CheckinCameraScreen from "../screens/CheckinCameraScreen";
+import FeaturedDetailScreen from "../screens/FeaturedDetailScreen";
+import BookingDetailScreen from "../screens/BookingDetailScreen";
+import DefaultLocationScreen from "../screens/DefaultLocationScreen";
 
 const MainNavigator = () => {
   const Stack = createNativeStackNavigator();
@@ -26,9 +30,13 @@ const MainNavigator = () => {
       <Stack.Screen name="Booking" component={BookingScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="DefaultLocation" component={DefaultLocationScreen} />
       <Stack.Screen name="Vouchers" component={VoucherScreen} />
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
       <Stack.Screen name="Language" component={LanguageScreen} />
+      <Stack.Screen name="CheckinCamera" component={CheckinCameraScreen} />
+      <Stack.Screen name="FeaturedDetail" component={FeaturedDetailScreen} />
+      <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
     </Stack.Navigator>
   );
 };

@@ -10,19 +10,24 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Location from "expo-location";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import MapView, { Marker } from "react-native-maps";
+import { useLocation } from "../context/LocationContext";
+import shopAPI from "../services/shopAPI";
+import CustomMapViewDirections from "../components/CustomMapViewDirections";
 
 // Định nghĩa mảng CAFES với các quán cà phê cũ và mới
 const CAFES = [
   {
     id: "1",
     name: "The Dreamer Coffee",
-    address: "357 Điện Biên Phủ, Phường 2, Bình Thạnh, Hồ Chí Minh 008428, Việt Nam",
+    address:
+      "357 Điện Biên Phủ, Phường 2, Bình Thạnh, Hồ Chí Minh 008428, Việt Nam",
     rating: 4.8,
     reviews: 256,
-    image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
     coordinate: {
       latitude: 10.801588,
       longitude: 106.7105107,
@@ -35,7 +40,8 @@ const CAFES = [
     address: "59 Nguyễn Trãi, Phường 9, Đà Lạt, Lâm Đồng 66111, Việt Nam",
     rating: 4.6,
     reviews: 189,
-    image: "https://lh5.googleusercontent.com/p/AF1QipPogroazMq3rLIQJk3eXCEJgKuwu-wY1VRzgU0G=w408-h496-k-no",
+    image:
+      "https://lh5.googleusercontent.com/p/AF1QipPogroazMq3rLIQJk3eXCEJgKuwu-wY1VRzgU0G=w408-h496-k-no",
     coordinate: {
       latitude: 11.9443448,
       longitude: 108.4481679,
@@ -48,7 +54,8 @@ const CAFES = [
     address: "31/6 Đường 3/4, Phường 3, Đà Lạt, Lâm Đồng, Việt Nam",
     rating: 4.7,
     reviews: 210,
-    image: "https://lh5.googleusercontent.com/p/AF1QipPEiKbSYh1xfix-xV0CjUgsgNc2bY-GIHtbtcBq=w408-h306-k-no",
+    image:
+      "https://lh5.googleusercontent.com/p/AF1QipPEiKbSYh1xfix-xV0CjUgsgNc2bY-GIHtbtcBq=w408-h306-k-no",
     coordinate: {
       latitude: 11.9406,
       longitude: 108.4373,
@@ -106,17 +113,13 @@ const CAFES = [
   },
 ];
 
-
-
-
-
 // Component cho phiên bản web
 const WebMap = () => {
   return (
     <View style={styles.webMapContainer}>
       <Text style={styles.webMapText}>
-        Maps are not supported in web version.
-        Please use the mobile app for full functionality.
+        Maps are not supported in web version. Please use the mobile app for
+        full functionality.
       </Text>
       <MaterialCommunityIcons name="map-marker-off" size={48} color="#94A3B8" />
     </View>
@@ -126,69 +129,106 @@ const WebMap = () => {
 // Component chính MapScreen
 export default function MapScreen() {
   const navigation = useNavigation();
-  const [location, setLocation] = useState(null);
+  const { location } = useLocation();
   const [errorMsg, setErrorMsg] = useState(null);
   const [selectedCafe, setSelectedCafe] = useState(null);
+  const [shops, setShops] = useState([]);
   const mapRef = useRef(null);
+  const [routeInfo, setRouteInfo] = useState(null);
 
   useEffect(() => {
-    async function getCurrentLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setErrorMsg("Permission to access location was denied");
-        return;
+    if (!location) return;
+    const fetchData = async () => {
+      try {
+        const response = await shopAPI.HandleCoffeeShops(
+          `/public?latitude=${location.latitude}&longitude=${location.longitude}&radius=10000`
+        );
+        setShops(response.data.shops);
+      } catch (error) {
+        console.error("Error fetching shops:", error);
+        setErrorMsg("Không thể tải danh sách quán cà phê");
       }
+    };
+    fetchData();
+  }, [location]);
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-    }
-
-    getCurrentLocation();
-  }, []);
-
-  const handleCafePress = (cafe) => {
-    setSelectedCafe(cafe);
+  const handleCafePress = (shop) => {
+    setRouteInfo(null);
+    setSelectedCafe(shop);
     if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: cafe.coordinate.latitude,
-        longitude: cafe.coordinate.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 500);
+      mapRef.current.animateToRegion(
+        {
+          latitude: shop.location.coordinates[1],
+          longitude: shop.location.coordinates[0],
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        500
+      );
     }
   };
 
   const handleInfoPress = () => {
     if (selectedCafe) {
-      navigation.navigate('CafeDetail', { cafeId: selectedCafe.id });
+      navigation.navigate("CafeDetail", { shopId: selectedCafe._id });
     }
   };
 
-  const renderMarker = (cafe) => {
-    if (Platform.OS === 'web') return null;
+  const handleRouteReady = (result) => {
+    setRouteInfo(result);
 
-    const { Marker } = require('react-native-maps');
+    // Fit map to show entire route
+    if (mapRef.current && result.coordinates.length > 0) {
+      mapRef.current.fitToCoordinates(result.coordinates, {
+        edgePadding: {
+          top: 50,
+          right: 50,
+          bottom: 50,
+          left: 50,
+        },
+        animated: true,
+      });
+    }
+  };
+
+  const renderMarker = (shop) => {
+    if (Platform.OS === "web") return null;
+    if (!shop?.location?.coordinates) return null;
+
     return (
       <Marker
-        key={cafe.id}
-        coordinate={cafe.coordinate}
-        onPress={() => handleCafePress(cafe)}
+        key={shop?._id}
+        coordinate={{
+          latitude: shop?.location?.coordinates[1],
+          longitude: shop?.location?.coordinates[0],
+        }}
+        onPress={() => handleCafePress(shop)}
       >
-        <View style={[
-          styles.markerContainer,
-          selectedCafe?.id === cafe.id && styles.markerContainerSelected
-        ]}>
-          <View style={[
-            styles.markerStatus,
-            { backgroundColor: cafe.status === 'open' ? '#4CAF50' : '#FF9800' }
-          ]} />
-          <Image source={{ uri: cafe.image }} style={styles.markerImage} />
+        <View
+          style={[
+            styles.markerContainer,
+            selectedCafe?._id === shop?._id && styles.markerContainerSelected,
+          ]}
+        >
+          <View
+            style={[
+              styles.markerStatus,
+              {
+                backgroundColor:
+                  shop?.status === "open" ? "#4CAF50" : "#FF9800",
+              },
+            ]}
+          />
+          <Image
+            source={{ uri: shop?.mainImage?.url }}
+            style={styles.markerImage}
+          />
         </View>
       </Marker>
     );
   };
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     return (
       <SafeAreaView style={styles.container}>
         <WebMap />
@@ -196,76 +236,134 @@ export default function MapScreen() {
     );
   }
 
+  if (!location) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <Text>Đang xác định vị trí...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>{errorMsg}</Text>
+      </SafeAreaView>
+    );
+  }
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
         <LinearGradient colors={["#18213e", "#983aa8"]}>
           {Platform.select({
             native: () => {
-              const { default: Map } = require('react-native-maps');
-              
               return (
                 <>
-                  <Map
+                  <MapView
+                    key={shops.length}
                     ref={mapRef}
                     style={styles.map}
                     showsUserLocation
                     initialRegion={{
-                      latitude: 11.9416,
-                      longitude: 108.4383,
+                      latitude: location?.latitude,
+                      longitude: location?.longitude,
                       latitudeDelta: 0.02,
                       longitudeDelta: 0.02,
                     }}
+                    mapType="standard"
+                    provider={MapView.PROVIDER_OPENSTREETMAP}
                   >
-                    {CAFES.map(renderMarker)}
-                  </Map>
+                    {shops?.map(renderMarker)}
+                    {selectedCafe && location && (
+                      <CustomMapViewDirections
+                        key={selectedCafe._id}
+                        origin={{
+                          latitude: location.latitude,
+                          longitude: location.longitude,
+                        }}
+                        destination={{
+                          latitude: selectedCafe.location.coordinates[1],
+                          longitude: selectedCafe.location.coordinates[0],
+                        }}
+                        strokeWidth={3}
+                        strokeColor="#4A90E2"
+                        onReady={handleRouteReady}
+                      />
+                    )}
+                  </MapView>
 
                   {selectedCafe && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.cafeInfo}
                       onPress={handleInfoPress}
                     >
-                      <Image 
-                        source={{ uri: selectedCafe.image }} 
-                        style={styles.cafeImage} 
+                      <Image
+                        source={{ uri: selectedCafe?.mainImage?.url }}
+                        style={styles.cafeImage}
                       />
                       <View style={styles.cafeDetails}>
                         <Text style={styles.cafeName}>{selectedCafe.name}</Text>
                         <View style={styles.ratingContainer}>
-                          <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-                          <Text style={styles.rating}>{selectedCafe.rating}</Text>
-                          <Text style={styles.reviews}>({selectedCafe.reviews} đánh giá)</Text>
+                          <MaterialCommunityIcons
+                            name="star"
+                            size={16}
+                            color="#FFD700"
+                          />
+                          <Text style={styles.rating}>
+                            {selectedCafe.rating_avg}
+                          </Text>
+                          <Text style={styles.reviews}>
+                            ({selectedCafe.rating_count} đánh giá)
+                          </Text>
                         </View>
                         <Text style={styles.cafeAddress} numberOfLines={1}>
-                          {selectedCafe.address}
+                          Khoảng cách: {selectedCafe.distance.toFixed(2)} km
+                        </Text>
+                        <Text style={styles.cafeAddress} numberOfLines={1}>
+                          Địa chỉ: {selectedCafe.address}
                         </Text>
                       </View>
-                      <MaterialCommunityIcons 
-                        name="chevron-right" 
-                        size={24} 
-                        color="#64748B" 
+                      <MaterialCommunityIcons
+                        name="chevron-right"
+                        size={24}
+                        color="#64748B"
                       />
                     </TouchableOpacity>
                   )}
                 </>
               );
             },
-            default: () => <WebMap />
+            default: () => <WebMap />,
           })()}
           <TouchableOpacity
             style={styles.locationButton}
             onPress={() => {
               if (location && mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                  latitudeDelta: 0.02,
-                  longitudeDelta: 0.02,
-                }, 500);
+                mapRef.current.animateToRegion(
+                  {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                  },
+                  500
+                );
               }
             }}
           >
-            <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#fff" />
+            <MaterialCommunityIcons
+              name="crosshairs-gps"
+              size={24}
+              color="#fff"
+            />
           </TouchableOpacity>
         </LinearGradient>
       </View>
@@ -298,14 +396,16 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
     zIndex: 1000,
+    flexDirection: "row",
+    alignItems: "center",
   },
   markerContainer: {
-    width: 44,
-    height: 44,
+    width: 32,
+    height: 32,
     borderRadius: 22,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -318,34 +418,36 @@ const styles = StyleSheet.create({
   markerContainerSelected: {
     transform: [{ scale: 1.1 }],
     borderWidth: 2,
-    borderColor: '#4A90E2',
+    borderColor: "#4A90E2",
   },
   markerImage: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#4A90E2",
   },
   markerStatus: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     right: 0,
     width: 12,
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: "white",
     zIndex: 1,
   },
   cafeInfo: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 100,
     left: 20,
     right: 20,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     shadowColor: "#000",
     shadowOffset: {
@@ -367,39 +469,39 @@ const styles = StyleSheet.create({
   },
   cafeName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontWeight: "600",
+    color: "#1E293B",
   },
   ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   rating: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontWeight: "600",
+    color: "#1E293B",
   },
   reviews: {
     fontSize: 12,
-    color: '#64748B',
+    color: "#64748B",
   },
   cafeAddress: {
     fontSize: 12,
-    color: '#64748B',
+    color: "#64748B",
   },
   webMapContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
     padding: 20,
     gap: 16,
   },
   webMapText: {
     fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
+    color: "#64748B",
+    textAlign: "center",
     lineHeight: 24,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   SafeAreaView,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import reservationAPI from "../services/reservationAPI";
+import { useNavigation } from "@react-navigation/native";
 
 // Mock data for bookings
 const MOCK_BOOKINGS = [
@@ -45,31 +47,77 @@ const MOCK_BOOKINGS = [
 ];
 
 export default function BookingsScreen() {
-  const [activeTab, setActiveTab] = useState("upcoming");
-  const filteredBookings = MOCK_BOOKINGS.filter(
+  const [activeTab, setActiveTab] = useState("Pending");
+  const [reservations, setReservations] = useState([]);
+  const filteredBookings = reservations.filter(
     (booking) => booking.status === activeTab
   );
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        const response = await reservationAPI.HandleReservation("/me");
+        setReservations(response.data.reservations);
+      } catch (error) {
+        console.error("Error fetching reservations:", error);
+      }
+    };
+
+    fetchReservations();
+  }, []);
 
   const renderBookingCard = ({ item }) => (
-    <View style={styles.bookingCard}>
-      <Image source={{ uri: item.image }} style={styles.cafeImage} />
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cafeName}>{item.cafeName}</Text>
-          <TouchableOpacity style={styles.moreButton}>
-            <MaterialCommunityIcons
-              name="dots-horizontal"
-              size={24}
-              color="#64748B"
-            />
-          </TouchableOpacity>
+    <TouchableOpacity
+      onPress={() => navigation.navigate("BookingDetail", { booking: item })}
+      style={styles.bookingCard}
+    >
+      <View style={styles.ticketHeader}>
+        <View style={styles.statusIndicator}>
+          <View
+            style={[
+              styles.statusDot,
+              item.status === "Pending" && styles.pendingDot,
+              item.status === "Confirmed" && styles.confirmedDot,
+              item.status === "Completed" && styles.completedDot,
+            ]}
+          />
+          <Text
+            style={[
+              styles.statusText,
+              item.status === "Pending" && styles.pendingText,
+              item.status === "Confirmed" && styles.confirmedText,
+              item.status === "Completed" && styles.completedText,
+            ]}
+          >
+            {item.status === "Pending"
+              ? "Chờ xác nhận"
+              : item.status === "Confirmed"
+              ? "Đã xác nhận"
+              : "Đã hoàn thành"}
+          </Text>
         </View>
+        <TouchableOpacity style={styles.moreButton}>
+          <MaterialCommunityIcons
+            name="dots-horizontal"
+            size={24}
+            color="#64748B"
+          />
+        </TouchableOpacity>
+      </View>
+
+      <Image
+        source={{ uri: item.shop_id?.shopImages[0].url }}
+        style={styles.cafeImage}
+      />
+      <View style={styles.cardContent}>
+        <Text style={styles.cafeName}>{item.shop_id?.name}</Text>
 
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
             <MaterialCommunityIcons name="calendar" size={20} color="#64748B" />
             <Text style={styles.detailText}>
-              {new Date(item.date).toLocaleDateString("vi-VN")}
+              {new Date(item?.reservation_date).toLocaleDateString("vi-VN")}
             </Text>
           </View>
 
@@ -79,7 +127,9 @@ export default function BookingsScreen() {
               size={20}
               color="#64748B"
             />
-            <Text style={styles.detailText}>{item.time}</Text>
+            <Text style={styles.detailText}>
+              {item?.time_slot_id?.start_time} - {item?.time_slot_id?.end_time}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
@@ -88,12 +138,14 @@ export default function BookingsScreen() {
               size={20}
               color="#64748B"
             />
-            <Text style={styles.detailText}>{item.guests} người</Text>
+            <Text style={styles.detailText}>
+              {item?.number_of_people} người
+            </Text>
           </View>
         </View>
 
         <View style={styles.actionButtons}>
-          {activeTab === "upcoming" ? (
+          {activeTab === "Pending" || activeTab === "Confirmed" ? (
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.cancelButton]}
@@ -115,7 +167,7 @@ export default function BookingsScreen() {
           )}
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -126,26 +178,39 @@ export default function BookingsScreen() {
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "upcoming" && styles.activeTab]}
-          onPress={() => setActiveTab("upcoming")}
+          style={[styles.tab, activeTab === "Pending" && styles.activeTab]}
+          onPress={() => setActiveTab("Pending")}
         >
           <Text
             style={[
               styles.tabText,
-              activeTab === "upcoming" && styles.activeTabText,
+              activeTab === "Pending" && styles.activeTabText,
             ]}
           >
-            Sắp tới
+            Chờ xác nhận
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "completed" && styles.activeTab]}
-          onPress={() => setActiveTab("completed")}
+          style={[styles.tab, activeTab === "Confirmed" && styles.activeTab]}
+          onPress={() => setActiveTab("Confirmed")}
         >
           <Text
             style={[
               styles.tabText,
-              activeTab === "completed" && styles.activeTabText,
+              activeTab === "Confirmed" && styles.activeTabText,
+            ]}
+          >
+            Đã xác nhận
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "Completed" && styles.activeTab]}
+          onPress={() => setActiveTab("Completed")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "Completed" && styles.activeTabText,
             ]}
           >
             Đã hoàn thành
@@ -157,7 +222,7 @@ export default function BookingsScreen() {
         <FlatList
           data={filteredBookings}
           renderItem={renderBookingCard}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -220,62 +285,105 @@ const styles = StyleSheet.create({
   },
   bookingCard: {
     backgroundColor: "white",
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
+    borderColor: "#E2E8F0",
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  cafeImage: {
-    width: "100%",
-    height: 160,
-  },
-  cardContent: {
-    padding: 16,
-  },
-  cardHeader: {
+  ticketHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    padding: 12,
+    backgroundColor: "#F8FAFC",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  statusIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  pendingDot: {
+    backgroundColor: "#F59E0B",
+  },
+  confirmedDot: {
+    backgroundColor: "#10B981",
+  },
+  completedDot: {
+    backgroundColor: "#6366F1",
+  },
+  statusText: {
+    fontSize: 14,
+    fontFamily: "Poppins_500Medium",
+  },
+  pendingText: {
+    color: "#F59E0B",
+  },
+  confirmedText: {
+    color: "#10B981",
+  },
+  completedText: {
+    color: "#6366F1",
+  },
+  cafeImage: {
+    width: "100%",
+    height: 180,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  cardContent: {
+    padding: 16,
+    backgroundColor: "white",
   },
   cafeName: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: "Poppins_600SemiBold",
     color: "#1E293B",
-  },
-  moreButton: {
-    padding: 4,
+    marginBottom: 12,
   },
   detailsContainer: {
-    gap: 8,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 20,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#E2E8F0",
   },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   detailText: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Poppins_400Regular",
     color: "#64748B",
   },
   actionButtons: {
     flexDirection: "row",
     gap: 12,
+    marginTop: 8,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
   },
   cancelButton: {
@@ -293,6 +401,9 @@ const styles = StyleSheet.create({
     color: "white",
     fontFamily: "Poppins_500Medium",
     fontSize: 14,
+  },
+  moreButton: {
+    padding: 4,
   },
   emptyState: {
     flex: 1,

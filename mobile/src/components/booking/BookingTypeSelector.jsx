@@ -2,12 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-interface BookingTypeProps {
-  selectedType: 'regular' | 'scenic';
-  onSelectType: (type: 'regular' | 'scenic') => void;
-}
 
-export default function BookingTypeSelector({ selectedType, onSelectType }: BookingTypeProps) {
+export default function BookingTypeSelector({ selectedType, onSelectType }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Chọn loại đặt chỗ</Text>

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView } from 'moti';
 
 const FEATURED_DETAILS = {
   discover: {
@@ -64,14 +63,7 @@ export default function FeaturedDetailScreen({ navigation, route }) {
   const details = FEATURED_DETAILS[type];
 
   const renderFeature = (feature, index) => (
-    <MotiView
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{
-        type: 'timing',
-        duration: 500,
-        delay: index * 100,
-      }}
+    <View
       key={feature.title}
       style={styles.featureCard}
     >
@@ -80,7 +72,7 @@ export default function FeaturedDetailScreen({ navigation, route }) {
         <Text style={styles.featureTitle}>{feature.title}</Text>
         <Text style={styles.featureDescription}>{feature.description}</Text>
       </View>
-    </MotiView>
+    </View>
   );
 
   return (
@@ -102,15 +94,12 @@ export default function FeaturedDetailScreen({ navigation, route }) {
         </View>
 
         <View style={styles.content}>
-          <MotiView
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 500 }}
+          <View
           >
             <Text style={styles.title}>{details.title}</Text>
             <Text style={styles.subtitle}>{details.subtitle}</Text>
             <Text style={styles.description}>{details.description}</Text>
-          </MotiView>
+          </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Thông tin chi tiết</Text>
@@ -127,18 +116,11 @@ export default function FeaturedDetailScreen({ navigation, route }) {
               contentContainerStyle={styles.photosContainer}
             >
               {details.photos.map((photo, index) => (
-                <MotiView
+                <View
                   key={index}
-                  from={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{
-                    type: 'timing',
-                    duration: 500,
-                    delay: index * 100,
-                  }}
                 >
                   <Image source={{ uri: photo }} style={styles.photo} />
-                </MotiView>
+                </View>
               ))}
             </ScrollView>
           </View>
