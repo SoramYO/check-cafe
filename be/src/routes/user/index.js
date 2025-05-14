@@ -36,4 +36,7 @@ router.patch(
   }
 );
 
+// Save FCM token
+router.post("/save-fcm-token", userController.saveFcmToken); 
+
 module.exports = router;

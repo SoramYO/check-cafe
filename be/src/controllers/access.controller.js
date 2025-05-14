@@ -23,6 +23,8 @@ class AccessController {
     const result = await accessService.signOut(req.user);
     new OK({ message: ACCESS_MESSAGE.LOGOUT_SUCCESS, data: result }).send(res);
   });
+
+
 }
 
 module.exports = new AccessController();

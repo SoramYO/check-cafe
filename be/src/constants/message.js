@@ -13,6 +13,8 @@ const ACCESS_MESSAGE = {
   RESET_PASSWORD_FAILED: "Reset password failed",
   VERIFY_EMAIL_SUCCESS: "Verify email successfully",
   VERIFY_EMAIL_FAILED: "Verify email failed",
+  GET_FCM_TOKEN_SUCCESS: "Get FCM token successfully",
+  GET_FCM_TOKEN_FAILED: "Get FCM token failed",
 };
 
 const USER_MESSAGE = {
@@ -26,6 +28,7 @@ const USER_MESSAGE = {
   USER_UPDATE_PROFILE_SUCCESS: "Update user profile successfully",
   USER_CHANGE_PASSWORD_SUCCESS: "Change password successfully",
   USER_CHANGE_AVATAR_SUCCESS: "Update avatar successfully",
+  USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
 };
 
 const ADMIN_MESSAGE = {
@@ -69,6 +72,9 @@ const SHOP_MESSAGE = {
 const ADVERTISEMENT_MESSAGE = {
   GET_ADVERTISEMENT_LIST_SUCCESS: "Get advertisement list successfully",
   GET_ADVERTISEMENT_BY_ID_SUCCESS: "Get advertisement by ID successfully",
+  CREATE_ADVERTISEMENT_SUCCESS: "Create advertisement successfully",
+  UPDATE_ADVERTISEMENT_SUCCESS: "Update advertisement successfully",
+  DELETE_ADVERTISEMENT_SUCCESS: "Delete advertisement successfully",
 };
 
 const CATEGORY_MESSAGE = {
