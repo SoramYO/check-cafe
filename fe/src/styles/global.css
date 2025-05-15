@@ -1,0 +1,73 @@
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  
+  .form-input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #374151;
+    background: #ffffff;
+  }
+  
+  .form-input[type="file"]:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .td_image img {
+    width: 50px;
+    height: auto;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+  
+  .form-label {
+    display: block;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  
+  .form-input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #374151;
+    background: #ffffff;
+  }
+  
+  .form-input[type="file"]:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+  
+  .ad-details .detail-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  .ad-details .detail-item strong {
+    width: 140px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .ad-details .detail-item div {
+    flex: 1;
+    color: #4b5563;
+  }

@@ -1,15 +1,18 @@
-import React from 'react';
+import React from "react";
+import "../../styles/Modal.css";
 
-const Modal = ({ className, children, bool, onClose }) => {
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
 
   return (
-    <div className={`modal ${bool ? 'active' : ''} ${className ? className : ''}`} onClick={handleOverlayClick}>
-      <div className="modal-content">
+    <div className="modal-overlay">
+      <div className="modal active">
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button className="modal-close" onClick={onClose}>
+            <span>&times;</span>
+          </button>
+        </div>
         {children}
       </div>
     </div>
