@@ -37,6 +37,11 @@ class UserController {
       data: result,
     }).send(res);
   });
+
+  saveFcmToken = asyncHandler(async (req, res) => {
+    const result = await userService.saveFcmToken(req);
+    new OK({ message: USER_MESSAGE.USER_SAVE_FCM_TOKEN_SUCCESS, data: result }).send(res);
+  });
 }
 
 module.exports = new UserController();

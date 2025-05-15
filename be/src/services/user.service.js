@@ -263,6 +263,18 @@ class userService {
       );
     }
   };
+  
+  saveFcmToken = async (req) => {
+    const foundUser = await userModel.findById(req.user.userId);
+    if (!foundUser) {
+      throw new BadRequestError("User not found");
+    }
+    foundUser.fcm_token = req.body.fcm_token;
+    await foundUser.save();
+    return {
+      message: "FCM token saved successfully",
+    };
+  };
 }
 
 module.exports = new userService();

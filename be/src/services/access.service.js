@@ -109,6 +109,7 @@ class AccessService {
       throw new BadRequestError(error.message || "Logout failed");
     }
   };
+
 }
 
 module.exports = new AccessService();

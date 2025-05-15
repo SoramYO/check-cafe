@@ -15,10 +15,13 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
     },
+    setUser: (state, action) => {
+      state.user = action.payload;
+    },
   },
 });
 
-export const { addAuth, removeAuth } = authSlice.actions;
+export const { addAuth, removeAuth, setUser } = authSlice.actions;
 export const authReducer = authSlice.reducer;
 
 export const authSelector = (state) => state.authReducer;
