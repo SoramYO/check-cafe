@@ -1,16 +1,18 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import * as Icons from "react-icons/tb";
 import { useDispatch } from "react-redux";
-import Logo from "../../images/common/logo-dark.svg";
+import Logo from "../../images/common/logo.png";
 import Input from "../../components/common/Input.jsx";
 import Button from "../../components/common/Button.jsx";
 import CheckBox from "../../components/common/CheckBox.jsx";
 import { login } from "../../store/slices/authenticationSlice.jsx";
 import authenticationAPI from "../../apis/auth";
+import { USER_ROLE } from "../../utils/constant.js";
 
 const Login = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -49,7 +51,16 @@ const Login = () => {
       localStorage.setItem("access_token", data.tokens.accessToken);
       localStorage.setItem("refresh_token", data.tokens.refreshToken);
       dispatch(login(data.user));
-      navigate("/catalog/product/manage");
+
+      // Navigate based on user role
+      const userRole = data.user.role;
+      if (userRole === USER_ROLE.ADMIN) {
+        navigate("/admin/dashboard");
+      } else if (userRole === USER_ROLE.SHOP_OWNER) {
+        navigate("/shop-owner/dashboard");
+      } else {
+        navigate("/"); // Default route for other roles
+      }
     } catch (error) {
       setLoginError(true);
       setTimeout(() => {
@@ -65,14 +76,14 @@ const Login = () => {
       <div className="login_sidebar">
         <figure className="login_image">
           <img
-            src="https://images.unsplash.com/photo-1694537745985-34eacdf76139?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80"
-            alt=""
+            src="https://images.pexels.com/photos/683039/pexels-photo-683039.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+            alt="Coffee shop"
           />
         </figure>
       </div>
       <div className="login_form">
         <div className="login_content">
-          <div to="/" className="logo">
+          <div to="/" className="logo" style={{ height: "250px", width: "auto" }}>
             <img src={Logo} alt="logo" />
           </div>
           <h2 className="page_heading">Login</h2>

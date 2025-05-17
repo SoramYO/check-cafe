@@ -9,10 +9,13 @@ import { useSelector, useDispatch } from "react-redux";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { login } from "../../store/slices/authenticationSlice.jsx";
 import userAPI from './../../apis/user';
-
+import { USER_ROLE } from "../../utils/constant.js";
 const Layout = () => {
   const isAuthenticated = useSelector(
     (state) => state.authentication.isAuthenticated
+  );
+  const user = useSelector(
+    (state) => state.authentication.user
   );
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -25,8 +28,8 @@ const Layout = () => {
         try {
           const response = await userAPI.HandleUser("/profile");
           dispatch(login(response.data.user));
+
         } catch (error) {
-          console.error("Token expired or invalid");
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
           navigate("/login");
@@ -37,13 +40,8 @@ const Layout = () => {
     };
 
     verifyAndRestoreUser();
-  }, []);
+  }, [dispatch, navigate]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/catalog/product/manage");
-    }
-  }, [isAuthenticated, navigate]);
 
   return (
     <>

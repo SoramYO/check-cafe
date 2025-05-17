@@ -25,7 +25,7 @@ import AddOrder from "../../pages/orders/AddOrder";
 import ManageOrder from "../../pages/orders/ManageOrder";
 import OrderDetail from "../../pages/orders/OrderDetail";
 
-// brand
+// Brand
 import AddBrand from "../../pages/brands/AddBrand";
 import ManageBrand from "../../pages/brands/ManageBrand";
 import EditBrand from "../../pages/brands/EditBrand";
@@ -63,44 +63,98 @@ import ManageTransactions from "../../pages/payment/ManageTransactions";
 import PaymentMethod from "../../pages/payment/PaymentMethod";
 import TransactionDetail from "../../pages/payment/TransactionDetail";
 
-// Sorting and Comments
+// Shops
+import ManageShop from "../../pages/shops/ManageShop";
+import AddShop from "../../pages/shops/AddShop.jsx";
+import ShopTheme from "../../pages/shops/ShopTheme.jsx";
 
-const routes = [
+// Advertisements
+import AddAdverisement from "../../pages/adverisement/AddAdverisement.jsx";
+import ManageAdverisement from "../../pages/adverisement/ManageAdverisement.jsx";
+
+// Reservations (Assumed components)
+import AddReservation from "../../pages/reservations/AddReservation.jsx";
+import ManageReservation from "../../pages/reservations/ManageReservation.jsx";
+
+// Menu Items (Assumed components)
+import AddMenuItem from "../../pages/menu-items/AddMenuItem.jsx";
+import ManageMenuItems from "../../pages/menu-items/ManageMenuItems.jsx";
+
+// Seats (Assumed components)
+import AddSeat from "../../pages/seats/AddSeat.jsx";
+import ManageSeats from "../../pages/seats/ManageSeats.jsx";
+
+// Time Slots (Assumed components)
+import AddTimeSlot from "../../pages/time-slots/AddTimeSlot.jsx";
+import ManageTimeSlots from "../../pages/time-slots/ManageTimeSlots.jsx";
+
+// Sales - Discounts (Assumed components)
+import AddSalesDiscount from "../../pages/sales-discounts/AddSalesDiscount.jsx";
+import ManageSalesDiscounts from "../../pages/sales-discounts/ManageSalesDiscounts.jsx";
+
+// Shop Themes (Assumed components)
+import AddShopTheme from "../../pages/shop-theme/AddShopTheme.jsx";
+import ManageShopThemes from "../../pages/shop-theme/ManageShopThemes.jsx";
+
+const adminRoutes = [
   {
-    path: "/",
+    path: "/admin/dashboard",
     element: <Dashboard />,
   },
-  // Catalog
+  // Shops
   {
-    path: "/catalog/product/add",
-    element: <AddProduct />,
+    path: "/shops/add",
+    element: <AddShop />,
   },
   {
-    path: "/catalog/product/manage",
-    element: <ManageProduct />,
+    path: "/shops/manage",
+    element: <ManageShop />,
   },
   {
-    path: "/catalog/product/manage/:productId",
-    element: <EditProduct />,
+    path: "/shops/verification",
+    element: <ManageShop />,
   },
   {
-    path: "/catalog/product/attribute",
-    element: <Attribute />,
+    path: "/shops/shop-theme",
+    element: <ShopTheme />,
   },
-  // orders
+  // Shop Themes
   {
-    path: "/orders/add",
-    element: <AddOrder />,
+    path: "/shop-theme/add",
+    element: <AddShopTheme />,
   },
   {
-    path: "/orders/manage",
-    element: <ManageOrder />,
+    path: "/shop-theme/manage",
+    element: <ManageShopThemes />,
   },
+  // Advertisements
+  {
+    path: "/advertisement/add",
+    element: <AddAdverisement />,
+  },
+  {
+    path: "/advertisement/manage",
+    element: <ManageAdverisement />,
+  },
+  // Users (Account)
+  {
+    path: "/account/add",
+    element: <AddUser />,
+  },
+  {
+    path: "/account/manage",
+    element: <UserList />,
+  },
+  {
+    path: "/account/manage/:userid",
+    element: <EditUser />,
+  },
+  // Orders
   {
     path: "/orders/manage/:orderID",
     element: <OrderDetail />,
   },
-  // Catalog Categories
+  // Categories
   {
     path: "/catalog/categories/manage",
     element: <ManageCategories />,
@@ -109,7 +163,7 @@ const routes = [
     path: "/catalog/categories/:categoryid",
     element: <EditCategories />,
   },
-  // customers
+  // Customers
   {
     path: "/customers/add",
     element: <AddCustomer />,
@@ -122,7 +176,208 @@ const routes = [
     path: "/customers/manage/:customerId",
     element: <EditCustomer />,
   },
-  // brand
+  // Brands
+  {
+    path: "/brands/add",
+    element: <AddBrand />,
+  },
+  {
+    path: "/brands/manage",
+    element: <ManageBrand />,
+  },
+  {
+    path: "/brands/manage/:brandId",
+    element: <EditBrand />,
+  },
+  // Venue
+  {
+    path: "/venue/add",
+    element: <AddVenue />,
+  },
+  {
+    path: "/venue/manage",
+    element: <ManageVenue />,
+  },
+  // Reviews
+  {
+    path: "/reviews",
+    element: <ManageReviews />,
+  },
+  {
+    path: "/reviews/:reviewid",
+    element: <ReviewsDetail />,
+  },
+  // Pages
+  {
+    path: "/pages",
+    element: <ManagePages />,
+  },
+  {
+    path: "/pages/add",
+    element: <AddPage />,
+  },
+  {
+    path: "/pages/:pageId",
+    element: <EditPage />,
+  },
+  // Payment
+  {
+    path: "/payment/transactions",
+    element: <ManageTransactions />,
+  },
+  {
+    path: "/payment/transactions/:transactionId",
+    element: <TransactionDetail />,
+  },
+  {
+    path: "/payment/payment-method",
+    element: <PaymentMethod />,
+  },
+  // Media
+  {
+    path: "/media",
+    element: <Media />,
+  },
+  // Settings
+  {
+    path: "/setting/general",
+    element: <General />,
+  },
+  {
+    path: "/setting/email",
+    element: <Email />,
+  },
+  {
+    path: "/setting/cronJob",
+    element: <CronJob />,
+  },
+  {
+    path: "/setting/permalink",
+    element: <Permalink />,
+  },
+  {
+    path: "/setting/languages",
+    element: <Languages />,
+  },
+  {
+    path: "/setting/social-login",
+    element: <SocialLogin />,
+  },
+  {
+    path: "/setting/api",
+    element: <Api />,
+  },
+  // Not Found
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+];
+
+const shopRoutes = [
+  {
+    path: "/shop-owner/dashboard",
+    element: <Dashboard />,
+  },
+  // Shop Information
+  {
+    path: "/shop/manage",
+    element: <ManageShop />,
+  },
+  {
+    path: "/shop/verification",
+    element: <ManageShop />,
+  },
+  // Reservations
+  {
+    path: "/reservations/add",
+    element: <AddReservation />,
+  },
+  {
+    path: "/reservations/manage",
+    element: <ManageReservation />,
+  },
+  // Menu Items
+  {
+    path: "/menu-items/add",
+    element: <AddMenuItem />,
+  },
+  {
+    path: "/menu-items/manage",
+    element: <ManageMenuItems />,
+  },
+  // Seats
+  {
+    path: "/seats/add",
+    element: <AddSeat />,
+  },
+  {
+    path: "/seats/manage",
+    element: <ManageSeats />,
+  },
+  // Time Slots
+  {
+    path: "/time-slots/add",
+    element: <AddTimeSlot />,
+  },
+  {
+    path: "/time-slots/manage",
+    element: <ManageTimeSlots />,
+  },
+  // Sales - Discounts
+  {
+    path: "/sales-discounts/add",
+    element: <AddSalesDiscount />,
+  },
+  {
+    path: "/sales-discounts/manage",
+    element: <ManageSalesDiscounts />,
+  },
+  // Products
+  {
+    path: "/catalog/product/manage/:productId",
+    element: <EditProduct />,
+  },
+  {
+    path: "/catalog/product/attribute",
+    element: <Attribute />,
+  },
+  // Orders
+  {
+    path: "/orders/add",
+    element: <AddOrder />,
+  },
+  {
+    path: "/orders/manage",
+    element: <ManageOrder />,
+  },
+  {
+    path: "/orders/manage/:orderID",
+    element: <OrderDetail />,
+  },
+  // Categories
+  {
+    path: "/catalog/categories/manage",
+    element: <ManageCategories />,
+  },
+  {
+    path: "/catalog/categories/:categoryid",
+    element: <EditCategories />,
+  },
+  // Customers
+  {
+    path: "/customers/add",
+    element: <AddCustomer />,
+  },
+  {
+    path: "/customers/manage",
+    element: <ManageCustomer />,
+  },
+  {
+    path: "/customers/manage/:customerId",
+    element: <EditCustomer />,
+  },
+  // Brands
   {
     path: "/brands/add",
     element: <AddBrand />,
@@ -233,4 +488,4 @@ const routes = [
   },
 ];
 
-export default routes;
+export { adminRoutes, shopRoutes };
