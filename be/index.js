@@ -19,3 +19,6 @@ process.on("SIGINT", () => {
     process.exit(0);
   });
 });
+
+const app = require('./src/app');
+module.exports = app;
