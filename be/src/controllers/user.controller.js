@@ -42,6 +42,37 @@ class UserController {
     const result = await userService.saveFcmToken(req);
     new OK({ message: USER_MESSAGE.USER_SAVE_FCM_TOKEN_SUCCESS, data: result }).send(res);
   });
+
+  addFavoriteShop = asyncHandler(async (req, res) => {
+    const result = await userService.addFavoriteShop(req);
+    new OK({ message: USER_MESSAGE.USER_ADD_FAVORITE_SHOP_SUCCESS, data: result }).send(res);
+  });
+
+  addFavoriteProduct = asyncHandler(async (req, res) => {
+    const result = await userService.addFavoriteMenuItem(req);
+    new OK({ message: USER_MESSAGE.USER_ADD_FAVORITE_PRODUCT_SUCCESS, data: result }).send(res);
+  });
+
+  getFavoriteShop = asyncHandler(async (req, res) => {
+    const result = await userService.getFavoriteShop(req);
+    new OK({ message: USER_MESSAGE.USER_GET_FAVORITE_SHOP_SUCCESS, data: result }).send(res);
+  });  
+
+  getFavoriteProduct = asyncHandler(async (req, res) => {
+    const result = await userService.getFavoriteProduct(req);
+    new OK({ message: USER_MESSAGE.USER_GET_FAVORITE_PRODUCT_SUCCESS, data: result }).send(res);
+  });
+
+  removeFavoriteShop = asyncHandler(async (req, res) => {
+    const result = await userService.removeFavoriteShop(req);
+    new OK({ message: USER_MESSAGE.USER_REMOVE_FAVORITE_SHOP_SUCCESS, data: result }).send(res);
+  });
+
+  removeFavoriteProduct = asyncHandler(async (req, res) => {
+    const result = await userService.removeFavoriteProduct(req);
+    new OK({ message: USER_MESSAGE.USER_REMOVE_FAVORITE_PRODUCT_SUCCESS, data: result }).send(res);
+  });
+
 }
 
 module.exports = new UserController();

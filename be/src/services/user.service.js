@@ -1,6 +1,7 @@
 "use strict";
 
 const userModel = require("../models/user.model");
+const userFavoriteModel = require("../models/userFavorite.model");
 const { USER_ROLE } = require("../constants/enum");
 const { BadRequestError } = require("../configs/error.response");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
@@ -275,6 +276,125 @@ class userService {
       message: "FCM token saved successfully",
     };
   };
+
+  addFavoriteShop = async (req) => {
+    const { userId } = req.user;
+    const { shopId } = req.body;
+    let userFavorite = await userFavoriteModel.findOne({ user_id: userId });
+    if (!userFavorite) {
+      userFavorite = await userFavoriteModel.create({
+        user_id: userId,
+        favorite_shops: [shopId],
+        favorite_menu_items: [],
+      });
+    } else {
+      if (!userFavorite.favorite_shops.includes(shopId)) {
+        userFavorite.favorite_shops.push(shopId);
+        await userFavorite.save();
+      }
+    }
+    return {
+      message: "Favorite shop added successfully",
+    };
+  };
+
+  addFavoriteMenuItem = async (req) => {
+    const { userId } = req.user;
+    const { menuItemId } = req.body;
+    let userFavorite = await userFavoriteModel.findOne({ user_id: userId });
+    if (!userFavorite) {
+      userFavorite = await userFavoriteModel.create({
+        user_id: userId,
+        favorite_shops: [],
+        favorite_menu_items: [menuItemId],
+      });
+    } else {
+      if (!userFavorite.favorite_menu_items.includes(menuItemId)) {
+        userFavorite.favorite_menu_items.push(menuItemId);
+        await userFavorite.save();
+      }
+    }
+    return {
+      message: "Favorite menu item added successfully",
+    };
+  };
+
+  getFavoriteShop = async (req) => {
+    const { userId } = req.user;
+    const { page = 1, limit = 10 } = req.query;
+    const userFavorite = await userFavoriteModel
+      .findOne({ user_id: userId })
+      .populate({
+        path: 'favorite_shops',
+        populate: {
+          path: 'shopImages',
+        },
+      });
+    const favoriteShops = userFavorite ? userFavorite.favorite_shops : [];
+    const total = favoriteShops.length;
+    const paginated = favoriteShops.slice((page - 1) * limit, page * limit);
+    return {
+      data: paginated,
+      metadata: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  };
+
+  getFavoriteProduct = async (req) => {
+    const { userId } = req.user;
+    const { page = 1, limit = 10 } = req.query;
+    const userFavorite = await userFavoriteModel.findOne({ user_id: userId }).populate({
+      path: 'favorite_menu_items',
+      populate: {
+        path: 'images',
+      },
+    });
+    const favoriteMenuItems = userFavorite ? userFavorite.favorite_menu_items : [];
+    const total = favoriteMenuItems.length;
+    const paginated = favoriteMenuItems.slice((page - 1) * limit, page * limit);
+    return {
+      data: paginated,
+      metadata: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  };
+
+  removeFavoriteShop = async (req) => {
+    const { userId } = req.user;
+    const { shopId } = req.body;
+    const userFavorite = await userFavoriteModel.findOne({ user_id: userId });
+    if (!userFavorite) {
+      throw new BadRequestError("User favorite not found");
+    }
+    userFavorite.favorite_shops = userFavorite.favorite_shops.filter(id => id.toString() !== shopId);
+    await userFavorite.save();
+    return {
+      message: "Favorite shop removed successfully",
+    };
+  };
+
+  removeFavoriteProduct = async (req) => {
+    const { userId } = req.user;
+    const { menuItemId } = req.body;
+    const userFavorite = await userFavoriteModel.findOne({ user_id: userId });
+    if (!userFavorite) {
+      throw new BadRequestError("User favorite not found");
+    }
+    userFavorite.favorite_menu_items = userFavorite.favorite_menu_items.filter(id => id.toString() !== menuItemId);
+    await userFavorite.save();
+    return {
+      message: "Favorite product removed successfully",
+    };
+  };
+
 }
 
 module.exports = new userService();

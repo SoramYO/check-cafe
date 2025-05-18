@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
+import advertisementAPI from '../services/advertisementsAPI';
 const { width } = Dimensions.get('window');
+
 
 const FEATURED_BANNERS = [
   {
@@ -33,11 +34,13 @@ export default function FeaturedBanner() {
   const navigation = useNavigation();
   const scrollX = useRef(new Animated.Value(0)).current;
   const slideRef = useRef(null);
+  const [advertisements, setAdvertisements] = useState([]);
 
   useEffect(() => {
+    getAdvertisements();
     const timer = setInterval(() => {
       const nextIndex = Math.floor(scrollX._value / width) + 1;
-      if (nextIndex >= FEATURED_BANNERS.length) {
+      if (nextIndex >= advertisements.length) {
         slideRef.current?.scrollTo({ x: 0, animated: true });
       } else {
         slideRef.current?.scrollTo({ x: nextIndex * width, animated: true });
@@ -45,10 +48,16 @@ export default function FeaturedBanner() {
     }, 3000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [advertisements.length]);
+
+  const getAdvertisements = async (page = 1, limit = 10) => {
+    const response = await advertisementAPI.HandleAdvertisement(`?page=${page}&limit=${limit}`);
+    setAdvertisements(response.data.data);
+    console.log(response.data.data);
+  };
 
   const handleBannerPress = (banner) => {
-    navigation.navigate('FeaturedDetail', { type: banner.type });
+    navigation.navigate('FeaturedDetail', { type: banner.type, id: banner._id });
   };
 
   return (
@@ -63,24 +72,27 @@ export default function FeaturedBanner() {
           { useNativeDriver: true }
         )}
       >
-        {FEATURED_BANNERS.map((banner, index) => (
-          <View key={banner.id} style={styles.slide}>
-            <Image source={{ uri: banner.image }} style={styles.image} />
+        {advertisements.map((banner, index) => (
+          <View key={banner._id} style={styles.slide}>
+            <Image
+              source={{ uri: banner.image || "https://placehold.co/400x200" }}
+              style={styles.image}
+            />
             <View style={styles.overlay}>
               <View style={styles.content}>
                 <Text style={styles.title}>{banner.title}</Text>
-                <Text style={styles.subtitle}>{banner.subtitle}</Text>
-                <TouchableOpacity 
+                <Text style={styles.subtitle}>{banner.description || banner.content}</Text>
+                <TouchableOpacity
                   style={styles.button}
                   onPress={() => handleBannerPress(banner)}
                 >
                   <Text style={styles.buttonText}>
                     {banner.type === 'promotion' ? 'Đặt ngay' : 'Xem thêm'}
                   </Text>
-                  <MaterialCommunityIcons 
-                    name="arrow-right" 
-                    size={20} 
-                    color="white" 
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={20}
+                    color="white"
                   />
                 </TouchableOpacity>
               </View>
@@ -89,25 +101,22 @@ export default function FeaturedBanner() {
         ))}
       </Animated.ScrollView>
       <View style={styles.pagination}>
-        {FEATURED_BANNERS.map((_, index) => {
+        {advertisements.map((_, index) => {
           const inputRange = [
             (index - 1) * width,
             index * width,
             (index + 1) * width,
           ];
-          
           const opacity = scrollX.interpolate({
             inputRange,
             outputRange: [0.3, 1, 0.3],
             extrapolate: 'clamp',
           });
-
           const scale = scrollX.interpolate({
             inputRange,
             outputRange: [1, 1.2, 1],
             extrapolate: 'clamp',
           });
-
           return (
             <Animated.View
               key={index}
