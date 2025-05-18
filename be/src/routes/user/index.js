@@ -39,4 +39,16 @@ router.patch(
 // Save FCM token
 router.post("/save-fcm-token", userController.saveFcmToken); 
 
+// add favorite shop and product
+router.post("/favorite-shop", userController.addFavoriteShop);
+router.post("/favorite-product", userController.addFavoriteProduct);
+
+// get favorite shop and product
+router.get("/favorite-shop", userController.getFavoriteShop);
+router.get("/favorite-product", userController.getFavoriteProduct);
+
+// remove favorite shop and product
+router.delete("/favorite-shop", userController.removeFavoriteShop);
+router.delete("/favorite-product", userController.removeFavoriteProduct);
+
 module.exports = router;

@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import * as Icons from 'react-icons/tb';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {logout} from '../../store/slices/authenticationSlice.jsx';
-import navigation from './../../apis/navigation';
-
+import { adminNavigation, shopNavigation } from './../../apis/navigation';
+import { USER_ROLE } from '../../utils/constant.js';
 const Sidebar = () => {
   const [toggle, setToggle] = useState(null);
   const [sidebar, setSidebar] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const user = useSelector((state) => state.authentication.user);
+
+  // Determine navigation list based on user role
+  const navigationList = user?.role === USER_ROLE.ADMIN ? adminNavigation : shopNavigation;
 
   const handleManu = (key) => {
     setToggle((prevToggle) => (prevToggle === key ? null : key));
@@ -29,19 +34,16 @@ const Sidebar = () => {
   return (
     <div className={`sidemenu ${sidebar ? 'active' : ''}`}>
       {/* Admin User */}
-      <div className="sidebar_profile">
-        {/*<Link to="/" className="logo">
-          <img src={Logo} alt="logo" />
-        </Link>*/}
+      <div className="sidebar_profile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px' }}>
 
-        <h2 className="logo_text">Your Logo</h2>
+        <h2 className="logo_text">{user?.role === USER_ROLE.ADMIN ? 'Admin Panel' : 'Shop Panel'}</h2>
         <Link className="navbar_icon menu_sidebar" onClick={handleSidebar}>
           <Icons.TbChevronsLeft className={`${sidebar ? 'active' : ''}`} />
         </Link>
       </div>
       {/* menu links */}
       <ul className="menu_main">
-        {navigation.map(function (navigationItem, key) {
+        {navigationList.map(function (navigationItem, key) {
           return (
             <li key={key}>
               {!navigationItem.subMenu ? (
