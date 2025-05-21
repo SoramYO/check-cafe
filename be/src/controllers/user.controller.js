@@ -73,6 +73,16 @@ class UserController {
     new OK({ message: USER_MESSAGE.USER_REMOVE_FAVORITE_PRODUCT_SUCCESS, data: result }).send(res);
   });
 
+  buyVipPackage = asyncHandler(async (req, res) => {
+    const result = await userService.buyVipPackage(req);
+    new OK({ message: USER_MESSAGE.USER_BUY_VIP_PACKAGE_SUCCESS, data: result }).send(res);
+  });
+
+  receiveHook = asyncHandler(async (req, res) => {
+    const result = await userService.receiveHook(req);
+    new OK({ message: USER_MESSAGE.USER_RECEIVE_HOOK_SUCCESS, data: result }).send(res);
+  });
+
 }
 
 module.exports = new UserController();

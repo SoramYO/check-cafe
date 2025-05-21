@@ -16,6 +16,7 @@
     "@astrojs/react": "^3.6.2",
     "@astrojs/tailwind": "^5.1.2",
     "@heroicons/react": "^2.1.4",
+    "@rollup/rollup-win32-x64-msvc": "^4.41.0",
     "astro": "^4.16.7",
     "clsx": "^2.1.1",
     "framer-motion": "^11.2.13",

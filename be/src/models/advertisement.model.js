@@ -8,9 +8,9 @@ const COLLECTION_NAME = "Advertisements";
 const advertisementSchema = new mongoose.Schema(
   {
     title: { type: String, trim: true },
-    description: { type: String, trim: true },
-    content: { type: String },
-    describe: [
+    subtitle: { type: String, trim: true },
+    description: { type: String },
+    features: [
       {
         icon: { type: String },
         title: { type: String },     

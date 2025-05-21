@@ -29,6 +29,15 @@ const USER_MESSAGE = {
   USER_CHANGE_PASSWORD_SUCCESS: "Change password successfully",
   USER_CHANGE_AVATAR_SUCCESS: "Update avatar successfully",
   USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
+  USER_ADD_FAVORITE_SHOP_SUCCESS: "Add favorite shop successfully",
+  USER_GET_FAVORITE_SHOP_SUCCESS: "Get favorite shop successfully",
+  USER_ADD_FAVORITE_PRODUCT_SUCCESS: "Add favorite product successfully",
+  USER_GET_FAVORITE_PRODUCT_SUCCESS: "Get favorite product successfully",
+  USER_REMOVE_FAVORITE_SHOP_SUCCESS: "Remove favorite shop successfully",
+  USER_REMOVE_FAVORITE_PRODUCT_SUCCESS: "Remove favorite product successfully",
+  USER_BUY_VIP_PACKAGE_SUCCESS: "Buy vip package successfully",
+  USER_RECEIVE_HOOK_SUCCESS: "Receive hook successfully",
+  USER_GET_USER_PACKAGES_SUCCESS: "Get user packages successfully",
 };
 
 const ADMIN_MESSAGE = {
@@ -112,6 +121,12 @@ const VERIFICATION_MESSAGE = {
   DELETE_VERIFICATION_SUCCESS: "Deleted verification successfully",
 };
 
+const PACKAGE_MESSAGE = {
+  CREATE_SUCCESS: "Create package successfully",
+  GET_SUCCESS: "Get package successfully",
+  UPDATE_SUCCESS: "Update package successfully",
+  DELETE_SUCCESS: "Delete package successfully",
+};
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
@@ -123,5 +138,6 @@ module.exports = {
   RESERVATION_MESSAGE,
   NOTIFICATION_MESSAGE,
   CATEGORY_MESSAGE,
-  VERIFICATION_MESSAGE
+  VERIFICATION_MESSAGE,
+  PACKAGE_MESSAGE,
 };

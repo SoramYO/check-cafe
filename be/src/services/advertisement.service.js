@@ -37,9 +37,9 @@ class AdvertisementService {
       select: getSelectData([
         "_id",
         "title",
+        "subtitle",
         "description",
-        "content",
-        "describe",
+        "features",
         "image",
         "redirect_url",
         "type",
@@ -64,19 +64,19 @@ class AdvertisementService {
       ])
       .select(
         getSelectData([
-          "_id",
-          "title",
-          "description",
-          "content",
-          "describe",
-          "image",
-          "redirect_url",
-          "type",
-          "shop_id",
-          "start_date",
-          "end_date",
-          "createdAt",
-          "updatedAt",
+         "_id",
+        "title",
+        "subtitle",
+        "description",
+        "features",
+        "image",
+        "redirect_url",
+        "type",
+        "shop_id",
+        "start_date",
+        "end_date",
+        "createdAt",
+        "updatedAt",
         ])
       );
     if (!advertisement) {
@@ -86,18 +86,18 @@ class AdvertisementService {
       advertisement: getInfoData({
         fields: [
           "_id",
-          "title",
-          "description",
-          "content",
-          "describe",
-          "image",
-          "redirect_url",
-          "type",
-          "shop_id",
-          "start_date",
-          "end_date",
-          "createdAt",
-          "updatedAt",
+        "title",
+        "subtitle",
+        "description",
+        "features",
+        "image",
+        "redirect_url",
+        "type",
+        "shop_id",
+        "start_date",
+        "end_date",
+        "createdAt",
+        "updatedAt",
         ],
         object: advertisement,
       }),
@@ -106,10 +106,10 @@ class AdvertisementService {
 
   createAdvertisement = async (req) => {
     try {
-      const { title, description, content, describe, redirect_url, type, shop_id, start_date, end_date } = req.body;
+      const { title, subtitle, description, features, redirect_url, type, shop_id, start_date, end_date } = req.body;
       const file = req.file;
-      if (!title || !description) {
-        throw new BadRequestError("Title and description are required");
+      if (!title || !subtitle) {
+        throw new BadRequestError("Title and subtitle are required");
       }
       let image = null;
       let imagePublicId = null;
@@ -117,19 +117,19 @@ class AdvertisementService {
         image = file.path;
         imagePublicId = file.filename || file.public_id;
       }
-      let parsedDescribe = describe;
-      if (typeof describe === "string") {
+      let parsedfeatures = features;
+      if (typeof features === "string") {
         try {
-          parsedDescribe = JSON.parse(describe);
+          parsedfeatures = JSON.parse(features);
         } catch (e) {
-          throw new BadRequestError("Describe must be a valid JSON array");
+          throw new BadRequestError("features must be a valid JSON array");
         }
       }
       const advertisement = await advertisementModel.create({
         title,
+        subtitle,
         description,
-        content,
-        describe: parsedDescribe,
+        features: parsedfeatures,
         image,
         imagePublicId,
         redirect_url,
@@ -143,9 +143,9 @@ class AdvertisementService {
           fields: [
             "_id",
             "title",
+            "subtitle",
             "description",
-            "content",
-            "describe",
+            "features",
             "image",
             "redirect_url",
             "type",
@@ -169,13 +169,31 @@ class AdvertisementService {
   updateAdvertisement = async (req) => {
     try {
       const { advertisementId } = req.params;
-      const { title, description, content, describe, redirect_url, type, shop_id, start_date, end_date } = req.body;
+      const { title, subtitle, description, features, redirect_url, type, shop_id, start_date, end_date } = req.body;
       const file = req.file;
       const advertisement = await advertisementModel.findById(advertisementId);
       if (!advertisement) {
         throw new NotFoundError("Advertisement not found");
       }
-      const updateData = removeUndefinedObject({ title, description, content, describe, redirect_url, type, shop_id, start_date, end_date });
+      let parsedFeatures = features;
+      if (typeof features === "string") {
+        try {
+          parsedFeatures = JSON.parse(features);
+        } catch (e) {
+          throw new BadRequestError("features must be a valid JSON array");
+        }
+      }
+      const updateData = removeUndefinedObject({
+        title,
+        subtitle,
+        description,
+        features: parsedFeatures,
+        redirect_url,
+        type,
+        shop_id,
+        start_date,
+        end_date,
+      });
       if (file) {
         if (advertisement.imagePublicId) {
           await cloudinary.uploader.destroy(advertisement.imagePublicId);
@@ -191,9 +209,9 @@ class AdvertisementService {
         getSelectData([
           "_id",
           "title",
+          "subtitle",
           "description",
-          "content",
-          "describe",
+          "features",
           "image",
           "redirect_url",
           "type",
@@ -209,9 +227,9 @@ class AdvertisementService {
           fields: [
             "_id",
             "title",
+            "subtitle",
             "description",
-            "content",
-            "describe",
+            "features",
             "image",
             "redirect_url",
             "type",

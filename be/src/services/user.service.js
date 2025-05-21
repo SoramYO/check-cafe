@@ -3,7 +3,7 @@
 const userModel = require("../models/user.model");
 const userFavoriteModel = require("../models/userFavorite.model");
 const { USER_ROLE } = require("../constants/enum");
-const { BadRequestError } = require("../configs/error.response");
+const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const bcrypt = require("bcryptjs");
 const {
@@ -13,7 +13,11 @@ const {
 } = require("../helpers/cloudinaryHelper");
 const reservationModel = require("../models/reservation.model");
 const reviewModel = require("../models/review.model");
-
+const packageModel = require("../models/package.model");
+const paymentModel = require("../models/payment.model");
+const payOS = require("../configs/payos.config");
+const crypto = require('crypto');
+const userPackageModel = require("../models/userPackage.model");
 class userService {
   getProfile = async (req) => {
     try {
@@ -264,7 +268,7 @@ class userService {
       );
     }
   };
-  
+
   saveFcmToken = async (req) => {
     const foundUser = await userModel.findById(req.user.userId);
     if (!foundUser) {
@@ -395,6 +399,96 @@ class userService {
     };
   };
 
+  buyVipPackage = async (req) => {
+    const { userId } = req.user;
+    const { packageId } = req.body;
+    if (!packageId) {
+      throw new BadRequestError("Package not found");
+    }
+    const packageVip = await packageModel.findById(packageId);
+    if (!packageVip) {
+      throw new BadRequestError("Package not found");
+    }
+
+
+
+    const body = {
+      orderCode: crypto.randomInt(100000, 999999),
+      amount: packageVip.price,
+      description: `Mua gói ${packageVip.name}`,
+      cancelUrl: `https://soramyo.id.vn/cancel.html`,
+      returnUrl: `https://soramyo.id.vn/success.html`,
+    }
+    const paymentLinkResponse = await payOS.createPaymentLink(body);
+
+    const payment = await paymentModel.create({
+      orderCode: body.orderCode,
+      user_id: userId,
+      package_id: packageVip._id,
+      amount: packageVip.price,
+      status: "pending",
+    });
+
+
+    return {
+      paymentLinkResponse
+    };
+  };
+
+  receiveHook = async (req) => {
+    const webhookData = payOS.verifyPaymentWebhookData(req.body)
+    console.log(webhookData);
+    const payment = await paymentModel.findOne({ orderCode: webhookData.orderCode });
+    console.log("payment", payment);
+    if (!payment) throw new NotFoundError("Payment not found");
+
+    if (payment.status === "success") return;
+
+
+    if (webhookData.code === '00') {
+
+      payment.status = "success";
+      payment.webhookData = webhookData;
+      await payment.save();
+
+      // Fetch the package to get duration
+      const pkg = await packageModel.findById(payment.package_id).lean();
+      if (!pkg) throw new NotFoundError("Package not found for user package creation");
+      const durationDays = pkg.duration;
+      // Check for existing active package
+      const existingActive = await userPackageModel.findOne({ user_id: payment.user_id});
+      if (existingActive) {
+        console.log("existingActive", existingActive);
+        // Nếu đã có gói còn hạn, cộng thêm thời gian vào end_date hiện tại
+        const newEndDate = new Date(existingActive.end_date.getTime() + durationDays * 24 * 60 * 60 * 1000);
+        existingActive.end_date = newEndDate;
+        await existingActive.save();
+      } else {
+        // Nếu chưa có gói còn hạn, tạo mới từ thời điểm hiện tại (UTC+7)
+        const now = new Date();
+        const startDate = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+        const endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+        const newUserPackage = await userPackageModel.create({
+          user_id: payment.user_id,
+          package_id: payment.package_id,
+          payment_id: payment._id,
+          duration: durationDays,
+          start_date: startDate,
+          end_date: endDate,
+          status: 'active',
+        });
+        console.log("Created userPackage:", newUserPackage);
+      }
+
+      await userModel.findByIdAndUpdate(payment.user_id, { vip_status: true });
+
+
+    } else {
+      payment.status = "failed";
+      payment.webhookData = webhookData;
+      await payment.save();
+    }
+  };
 }
 
 module.exports = new userService();

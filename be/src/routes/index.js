@@ -15,4 +15,6 @@ router.use("/notifications", require("./notification"));
 router.use("/menu-item-categories", require("./menuItemCategory"));
 router.use("/verifications", require("./verification"));
 router.use("/advertisements", require("./advertisement"));
+router.use("/packages", require("./package"));
+router.use("/user-packages", require("./userPackage"));
 module.exports = router;

@@ -6,7 +6,9 @@ const router = express.Router();
 const userController = require("../../controllers/user.controller");
 const uploadCloud = require("../../configs/cloudinary.config");
 const { updateAvatar } = require("../../services/user.service");
-const { USER_ROLE } = require("../../constants/enum");
+
+
+router.post("/receive-hook", userController.receiveHook);
 
 router.use(checkAuth);
 
@@ -50,5 +52,8 @@ router.get("/favorite-product", userController.getFavoriteProduct);
 // remove favorite shop and product
 router.delete("/favorite-shop", userController.removeFavoriteShop);
 router.delete("/favorite-product", userController.removeFavoriteProduct);
+
+//buy vip package
+router.post("/buy-vip-package", userController.buyVipPackage);
 
 module.exports = router;
