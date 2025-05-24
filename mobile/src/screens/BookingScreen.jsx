@@ -52,8 +52,21 @@ export default function BookingScreen({ navigation, route }) {
 
   const handleNextStep = () => {
     if (currentStep === 1) {
-      if (!name.trim() || !phone.trim() || !selectedTimeSlot) {
-        toast.error("Vui lòng điền đầy đủ thông tin");
+      if (!selectedDate) {
+        toast.error("Vui lòng chọn ngày");
+        return;
+      }
+      if (!selectedTimeSlot) {
+        toast.error("Vui lòng chọn thời gian");
+        return;
+      }
+      if (!name.trim() || !phone.trim()) {
+        toast.error("Vui lòng nhập thông tin cá nhân");
+        return;
+      }
+      console.log(selectedSeat);
+      if (!selectedSeat) {
+        toast.error("Vui lòng chọn vị trí");
         return;
       }
       if (bookingType === "scenic" && !selectedSeat) {
