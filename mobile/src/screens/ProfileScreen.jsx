@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Switch,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ const MENU_SECTIONS = [
       { icon: 'bell-outline', label: 'Thông báo', route: 'Notifications' },
       { icon: 'ticket-percent', label: 'Voucher của tôi', route: 'Vouchers' },
       { icon: 'heart-outline', label: 'Yêu thích', route: 'Favorites' },
+      { icon: 'crown', label: 'Nâng cấp Premium', route: 'Premium', color: '#FFD700' },
     ],
   },
   {
@@ -51,6 +53,7 @@ export default function ProfileScreen() {
   const { logout } = useAuth();
   const { user } = useSelector(authSelector);
   const [userInfo, setUserInfo] = useState(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -103,6 +106,8 @@ export default function ProfileScreen() {
       onPress={() => {
         if (item.label === 'Đăng xuất') {
           handleLogout();
+        } else if (item.label === 'Nâng cấp Premium') {
+          navigation.navigate('Premium');
         } else if (item.label === 'Ngôn ngữ') {
           navigation.navigate('Language');
         } else {
@@ -134,12 +139,14 @@ export default function ProfileScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={styles.userName}>{userInfo?.full_name}</Text>
                 {userInfo?.vip_status && (
-                  <MaterialCommunityIcons
-                    name="crown"
-                    size={22}
-                    color="#FFD700"
-                    style={{ marginLeft: 4 }}
-                  />
+                  <View style={styles.premiumBadge}>
+                    <MaterialCommunityIcons
+                      name="crown"
+                      size={16}
+                      color="#FFD700"
+                    />
+                    <Text style={styles.premiumText}>Premium</Text>
+                  </View>
                 )}
               </View>
               <View style={styles.levelBadge}>
@@ -193,8 +200,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: 60,
+    height: 60,
     borderRadius: 40,
     borderWidth: 3,
     borderColor: '#4A90E2',
@@ -203,7 +210,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '600',
     color: '#1E293B',
   },
@@ -291,5 +298,107 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 14,
     marginVertical: 24,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  premiumText: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    maxHeight: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  packageContainer: {
+    gap: 16,
+  },
+  packageCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  recommendedPackage: {
+    borderColor: '#FFD700',
+    borderWidth: 2,
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: -12,
+    right: 16,
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  recommendedText: {
+    color: '#1E293B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  packageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  packageTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  packagePrice: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  packageDescription: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  upgradeButton: {
+    backgroundColor: '#4A90E2',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  recommendedButton: {
+    backgroundColor: '#FFD700',
+  },
+  upgradeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

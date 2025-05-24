@@ -7,44 +7,12 @@ import {
   Image,
   FlatList,
   SafeAreaView,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import reservationAPI from "../services/reservationAPI";
 import { useNavigation } from "@react-navigation/native";
-
-// Mock data for bookings
-const MOCK_BOOKINGS = [
-  {
-    id: "1",
-    cafeName: "The Dreamer Coffee",
-    date: "2024-03-15",
-    time: "14:30",
-    guests: 2,
-    status: "upcoming",
-    image:
-      "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
-  },
-  {
-    id: "2",
-    cafeName: "Mountain View Café",
-    date: "2024-03-20",
-    time: "10:00",
-    guests: 4,
-    status: "upcoming",
-    image:
-      "https://images.unsplash.com/photo-1493857671505-72967e2e2760?q=80&w=2940&auto=format&fit=crop",
-  },
-  {
-    id: "3",
-    cafeName: "Horizon Coffee",
-    date: "2024-02-28",
-    time: "16:00",
-    guests: 2,
-    status: "completed",
-    image:
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2940&auto=format&fit=crop",
-  },
-];
 
 export default function BookingsScreen() {
   const [activeTab, setActiveTab] = useState("Pending");
@@ -243,23 +211,24 @@ export default function BookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFF9F5",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
     padding: 20,
-    backgroundColor: "white",
   },
   title: {
     fontSize: 24,
     fontFamily: "Poppins_600SemiBold",
-    color: "#1E293B",
+    color: "#6B4F3F",
+    fontWeight: "bold",
   },
   tabContainer: {
     flexDirection: "row",
     padding: 4,
     marginHorizontal: 20,
     marginVertical: 10,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "rgba(191, 165, 142, 0.2)",
     borderRadius: 12,
   },
   tab: {
@@ -269,15 +238,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   activeTab: {
-    backgroundColor: "white",
+    backgroundColor: "#6B4F3F",
   },
   tabText: {
     fontFamily: "Poppins_500Medium",
-    color: "#64748B",
+    color: "#6B4F3F",
     fontSize: 14,
   },
   activeTabText: {
-    color: "#1E293B",
+    color: "#FFF9F5",
   },
   listContainer: {
     padding: 20,
@@ -288,9 +257,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
-    borderColor: "#E2E8F0",
+    borderColor: "#BFA58E",
     borderWidth: 1,
-    shadowColor: "#000",
+    shadowColor: "#6B4F3F",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -304,9 +273,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 12,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFF9F5",
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: "#BFA58E",
   },
   statusIndicator: {
     flexDirection: "row",
@@ -344,7 +313,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 180,
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: "#BFA58E",
   },
   cardContent: {
     padding: 16,
@@ -353,7 +322,7 @@ const styles = StyleSheet.create({
   cafeName: {
     fontSize: 20,
     fontFamily: "Poppins_600SemiBold",
-    color: "#1E293B",
+    color: "#6B4F3F",
     marginBottom: 12,
   },
   detailsContainer: {
@@ -362,7 +331,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#BFA58E",
   },
   detailRow: {
     flexDirection: "row",
@@ -372,7 +341,7 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 15,
     fontFamily: "Poppins_400Regular",
-    color: "#64748B",
+    color: "#6B4F3F",
   },
   actionButtons: {
     flexDirection: "row",
@@ -395,10 +364,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   primaryButton: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#6B4F3F",
   },
   primaryButtonText: {
-    color: "white",
+    color: "#FFF9F5",
     fontFamily: "Poppins_500Medium",
     fontSize: 14,
   },
@@ -414,6 +383,6 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     fontFamily: "Poppins_500Medium",
-    color: "#94A3B8",
+    color: "#BFA58E",
   },
 });

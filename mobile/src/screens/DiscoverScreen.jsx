@@ -29,6 +29,7 @@ export default function DiscoverScreen({ navigation }) {
   const [activeCategory, setActiveCategory] = useState(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [favoriteShops, setFavoriteShops] = useState([]);
+  const [pressedCategory, setPressedCategory] = useState(null);
 
   useEffect(() => {
     if (!location) return;
@@ -102,18 +103,31 @@ export default function DiscoverScreen({ navigation }) {
   };
 
   const handleCategoryPress = (categoryId) => {
+    setPressedCategory(categoryId);
     setActiveCategory(categoryId);
     handleApplyFilters({ themeId: categoryId });
+
+    setTimeout(() => {
+      setPressedCategory(null);
+    }, 200);
+  };
+
+  const getCategoryStyle = (itemId) => {
+    return [
+      styles.categoryItem,
+      activeCategory === itemId && styles.categoryItemActive,
+      pressedCategory === itemId && {
+        transform: [{ scale: 0.95 }],
+      },
+    ];
   };
 
   const renderCategory = ({ item }) => (
     <TouchableOpacity
-      style={[
-        styles.categoryItem,
-        activeCategory === item._id && styles.categoryItemActive,
-      ]}
+      style={getCategoryStyle(item._id)}
       key={item._id || item.id}
       onPress={() => handleCategoryPress(item._id)}
+      activeOpacity={0.7}
     >
       <View style={[styles.categoryIcon]}>
         <Image source={{ uri: item.theme_image }} style={styles.iconTheme} />
@@ -136,70 +150,53 @@ export default function DiscoverScreen({ navigation }) {
     >
       <Image source={{ uri: item?.mainImage?.url }} style={styles.shopImage} />
       <View style={styles.shopInfo}>
-        <View style={styles.shopHeader}>
-          <View>
-            <Text style={styles.shopName}>{item?.name}</Text>
+        <Text style={styles.shopName} numberOfLines={1}>{item?.name}</Text>
+        
+        <View style={styles.ratingRow}>
             <View style={styles.ratingContainer}>
-              <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
+            <MaterialCommunityIcons name="star" size={14} color="#FFD700" />
               <Text style={styles.rating}>{item?.rating_avg}</Text>
-              <Text style={styles.reviews}>
-                ({item?.rating_count} đánh giá)
-              </Text>
-            </View>
+            <Text style={styles.reviews}>({item?.rating_count})</Text>
           </View>
+
+          <View style={styles.statusContainer}>
           <View
             style={[
-              styles.statusBadge,
+                styles.statusIndicator,
               { backgroundColor: item?.is_open ? "#4CAF50" : "#FF9800" },
             ]}
-          >
-            <Text style={styles.statusText}>
-              {item?.is_open ? "Mở cửa" : "Đóng cửa"}
+            />
+            <Text style={[
+              styles.statusText,
+              { color: item?.is_open ? "#4CAF50" : "#FF9800" }
+            ]}>
+              {item?.is_open ? "Mở" : "Đóng"}
             </Text>
           </View>
         </View>
 
-        <View style={styles.shopDetails}>
           <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="map-marker" size={16} color="#666" />
-            <Text style={styles.shopAddress}>{item.address}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="walk" size={16} color="#666" />
-            <Text style={styles.distance}>{item.distance.toFixed(2)} km</Text>
-          </View>
-        </View>
-
-        <View style={styles.features}>
-          {item?.features?.map((feature, index) => (
-            <View key={index} style={styles.featureBadge}>
-              <Text style={styles.featureText}>{feature}</Text>
-            </View>
-          ))}
+          <MaterialCommunityIcons name="map-marker" size={14} color="#666" />
+          <Text style={styles.shopAddress} numberOfLines={1}>{item.address}</Text>
         </View>
 
         <View style={styles.cardFooter}>
-          <TouchableOpacity
-            style={styles.bookButton}
-            onPress={() => navigation.navigate("Booking", { shopId: item._id })}
-          >
-            <Text style={styles.bookButtonText}>Đặt chỗ</Text>
-            <MaterialCommunityIcons
-              name="arrow-right"
-              size={20}
-              color="white"
-            />
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.favoriteButton}
             onPress={() => handleToggleFavorite(item)}
           >
             <MaterialCommunityIcons
               name={isShopFavorite(item._id) ? "heart" : "heart-outline"}
-              size={24}
+              size={20}
               color={isShopFavorite(item._id) ? "#EF4444" : "#666"}
             />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={() => navigation.navigate("Booking", { shopId: item._id })}
+          >
+            <Text style={styles.bookButtonText}>Đặt chỗ</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -216,12 +213,11 @@ export default function DiscoverScreen({ navigation }) {
     setActiveFilters(filters);
     if (!location) return;
 
-    // Construct the API URL with filters
     let url = `/public?latitude=${location.latitude}&longitude=${location.longitude}`;
 
     if (filters) {
       if (filters.distance) {
-        url += `&radius=${filters.distance}`; // Convert km to meters
+        url += `&radius=${filters.distance}`;
       }
       if (filters.themeId) {
         url += `&themes=${filters.themeId}`;
@@ -230,10 +226,9 @@ export default function DiscoverScreen({ navigation }) {
         url += `&sortBy=rating_avg&sortOrder=${filters.sortRating}`;
       }
     } else {
-      url += "&radius=10000"; // Default 10km
+      url += "&radius=10000";
     }
 
-    // Fetch filtered shops
     const response = await shopAPI.HandleCoffeeShops(url);
     setShops(response.data.shops);
   };
@@ -241,12 +236,12 @@ export default function DiscoverScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <View style={styles.locationContainer}>
+        {/* <View style={styles.locationContainer}>
           <MaterialCommunityIcons name="map-marker" size={20} color="white" />
           <Text style={styles.locationText} numberOfLines={1}>
             {currentAddress || "Đang tải vị trí..."}
           </Text>
-        </View>
+        </View> */}
 
         <SearchBar
           value={searchQuery}
@@ -271,8 +266,9 @@ export default function DiscoverScreen({ navigation }) {
             data={themes}
             renderItem={renderCategory}
             keyExtractor={(item) => item._id || item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
+            numColumns={4}
+            scrollEnabled={false}
+            columnWrapperStyle={styles.categoryRow}
           />
         </View>
 
@@ -282,6 +278,8 @@ export default function DiscoverScreen({ navigation }) {
             data={shops}
             renderItem={renderShopCard}
             keyExtractor={(item) => item.id || item._id}
+            numColumns={2}
+            columnWrapperStyle={styles.shopRow}
             scrollEnabled={false}
           />
         </View>
@@ -293,193 +291,205 @@ export default function DiscoverScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFF9F5",
   },
   headerContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: "#6B4F3F",
+    borderBottomWidth: 1,
+    borderBottomColor: "#BFA58E",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   iconTheme: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
   },
   header: {
-    backgroundColor: "white",
+    backgroundColor: "#6B4F3F",
     zIndex: 1000,
   },
   themesContainer: {
-    marginTop: 15,
-    marginBottom: 5,
+    marginVertical: 15,
+    paddingHorizontal: 12,
+  },
+  categoryRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   categoryItem: {
-    alignItems: "center",
-    marginHorizontal: 10,
+    alignItems: 'center',
+    width: '23%',
     padding: 8,
-    borderRadius: 12,
-  },
-  categoryItemActive: {
-    backgroundColor: "#EBF3FE",
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   categoryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#F0F8FF",
-    justifyContent: "center",
-    alignItems: "center",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF9F5',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: "transparent",
+    borderColor: '#E8D3C3',
   },
   categoryName: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#666",
+    marginTop: 6,
+    fontSize: 11,
+    color: '#6B4F3F',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  categoryItemActive: {
+    backgroundColor: '#BFA58E',
+    borderColor: '#8B7355',
+    borderWidth: 1,
   },
   categoryNameActive: {
-    color: "#4A90E2",
-    fontWeight: "600",
+    color: '#FFF9F5',
+    fontWeight: '600',
   },
   featuredContainer: {
     flex: 1,
-    padding: 15,
+    padding: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    color: "#333",
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 20,
+    color: "#6B4F3F",
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  shopRow: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
   },
   shopCard: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    borderColor: "#E2E8F0",
-    borderWidth: 1,
-    marginBottom: 15,
-    elevation: 8,
-    shadowColor: "#000",
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: "#BFA58E",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   shopImage: {
-    width: "100%",
-    height: 180,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    width: '100%',
+    height: 120,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   shopInfo: {
-    padding: 15,
-  },
-  shopHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    padding: 10,
   },
   shopName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B4F3F',
+    marginBottom: 4,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 4,
   },
   ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   rating: {
-    color: "#333",
-    fontWeight: "bold",
+    color: '#6B4F3F',
+    fontSize: 12,
+    fontWeight: '600',
   },
   reviews: {
-    color: "#666",
-    fontSize: 12,
+    color: '#BFA58E',
+    fontSize: 11,
   },
-  price: {
-    color: "#666",
-    marginLeft: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  shopDetails: {
-    marginTop: 10,
-    gap: 5,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
   },
+  statusIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
   shopAddress: {
-    color: "#666",
-    flex: 1,
-    fontSize: 14,
-  },
-  distance: {
-    color: "#666",
-    fontSize: 14,
-  },
-  features: {
-    flexDirection: "row",
-    marginTop: 10,
-    gap: 8,
-  },
-  featureBadge: {
-    backgroundColor: "#F0F8FF",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  featureText: {
-    color: "#4A90E2",
+    color: '#6B4F3F',
     fontSize: 12,
+    flex: 1,
   },
   cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 15,
-    gap: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   bookButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#4A90E2",
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
+    backgroundColor: '#6B4F3F',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   bookButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    color: '#FFF9F5',
+    fontSize: 12,
+    fontWeight: '600',
   },
   favoriteButton: {
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: "#F8F9FA",
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: '#FFF9F5',
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: '#E8D3C3',
   },
   locationContainer: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#6B4F3F",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
   locationText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: "white",
+    marginLeft: 12,
+    fontSize: 16,
+    color: "#FFF9F5",
     flex: 1,
+    fontWeight: "600",
+    letterSpacing: 0.3,
   },
 });

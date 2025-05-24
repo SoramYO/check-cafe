@@ -8,12 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { toast } from "sonner-native";
-import authenticationAPI, { authApi } from "../services/authAPI";
 import { useAuth } from "../hooks/useAuth";
+import authenticationAPI from "../services/authAPI";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -54,7 +55,7 @@ export default function LoginScreen({ navigation }) {
   const renderContent = () => (
     <View style={styles.content}>
       <View style={styles.header}>
-        <MaterialCommunityIcons name="coffee" size={50} color="white" />
+        <Image source={require("../../assets/logo.png")} style={styles.logo} />
         <Text style={styles.title}>Đăng nhập</Text>
         <Text style={styles.subtitle}>Chào mừng bạn trở lại!</Text>
       </View>
@@ -133,7 +134,7 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <LinearGradient colors={["#4A90E2", "#50E3C2"]} style={styles.container}>
+      <LinearGradient colors={["#6B4F3F", "#BFA58E"]} style={styles.container}>
         {renderContent()}
       </LinearGradient>
     </KeyboardAvoidingView>
@@ -143,6 +144,10 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  logo: {
+    width: 150,
+    height: 150,
   },
   content: {
     flex: 1,
@@ -157,7 +162,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     color: "white",
-    marginTop: 20,
   },
   subtitle: {
     fontSize: 16,
@@ -170,7 +174,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(107, 79, 63, 0.2)",
     borderRadius: 12,
     padding: 12,
     marginBottom: 15,
@@ -191,14 +195,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 20,
   },
   loginButtonText: {
-    color: "#4A90E2",
+    color: "#6B4F3F",
     fontSize: 18,
     fontWeight: "600",
   },
