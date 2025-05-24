@@ -14,6 +14,7 @@ import FeaturedDetailScreen from "../screens/FeaturedDetailScreen";
 import BookingDetailScreen from "../screens/BookingDetailScreen";
 import DefaultLocationScreen from "../screens/DefaultLocationScreen";
 import ThemeScreen from "../screens/ThemeScreen";
+import PremiumScreen from '../screens/PremiumScreen';
 
 const MainNavigator = () => {
   const Stack = createNativeStackNavigator();
@@ -39,6 +40,7 @@ const MainNavigator = () => {
       <Stack.Screen name="CheckinCamera" component={CheckinCameraScreen} />
       <Stack.Screen name="FeaturedDetail" component={FeaturedDetailScreen} />
       <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
+      <Stack.Screen name="Premium" component={PremiumScreen} />
     </Stack.Navigator>
   );
 };

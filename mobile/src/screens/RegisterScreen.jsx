@@ -9,12 +9,13 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { toast } from "sonner-native";
 import { useAuth } from "../hooks/useAuth";
-import { authApi } from "../services/authAPI";
+import authenticationAPI from "../services/authAPI";
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
@@ -76,11 +77,11 @@ export default function RegisterScreen({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <LinearGradient colors={["#50E3C2", "#4A90E2"]} style={styles.container}>
+      <LinearGradient colors={["#6B4F3F", "#BFA58E"]} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <MaterialCommunityIcons name="coffee" size={50} color="white" />
+              <Image source={require("../../assets/logo.png")} style={styles.logo} />
               <Text style={styles.title}>Đăng ký</Text>
               <Text style={styles.subtitle}>Tạo tài khoản mới</Text>
             </View>
@@ -225,6 +226,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
+  logo: {
+    width: 150,
+    height: 150,
+  },
   content: {
     flex: 1,
     padding: 20,
@@ -252,7 +257,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(107, 79, 63, 0.2)",
     borderRadius: 12,
     padding: 12,
     marginBottom: 15,
@@ -266,14 +271,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   registerButton: {
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 20,
   },
   registerButtonText: {
-    color: "#50E3C2",
+    color: "#6B4F3F",
     fontSize: 18,
     fontWeight: "600",
   },

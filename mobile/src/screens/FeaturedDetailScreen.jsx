@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import advertisementAPI from '../services/advertisementsAPI';
 
 const FEATURED_DETAILS = {
   discover: {
@@ -59,8 +60,18 @@ const FEATURED_DETAILS = {
 };
 
 export default function FeaturedDetailScreen({ navigation, route }) {
-  const { type } = route.params;
-  const details = FEATURED_DETAILS[type];
+  const { type, id } = route.params;
+  // const details = FEATURED_DETAILS[type];
+  const [details, setDetails] = useState(null);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      const response = await advertisementAPI.HandleAdvertisement(`/${id}`);
+      console.log("abc", response.data.advertisement);
+      setDetails(response.data.advertisement);
+    };
+    fetchDetails();
+  }, []);
 
   const renderFeature = (feature, index) => (
     <View
@@ -79,7 +90,7 @@ export default function FeaturedDetailScreen({ navigation, route }) {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.imageContainer}>
-          <Image source={{ uri: details.image }} style={styles.headerImage} />
+          <Image source={{ uri: details?.image }} style={styles.headerImage} />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.gradient}
@@ -96,38 +107,21 @@ export default function FeaturedDetailScreen({ navigation, route }) {
         <View style={styles.content}>
           <View
           >
-            <Text style={styles.title}>{details.title}</Text>
-            <Text style={styles.subtitle}>{details.subtitle}</Text>
-            <Text style={styles.description}>{details.description}</Text>
+            <Text style={styles.title}>{details?.title}</Text>
+            <Text style={styles.subtitle}>{details?.subtitle}</Text>
+            <Text style={styles.description}>{details?.description}</Text>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Thông tin chi tiết</Text>
             <View style={styles.featuresGrid}>
-              {details.features.map(renderFeature)}
+              {details?.features.map(renderFeature)}
             </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hình ảnh</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.photosContainer}
-            >
-              {details.photos.map((photo, index) => (
-                <View
-                  key={index}
-                >
-                  <Image source={{ uri: photo }} style={styles.photo} />
-                </View>
-              ))}
-            </ScrollView>
           </View>
         </View>
       </ScrollView>
 
-      {type === 'promotion' && (
+      {details?.type === 'promotion' && (
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.actionButton}>
             <Text style={styles.actionButtonText}>Đặt chỗ ngay</Text>
