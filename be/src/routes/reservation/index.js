@@ -15,6 +15,6 @@ router.get("/me", reservationController.getAllReservationsByUser);
 router.get("/:reservationId", reservationController.getReservationDetail);
 router.patch("/:reservationId/confirm", reservationController.confirmReservation);
 router.patch("/:reservationId/cancel", reservationController.cancelReservation);
-router.post("/:reservationId/checkin", reservationController.checkInReservationCustomer);
+router.post("/shops/:shopId/checkin", reservationController.checkInReservationByShop);
 
 module.exports = router;
