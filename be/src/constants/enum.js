@@ -21,6 +21,7 @@ const RESERVATION_TYPE = {
 const RESERVATION_STATUS = {
   PENDING: "Pending",
   CONFIRMED: "Confirmed",
+  CHECKED_IN: "CheckedIn",
   CANCELLED: "Cancelled",
   COMPLETED: "Completed",
 };

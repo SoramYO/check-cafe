@@ -24,10 +24,9 @@ const advertisementSchema = new mongoose.Schema(
     shop_id: { type: Types.ObjectId, ref: "Shop" },
     created_by: { type: Types.ObjectId, ref: "User" },
     approved_by: { type: Types.ObjectId, ref: "User" },
-    status: { type: String },
     start_date: { type: Date },
     end_date: { type: Date },
-    status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
+    status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
   },
   { timestamps: true, collection: COLLECTION_NAME }
 );

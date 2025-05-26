@@ -46,6 +46,7 @@ class AdvertisementService {
         "shop_id",
         "start_date",
         "end_date",
+        "status",
         "createdAt",
         "updatedAt",
       ]),
@@ -75,6 +76,7 @@ class AdvertisementService {
         "shop_id",
         "start_date",
         "end_date",
+        "status",
         "createdAt",
         "updatedAt",
         ])
@@ -96,6 +98,7 @@ class AdvertisementService {
         "shop_id",
         "start_date",
         "end_date",
+        "status",
         "createdAt",
         "updatedAt",
         ],
@@ -108,8 +111,8 @@ class AdvertisementService {
     try {
       const { title, subtitle, description, features, redirect_url, type, shop_id, start_date, end_date } = req.body;
       const file = req.file;
-      if (!title || !subtitle) {
-        throw new BadRequestError("Title and subtitle are required");
+      if (!title) {
+        throw new BadRequestError("Title is required");
       }
       let image = null;
       let imagePublicId = null;
@@ -169,7 +172,7 @@ class AdvertisementService {
   updateAdvertisement = async (req) => {
     try {
       const { advertisementId } = req.params;
-      const { title, subtitle, description, features, redirect_url, type, shop_id, start_date, end_date } = req.body;
+      const { title, subtitle, description, features, redirect_url, type, shop_id, start_date, end_date, status } = req.body;
       const file = req.file;
       const advertisement = await advertisementModel.findById(advertisementId);
       if (!advertisement) {
@@ -193,6 +196,7 @@ class AdvertisementService {
         shop_id,
         start_date,
         end_date,
+        status,
       });
       if (file) {
         if (advertisement.imagePublicId) {
@@ -218,6 +222,7 @@ class AdvertisementService {
           "shop_id",
           "start_date",
           "end_date",
+          "status",
           "createdAt",
           "updatedAt",
         ])
@@ -236,6 +241,7 @@ class AdvertisementService {
             "shop_id",
             "start_date",
             "end_date",
+            "status",
             "createdAt",
             "updatedAt",
           ],

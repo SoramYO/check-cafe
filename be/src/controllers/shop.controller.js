@@ -23,6 +23,14 @@ class ShopController {
     }).send(res);
   });
 
+  createShopByAdmin = asyncHandler(async (req, res) => {
+    const result = await shopService.createShopByAdmin(req);
+    new CREATED({
+      message: SHOP_MESSAGE.CREATE_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
   updateShop = asyncHandler(async (req, res) => {
     const result = await shopService.updateShop(req);
     new OK({
@@ -43,6 +51,22 @@ class ShopController {
     const result = await shopService.getAllShops(req);
     new OK({
       message: SHOP_MESSAGE.GET_ALL_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getMyShop = asyncHandler(async (req, res) => {
+    const result = await shopService.getMyShop(req);
+    new OK({
+      message: SHOP_MESSAGE.GET_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getShopStats = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopStats(req);
+    new OK({
+      message: "Get shop stats successfully",
       data: result,
     }).send(res);
   });
@@ -115,6 +139,40 @@ class ShopController {
     const result = await shopService.submitVerification(req);
     new OK({
       message: SHOP_MESSAGE.SUBMIT_VERIFICATION_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // ===== SEATS MANAGEMENT =====
+  getAllSeats = asyncHandler(async (req, res) => {
+    const result = await shopService.getAllSeats(req);
+    new OK({
+      message: "Get all seats successfully",
+      data: result,
+    }).send(res);
+  });
+
+  deleteSeat = asyncHandler(async (req, res) => {
+    const result = await shopService.deleteSeat(req);
+    new OK({
+      message: SHOP_MESSAGE.DELETE_SEAT_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  // ===== MENU ITEMS MANAGEMENT =====
+  getAllMenuItems = asyncHandler(async (req, res) => {
+    const result = await shopService.getAllMenuItems(req);
+    new OK({
+      message: "Get all menu items successfully",
+      data: result,
+    }).send(res);
+  });
+
+  deleteMenuItem = asyncHandler(async (req, res) => {
+    const result = await shopService.deleteMenuItem(req);
+    new OK({
+      message: SHOP_MESSAGE.DELETE_MENU_ITEM_SUCCESS,
       data: result,
     }).send(res);
   });

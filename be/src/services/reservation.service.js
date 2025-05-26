@@ -1,6 +1,7 @@
 "use strict";
 
 const QRCode = require("qrcode");
+const mongoose = require("mongoose");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../configs/error.response");
 const reservationModel = require("../models/reservation.model");
 const shopModel = require("../models/shop.model");
@@ -78,11 +79,7 @@ const createReservation = async (req) => {
       throw new BadRequestError(`Maximum ${reservation_type.toLowerCase()} reservations reached for this time slot`);
     }
 
-    // Tạo mã QR
-    const qrData = `${shopId}-${seatId}-${timeSlotId}-${reservationDate.toISOString()}-${userId}`;
-    const qrCode = await QRCode.toDataURL(qrData);
-
-    // Tạo đơn đặt chỗ
+    // Tạo đơn đặt chỗ (không tạo QR code ở đây)
     const reservation = await reservationModel.create({
       user_id: userId,
       shop_id: shopId,
@@ -92,7 +89,6 @@ const createReservation = async (req) => {
       reservation_date: reservationDate,
       number_of_people,
       notes,
-      qr_code: qrCode,
       status: RESERVATION_STATUS.PENDING,
     });
 
@@ -127,7 +123,6 @@ const createReservation = async (req) => {
         "reservation_date",
         "number_of_people",
         "notes",
-        "qr_code",
         "status",
         "createdAt",
         "updatedAt",
@@ -186,7 +181,16 @@ const confirmReservation = async (req) => {
       throw new BadRequestError("This seat and time slot are already confirmed for another reservation on the same date");
     }
 
+    // Tạo mã QR khi confirm reservation
+    const qrData = {
+      shop_id: reservation.shop_id._id.toString(),
+      seat_id: reservation.seat_id.toString(),
+      time_slot_id: reservation.time_slot_id.toString(),
+      user_id: reservation.user_id.toString()
+    };
+
     reservation.status = RESERVATION_STATUS.CONFIRMED;
+    reservation.qr_code = qrData;
     reservation.updatedAt = new Date();
     await reservation.save();
 
@@ -397,8 +401,34 @@ const checkInReservationCustomer = async (req) => {
       throw new BadRequestError("Reservation is not in Confirmed status");
     }
 
-    if (reservation.qr_code !== qr_code) {
-      throw new BadRequestError("Invalid QR code");
+    // Validate and parse QR code (support both string and object format)
+    let qrData;
+
+    if (!qr_code) {
+      throw new BadRequestError("QR code is required");
+    }
+
+    // Handle both string and object format
+    if (typeof qr_code === 'string') {
+      try {
+        qrData = JSON.parse(qr_code);
+      } catch (error) {
+        throw new BadRequestError("Invalid QR code JSON format");
+      }
+    } else if (typeof qr_code === 'object') {
+      qrData = qr_code;
+    } else {
+      throw new BadRequestError("QR code must be a JSON string or object");
+    }
+
+    // Validate QR code data matches reservation
+    if (
+      qrData.shop_id !== reservation.shop_id._id.toString() ||
+      qrData.seat_id !== reservation.seat_id._id.toString() ||
+      qrData.time_slot_id !== reservation.time_slot_id._id.toString() ||
+      qrData.user_id !== reservation.user_id.toString()
+    ) {
+      throw new BadRequestError("Invalid QR code data");
     }
 
     const now = new Date();
@@ -416,7 +446,7 @@ const checkInReservationCustomer = async (req) => {
     const updatedReservation = await reservationModel
       .findByIdAndUpdate(
         reservationId,
-        { status: RESERVATION_STATUS.CHECKED_IN, updatedAt: now },
+        { status: RESERVATION_STATUS.COMPLETED, updatedAt: now },
         { new: true }
       )
       .populate([
@@ -435,7 +465,6 @@ const checkInReservationCustomer = async (req) => {
           "reservation_date",
           "number_of_people",
           "notes",
-          "qr_code",
           "status",
           "createdAt",
           "updatedAt",
@@ -513,12 +542,43 @@ const checkInReservationByShop = async (req) => {
       throw new NotFoundError("Shop not found");
     }
 
-    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
-      throw new ForbiddenError("You are not authorized to perform this action");
+    // if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+    //   throw new ForbiddenError("You are not authorized to perform this action");
+    // }
+
+    // Validate and parse QR code (support both string and object format)
+    let qrData;
+
+    if (!qr_code) {
+      throw new BadRequestError("QR code is required");
     }
 
+    // Handle both string and object format
+    if (typeof qr_code === 'string') {
+      try {
+        qrData = JSON.parse(qr_code);
+      } catch (error) {
+        throw new BadRequestError("Invalid QR code JSON format");
+      }
+    } else if (typeof qr_code === 'object') {
+      qrData = qr_code;
+    } else {
+      throw new BadRequestError("QR code must be a JSON string or object");
+    }
+
+    // Validate QR code has required fields
+    if (!qrData.shop_id || !qrData.seat_id || !qrData.time_slot_id || !qrData.user_id) {
+      throw new BadRequestError("QR code must contain shop_id, seat_id, time_slot_id, and user_id");
+    }
+
+    // Find reservation by QR code data
     const reservation = await reservationModel
-      .findOne({ qr_code, shop_id: shopId })
+      .findOne({ 
+        shop_id: qrData.shop_id,
+        seat_id: qrData.seat_id,
+        time_slot_id: qrData.time_slot_id,
+        user_id: qrData.user_id
+      })
       .populate([
         { path: "shop_id", select: "_id status name" },
         { path: "seat_id", select: "_id name capacity" },
@@ -528,6 +588,11 @@ const checkInReservationByShop = async (req) => {
 
     if (!reservation) {
       throw new NotFoundError("Reservation not found or invalid QR code");
+    }
+
+    // Validate shop matches
+    if (reservation.shop_id._id.toString() !== shopId) {
+      throw new BadRequestError("QR code does not belong to this shop");
     }
 
     if (reservation.status !== RESERVATION_STATUS.CONFIRMED) {
@@ -549,7 +614,7 @@ const checkInReservationByShop = async (req) => {
     const updatedReservation = await reservationModel
       .findByIdAndUpdate(
         reservation._id,
-        { status: RESERVATION_STATUS.CHECKED_IN, updatedAt: now },
+        { status: RESERVATION_STATUS.COMPLETED, updatedAt: now },
         { new: true }
       )
       .populate([
@@ -743,7 +808,6 @@ const getReservationDetail = async (req) => {
   try {
     const { reservationId } = req.params;
     const { shopId } = req.body;
-    console.log("🚀 ~ getReservationDetail ~ shopId:", shopId)
     const { userId, role } = req.user;
 
     if (!isValidObjectId(shopId) || !isValidObjectId(reservationId)) {

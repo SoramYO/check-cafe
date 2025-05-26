@@ -22,6 +22,7 @@ const menuItemCategoryModel = require("../models/menuItemCategory.model");
 const mongoose = require("mongoose");
 const shopAmenityModel = require("../models/shopAmenity.model");
 const { calculateDistance, getDistanceFromLatLonInKm } = require("../utils/distanceCaculate");
+const userModel = require("../models/user.model");
 
 const getAllPublicShops = async (req) => {
   try {
@@ -295,6 +296,7 @@ const createShop = async (req) => {
       amenities: amenitiesIds,
       theme_ids: themeIds,
       opening_hours,
+      status: "Active"
     });
 
     return {
@@ -324,6 +326,135 @@ const createShop = async (req) => {
   }
 };
 
+const createShopByAdmin = async (req) => {
+  try {
+    const {
+      name,
+      address,
+      description,
+      phone,
+      website,
+      latitude,
+      longitude,
+      amenities,
+      theme_ids,
+      opening_hours,
+      owner_id
+    } = req.body;
+
+    // Kiểm tra input bắt buộc
+    if (!name || !address || !description || !phone || !website || typeof latitude === 'undefined' || typeof longitude === 'undefined' || !owner_id) {
+      throw new BadRequestError("Name, address, description, phone, website, latitude, longitude, and owner_id are required");
+    }
+
+    // Kiểm tra owner_id có tồn tại và là SHOP_OWNER
+    const owner = await userModel.findById(owner_id);
+    if (!owner) {
+      throw new BadRequestError("Owner not found");
+    }
+    if (owner.role !== "SHOP_OWNER") {
+      throw new BadRequestError("Owner must be a SHOP_OWNER");
+    }
+
+    // Kiểm tra owner đã có shop chưa
+    const existingShop = await shopModel.findOne({ owner_id });
+    if (existingShop) {
+      throw new BadRequestError("This shop owner already has a shop");
+    }
+
+    // Validate opening_hours
+    if (opening_hours) {
+      if (!Array.isArray(opening_hours)) {
+        throw new BadRequestError("opening_hours must be an array");
+      }
+      const validDays = [0, 1, 2, 3, 4, 5, 6];
+      const timeRegex = /^([0-1]\d|2[0-3]):[0-5]\d$/;
+      for (const entry of opening_hours) {
+        if (!validDays.includes(entry.day)) {
+          throw new BadRequestError("Invalid day in opening_hours (must be 0-6)");
+        }
+        if (entry.is_closed) continue;
+        if (!entry.hours || !Array.isArray(entry.hours) || entry.hours.length === 0) {
+          throw new BadRequestError(`Hours required for day ${entry.day} when not closed`);
+        }
+        for (const h of entry.hours) {
+          if (!timeRegex.test(h.open) || !timeRegex.test(h.close)) {
+            throw new BadRequestError(`Invalid time format in hours for day ${entry.day}`);
+          }
+          const [openHour, openMinute] = h.open.split(":").map(Number);
+          const [closeHour, closeMinute] = h.close.split(":").map(Number);
+          const openTime = openHour * 60 + openMinute;
+          const closeTime = closeHour * 60 + closeMinute;
+          if (openTime >= closeTime) {
+            throw new BadRequestError(`Open time must be before close time for day ${entry.day}`);
+          }
+        }
+      }
+    }
+
+    // Convert amenities sang ObjectId nếu là string
+    let amenitiesIds = undefined;
+    if (Array.isArray(amenities)) {
+      amenitiesIds = amenities
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+    }
+
+    // Convert theme_ids sang ObjectId nếu là string
+    let themeIds = undefined;
+    if (Array.isArray(theme_ids)) {
+      themeIds = theme_ids
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+    }
+
+    // Tạo quán mới
+    const shop = await shopModel.create({
+      name,
+      address,
+      description,
+      phone,
+      website,
+      location: {
+        type: "Point",
+        coordinates: [
+          parseFloat(longitude),
+          parseFloat(latitude)
+        ],
+      },
+      owner_id,
+      amenities: amenitiesIds,
+      theme_ids: themeIds,
+      opening_hours,
+      status: "Active"
+    });
+
+    return {
+      shop: getInfoData({
+        fields: [
+          "_id",
+          "name",
+          "address",
+          "description",
+          "phone",
+          "website",
+          "location",
+          "owner_id",
+          "theme_ids",
+          "amenities",
+          "opening_hours",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: shop,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to create shop");
+  }
+};
 
 const updateShop = async (req) => {
   try {
@@ -659,7 +790,8 @@ const getAllShops = async (req) => {
       ]),
       populate: [
         { path: "theme_ids", select: "_id name description theme_image" },
-        { path: "amenities", select: "_id icon label" }
+        { path: "amenities", select: "_id icon label" },
+        { path: "owner_id", select: "_id full_name email avatar" }
       ],
       search,
       searchFields: ["name"],
@@ -822,19 +954,38 @@ const createSeat = async (req) => {
       throw new ForbiddenError("You are not the owner of this shop");
     }
 
-    // Kiểm tra input
-    if (!seat_name || !capacity) {
-      throw new BadRequestError("Seat name and capacity are required");
+    // Kiểm tra input chi tiết
+    if (!seat_name || seat_name.trim().length === 0) {
+      throw new BadRequestError("Seat name is required and cannot be empty");
+    }
+
+    if (!capacity || capacity < 1 || capacity > 20) {
+      throw new BadRequestError("Capacity must be between 1 and 20 people");
+    }
+
+    // Kiểm tra tên chỗ ngồi đã tồn tại chưa
+    const existingSeat = await shopSeatModel.findOne({
+      shop_id: shopId,
+      seat_name: seat_name.trim()
+    });
+    if (existingSeat) {
+      throw new BadRequestError("Seat name already exists in this shop");
+    }
+
+    // Validate description length
+    if (description && description.length > 500) {
+      throw new BadRequestError("Description cannot exceed 500 characters");
     }
 
     // Tạo ghế
     const seat = await shopSeatModel.create({
       shop_id: shopId,
-      seat_name,
-      description,
+      seat_name: seat_name.trim(),
+      description: description ? description.trim() : undefined,
       image: file ? file.path : undefined,
-      is_premium: is_premium || false,
-      capacity,
+      is_premium: Boolean(is_premium),
+      is_available: true, // Mặc định là có sẵn khi tạo mới
+      capacity: parseInt(capacity),
     });
 
     return {
@@ -848,6 +999,8 @@ const createSeat = async (req) => {
           "is_premium",
           "is_available",
           "capacity",
+          "createdAt",
+          "updatedAt",
         ],
         object: seat,
       }),
@@ -856,7 +1009,7 @@ const createSeat = async (req) => {
     if (req.file && req.file.filename) {
       await cloudinary.uploader.destroy(req.file.filename);
     }
-    throw error instanceof NotFoundError || error instanceof ForbiddenError
+    throw error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError
       ? error
       : new BadRequestError(error.message || "Failed to create seat");
   }
@@ -881,18 +1034,45 @@ const updateSeat = async (req) => {
     }
 
     // Tìm ghế
-    const seat = await shopSeatModel.findById(seatId);
+    const seat = await shopSeatModel.findOne({ _id: seatId, shop_id: shopId });
     if (!seat) {
       throw new NotFoundError("Seat not found");
     }
 
-    // Cập nhật dữ liệu
+    // Validate input nếu có
+    if (seat_name !== undefined) {
+      if (!seat_name || seat_name.trim().length === 0) {
+        throw new BadRequestError("Seat name cannot be empty");
+      }
+
+      // Kiểm tra tên chỗ ngồi đã tồn tại chưa (trừ chính nó)
+      const existingSeat = await shopSeatModel.findOne({
+        shop_id: shopId,
+        seat_name: seat_name.trim(),
+        _id: { $ne: seatId }
+      });
+      if (existingSeat) {
+        throw new BadRequestError("Seat name already exists in this shop");
+      }
+    }
+
+    if (capacity !== undefined) {
+      if (capacity < 1 || capacity > 20) {
+        throw new BadRequestError("Capacity must be between 1 and 20 people");
+      }
+    }
+
+    if (description !== undefined && description.length > 500) {
+      throw new BadRequestError("Description cannot exceed 500 characters");
+    }
+
+    // Chuẩn bị dữ liệu cập nhật
     const updateData = removeUndefinedObject({
-      seat_name,
-      description,
-      is_premium,
-      is_available,
-      capacity,
+      seat_name: seat_name ? seat_name.trim() : undefined,
+      description: description !== undefined ? (description ? description.trim() : '') : undefined,
+      is_premium: is_premium !== undefined ? Boolean(is_premium) : undefined,
+      is_available: is_available !== undefined ? Boolean(is_available) : undefined,
+      capacity: capacity !== undefined ? parseInt(capacity) : undefined,
       image: file ? file.path : undefined,
     });
 
@@ -914,6 +1094,8 @@ const updateSeat = async (req) => {
           "is_premium",
           "is_available",
           "capacity",
+          "createdAt",
+          "updatedAt",
         ])
       );
 
@@ -928,6 +1110,8 @@ const updateSeat = async (req) => {
           "is_premium",
           "is_available",
           "capacity",
+          "createdAt",
+          "updatedAt",
         ],
         object: updatedSeat,
       }),
@@ -936,7 +1120,7 @@ const updateSeat = async (req) => {
     if (req.file && req.file.filename) {
       await cloudinary.uploader.destroy(req.file.filename);
     }
-    throw error instanceof NotFoundError || error instanceof ForbiddenError
+    throw error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError
       ? error
       : new BadRequestError(error.message || "Failed to update seat");
   }
@@ -983,7 +1167,11 @@ const createMenuItem = async (req) => {
         })
       );
     } else {
-      throw new BadRequestError("At least one image is required");
+      // Sử dụng ảnh mặc định nếu không có ảnh được upload
+      images = [{
+        url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop',
+        publicId: 'default_food_image'
+      }];
     }
 
     // Validate các trường bắt buộc
@@ -1368,8 +1556,487 @@ const submitVerification = async (req) => {
   }
 };
 
+const getMyShop = async (req) => {
+  try {
+    const { userId } = req.user;
 
+    // Tìm shop của user
+    const shop = await shopModel
+      .findOne({ owner_id: userId })
+      .populate([
+        { path: "theme_ids", select: "_id name description theme_image" },
+        { path: "amenities", select: "_id icon label" },
+        { path: "owner_id", select: "_id full_name email avatar" }
+      ])
+      .select(
+        getSelectData([
+          "_id",
+          "name",
+          "address",
+          "description",
+          "phone",
+          "website",
+          "location",
+          "owner_id",
+          "theme_ids",
+          "vip_status",
+          "rating_avg",
+          "rating_count",
+          "status",
+          "amenities",
+          "opening_hours",
+          "formatted_opening_hours",
+          "is_open",
+          "createdAt",
+          "updatedAt",
+        ])
+      );
 
+    if (!shop) {
+      throw new NotFoundError("Shop not found for this user");
+    }
+
+    // Lấy thông tin liên quan
+    const images = await shopImageModel
+      .find({ shop_id: shop._id })
+      .select("url caption created_at")
+      .lean();
+    const seats = await shopSeatModel
+      .find({ shop_id: shop._id })
+      .select("seat_name description image is_premium is_available capacity")
+      .lean();
+    const menuItems = await shopMenuItemModel
+      .find({ shop_id: shop._id })
+      .populate("category", "name")
+      .select("name description price category images is_available")
+      .lean();
+    const timeSlots = await shopTimeSlotModel
+      .find({ shop_id: shop._id })
+      .select(
+        "day_of_week start_time end_time max_regular_reservations max_premium_reservations is_active"
+      )
+      .lean();
+    const verifications = await shopVerificationModel
+      .find({ shop_id: shop._id })
+      .select(
+        "document_type documents status submitted_at reviewed_at reason"
+      )
+      .lean();
+
+    const result = {
+      shop: {
+        ...getInfoData({
+          fields: [
+            "_id",
+            "name",
+            "address",
+            "description",
+            "phone",
+            "website",
+            "location",
+            "owner_id",
+            "theme_ids",
+            "vip_status",
+            "rating_avg",
+            "rating_count",
+            "status",
+            "amenities",
+            "opening_hours",
+            "formatted_opening_hours",
+            "is_open",
+            "createdAt",
+            "updatedAt",
+          ],
+          object: shop,
+        }),
+        images,
+        seats,
+        menuItems,
+        timeSlots,
+        verifications,
+      },
+    };
+
+    return result;
+  } catch (error) {
+    throw error instanceof NotFoundError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve my shop");
+  }
+};
+
+const getShopStats = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's stats");
+    }
+
+    // Import models cần thiết
+    const reservationModel = require("../models/reservation.model");
+    const reviewModel = require("../models/review.model");
+
+    // Thống kê tổng quan
+    const totalReservations = await reservationModel.countDocuments({ shop_id: shopId });
+    const totalReviews = await reviewModel.countDocuments({ shop_id: shopId });
+    const totalSeats = await shopSeatModel.countDocuments({ shop_id: shopId });
+    const totalMenuItems = await shopMenuItemModel.countDocuments({ shop_id: shopId });
+
+    // Thống kê đặt chỗ theo trạng thái
+    const reservationStats = await reservationModel.aggregate([
+      { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+
+    // Thống kê đặt chỗ 30 ngày gần đây
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentReservations = await reservationModel.countDocuments({
+      shop_id: shopId,
+      createdAt: { $gte: thirtyDaysAgo }
+    });
+
+    // Thống kê đánh giá
+    const reviewStats = await reviewModel.aggregate([
+      { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+      {
+        $group: {
+          _id: null,
+          avgRating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 },
+          ratings: { $push: "$rating" }
+        }
+      }
+    ]);
+
+    // Phân bố đánh giá theo sao
+    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    if (reviewStats.length > 0) {
+      reviewStats[0].ratings.forEach(rating => {
+        const star = Math.round(rating);
+        if (ratingDistribution[star] !== undefined) {
+          ratingDistribution[star]++;
+        }
+      });
+    }
+
+    // Thống kê đặt chỗ theo tháng (12 tháng gần đây)
+    const monthlyReservations = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Top 5 món ăn được đặt nhiều nhất (giả sử có order system)
+    const popularMenuItems = await shopMenuItemModel
+      .find({ shop_id: shopId, is_available: true })
+      .select("name price category images")
+      .limit(5)
+      .lean();
+
+    // Thống kê ghế
+    const seatStats = await shopSeatModel.aggregate([
+      { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+      {
+        $group: {
+          _id: null,
+          totalSeats: { $sum: 1 },
+          premiumSeats: { $sum: { $cond: ["$is_premium", 1, 0] } },
+          availableSeats: { $sum: { $cond: ["$is_available", 1, 0] } },
+          totalCapacity: { $sum: "$capacity" }
+        }
+      }
+    ]);
+
+    return {
+      overview: {
+        totalReservations,
+        totalReviews,
+        totalSeats,
+        totalMenuItems,
+        recentReservations,
+        avgRating: reviewStats.length > 0 ? reviewStats[0].avgRating : 0,
+        shopStatus: shop.status,
+        verificationStatus: shop.verification_status || "Pending"
+      },
+      reservations: {
+        byStatus: reservationStats.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+        monthly: monthlyReservations
+      },
+      reviews: {
+        total: totalReviews,
+        avgRating: reviewStats.length > 0 ? reviewStats[0].avgRating : 0,
+        distribution: ratingDistribution
+      },
+      seats: seatStats.length > 0 ? seatStats[0] : {
+        totalSeats: 0,
+        premiumSeats: 0,
+        availableSeats: 0,
+        totalCapacity: 0
+      },
+      popularMenuItems
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop stats");
+  }
+};
+
+// ===== SEATS MANAGEMENT =====
+const getAllSeats = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's seats");
+    }
+
+    const seats = await shopSeatModel
+      .find({ shop_id: shopId })
+      .select(
+        getSelectData([
+          "_id",
+          "shop_id",
+          "seat_name",
+          "description",
+          "image",
+          "is_premium",
+          "is_available",
+          "capacity",
+          "createdAt",
+          "updatedAt",
+        ])
+      )
+      .sort({ createdAt: -1 });
+
+    return {
+      seats: seats.map((seat) =>
+        getInfoData({
+          fields: [
+            "_id",
+            "shop_id",
+            "seat_name",
+            "description",
+            "image",
+            "is_premium",
+            "is_available",
+            "capacity",
+            "createdAt",
+            "updatedAt",
+          ],
+          object: seat,
+        })
+      ),
+      total: seats.length,
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get seats");
+  }
+};
+
+const deleteSeat = async (req) => {
+  try {
+    const { shopId, seatId } = req.params;
+    const { userId, role } = req.user;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to delete seats from this shop");
+    }
+
+    // Tìm và xóa seat
+    const seat = await shopSeatModel.findOneAndDelete({
+      _id: seatId,
+      shop_id: shopId,
+    });
+
+    if (!seat) {
+      throw new NotFoundError("Seat not found");
+    }
+
+    // Xóa ảnh trên cloudinary nếu có
+    if (seat.image && seat.image.includes("cloudinary")) {
+      const publicId = seat.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    return {
+      message: "Seat deleted successfully",
+      deletedSeat: getInfoData({
+        fields: ["_id", "seat_name"],
+        object: seat,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to delete seat");
+  }
+};
+
+// ===== MENU ITEMS MANAGEMENT =====
+const getAllMenuItems = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const { category, is_available, search } = req.query;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's menu items");
+    }
+
+    // Xây dựng query
+    const query = { shop_id: shopId };
+
+    if (category) {
+      query.category = category;
+    }
+
+    if (is_available !== undefined) {
+      query.is_available = is_available === "true";
+    }
+
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    const menuItems = await shopMenuItemModel
+      .find(query)
+      .populate("category", "name description")
+      .select(
+        getSelectData([
+          "_id",
+          "shop_id",
+          "name",
+          "description",
+          "price",
+          "category",
+          "is_available",
+          "images",
+          "createdAt",
+          "updatedAt",
+        ])
+      )
+      .sort({ createdAt: -1 });
+
+    return {
+      menuItems: menuItems.map((item) =>
+        getInfoData({
+          fields: [
+            "_id",
+            "shop_id",
+            "name",
+            "description",
+            "price",
+            "category",
+            "is_available",
+            "images",
+            "createdAt",
+            "updatedAt",
+          ],
+          object: item,
+        })
+      ),
+      total: menuItems.length,
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get menu items");
+  }
+};
+
+const deleteMenuItem = async (req) => {
+  try {
+    const { shopId, itemId } = req.params;
+    const { userId, role } = req.user;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to delete menu items from this shop");
+    }
+
+    // Tìm và xóa menu item
+    const menuItem = await shopMenuItemModel.findOneAndDelete({
+      _id: itemId,
+      shop_id: shopId,
+    });
+
+    if (!menuItem) {
+      throw new NotFoundError("Menu item not found");
+    }
+
+    // Xóa ảnh trên cloudinary
+    if (menuItem.images && menuItem.images.length > 0) {
+      await Promise.all(
+        menuItem.images.map((img) => cloudinary.uploader.destroy(img.publicId))
+      );
+    }
+
+    return {
+      message: "Menu item deleted successfully",
+      deletedMenuItem: getInfoData({
+        fields: ["_id", "name"],
+        object: menuItem,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to delete menu item");
+  }
+};
 
 module.exports = {
   createShop,
@@ -1385,5 +2052,12 @@ module.exports = {
   updateTimeSlot,
   submitVerification,
   getAllShops,
-  getAllPublicShops
+  getAllPublicShops,
+  createShopByAdmin,
+  getMyShop,
+  getShopStats,
+  getAllSeats,
+  deleteSeat,
+  getAllMenuItems,
+  deleteMenuItem
 };
