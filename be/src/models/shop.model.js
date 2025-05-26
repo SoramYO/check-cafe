@@ -45,6 +45,12 @@ const shopSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    staff_ids: [
+      {
+        type: Types.ObjectId,
+        ref: "User",
+      },
+    ],
     theme_ids: [
       {
         type: Types.ObjectId,

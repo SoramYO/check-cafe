@@ -10,7 +10,8 @@ const shopTimeSlotModel = require("../models/shopTimeSlot.model");
 const { RESERVATION_STATUS, RESERVATION_TYPE, NOTIFICATION_TYPE } = require("../constants/enum");
 const { getInfoData, getSelectData } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
-const { isValidObjectId } = require("mongoose");
+const mongoose = require("mongoose");
+const { isValidObjectId } = mongoose;
 const pointModel = require("../models/point.model");
 const { createNotification } = require("./notification.service");
 
@@ -988,6 +989,109 @@ const getAllReservationsByUser = async (req) => {
   }
 };
 
+const getReservationForShopStaff = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      status,
+      reservation_date,
+    } = req.query;
+
+    // Xây dựng query
+    const query = { shop_id: shopId };
+    if (status && Object.values(RESERVATION_STATUS).includes(status)) {
+      query.status = status;
+    }
+    if (reservation_date) {
+      const date = new Date(reservation_date);
+      if (isNaN(date.getTime())) {
+        throw new BadRequestError("Invalid reservation_date format");
+      }
+      const startDate = new Date(date.setHours(0, 0, 0, 0));
+      const endDate = new Date(date.setHours(23, 59, 59, 999));
+      query.reservation_date = { $gte: startDate, $lte: endDate };
+    }
+
+    // Xây dựng sort
+    const validSortFields = ["createdAt", "reservation_date", "status", "number_of_people"];
+    if (sortBy && !validSortFields.includes(sortBy)) {
+      throw new BadRequestError(`Invalid sortBy. Must be one of: ${validSortFields.join(", ")}`);
+    }
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    // Chuẩn bị tham số cho getPaginatedData
+    const paginateOptions = {
+      model: reservationModel,
+      query,
+      page,
+      limit,
+      select: getSelectData([
+        "_id",
+        "user_id",
+        "shop_id",
+        "seat_id",
+        "time_slot_id",
+        "reservation_type",
+        "reservation_date",
+        "number_of_people",
+        "notes",
+        "qr_code",
+        "status",
+        "createdAt",
+        "updatedAt",
+      ]),
+      populate: [
+        { path: "user_id", select: "_id email full_name avatar" },
+        { path: "seat_id", select: "_id name capacity" },
+        { path: "time_slot_id", select: "_id start_time end_time" },
+      ],
+      sort,
+    };
+
+    const result = await getPaginatedData(paginateOptions);
+
+    const reservations = result.data.map((reservation) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "user_id",
+          "shop_id",
+          "seat_id",
+          "time_slot_id",
+          "reservation_type",
+          "reservation_date",
+          "number_of_people",
+          "notes",
+          "qr_code",
+          "status",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: reservation,
+      })
+    );
+
+    return {
+      reservations,
+      metadata: {
+        totalItems: result.metadata.total,
+        totalPages: result.metadata.totalPages,
+        currentPage: result.metadata.page,
+        limit: result.metadata.limit,
+      },
+      message: reservations.length === 0 ? "No reservations found" : undefined,
+    };
+  } catch (error) {
+    throw error instanceof BadRequestError || error instanceof NotFoundError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve reservations");
+  }
+};
+
 module.exports = {
   createReservation,
   confirmReservation,
@@ -997,5 +1101,6 @@ module.exports = {
   completeReservation,
   checkInReservationByShop,
   checkInReservationCustomer,
-  getAllReservationsByUser
+  getAllReservationsByUser,
+  getReservationForShopStaff,
 };

@@ -143,6 +143,7 @@ class ShopController {
     }).send(res);
   });
 
+
   // ===== SEATS MANAGEMENT =====
   getAllSeats = asyncHandler(async (req, res) => {
     const result = await shopService.getAllSeats(req);
@@ -173,6 +174,14 @@ class ShopController {
     const result = await shopService.deleteMenuItem(req);
     new OK({
       message: SHOP_MESSAGE.DELETE_MENU_ITEM_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getShopForStaff = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopForStaff(req);
+    new OK({
+      message: SHOP_MESSAGE.GET_SHOP_FOR_STAFF_SUCCESS,
       data: result,
     }).send(res);
   });

@@ -2059,5 +2059,6 @@ module.exports = {
   getAllSeats,
   deleteSeat,
   getAllMenuItems,
-  deleteMenuItem
+  deleteMenuItem,
+  getShopForStaff,
 };

@@ -78,6 +78,7 @@ const SHOP_MESSAGE = {
   SUBMIT_VERIFICATION_SUCCESS: "Submit verification successfully",
   GET_ALL_PUBLIC_SUCCESS: "Get all public shops successfully",
   GET_SHOPS_IN_RANGE_SUCCESS: "Get shops in range successfully",
+  GET_SHOP_FOR_STAFF_SUCCESS: "Get shop for staff successfully",
 };
 
 const ADVERTISEMENT_MESSAGE = {

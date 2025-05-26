@@ -22,11 +22,13 @@ router.get("/:shopId", shopController.getShop);
 // Get shop stats (for shop owner)
 router.get("/:shopId/stats", checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]), shopController.getShopStats);
 
-router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]));
+router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN, USER_ROLE.STAFF]));
 
 router.get("/", shopController.getAllShops);
 // Create shop
 router.post("/", shopController.createShop);
+
+router.get("/staff/list", shopController.getShopForStaff);
 
 // Update shop
 router.patch("/:shopId", shopController.updateShop);
