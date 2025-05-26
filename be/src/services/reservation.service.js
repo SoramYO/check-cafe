@@ -10,7 +10,6 @@ const shopTimeSlotModel = require("../models/shopTimeSlot.model");
 const { RESERVATION_STATUS, RESERVATION_TYPE, NOTIFICATION_TYPE } = require("../constants/enum");
 const { getInfoData, getSelectData } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
-const mongoose = require("mongoose");
 const { isValidObjectId } = mongoose;
 const pointModel = require("../models/point.model");
 const { createNotification } = require("./notification.service");

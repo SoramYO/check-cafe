@@ -2038,6 +2038,18 @@ const deleteMenuItem = async (req) => {
   }
 };
 
+const getShopForStaff = async (req) => {
+  try {
+    const { userId } = req.user;
+    const shop = await shopModel.findOne({ staff_ids: { $in: [userId] } });
+    return shop;
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop for staff");
+  }
+};
+
 module.exports = {
   createShop,
   updateShop,
