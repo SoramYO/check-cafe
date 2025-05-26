@@ -35,7 +35,7 @@ app.use(
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173", // Frontend URL
+    origin: process.env.CLIENT_URL || "http://localhost:3002", // Frontend URL
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true, // Allow cookies and authentication headers

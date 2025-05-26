@@ -69,8 +69,10 @@ const SHOP_MESSAGE = {
   ASSIGN_THEMES_SUCCESS: "Assign themes successfully",
   CREATE_SEAT_SUCCESS: "Create seat successfully",
   UPDATE_SEAT_SUCCESS: "Update seat successfully",
+  DELETE_SEAT_SUCCESS: "Delete seat successfully",
   CREATE_MENU_ITEM_SUCCESS: "Create menu item successfully",
   UPDATE_MENU_ITEM_SUCCESS: "Update menu item successfully",
+  DELETE_MENU_ITEM_SUCCESS: "Delete menu item successfully",
   CREATE_TIME_SLOT_SUCCESS: "Create time slot successfully",
   UPDATE_TIME_SLOT_SUCCESS: "Update time slot successfully",
   SUBMIT_VERIFICATION_SUCCESS: "Submit verification successfully",
@@ -88,6 +90,7 @@ const ADVERTISEMENT_MESSAGE = {
 
 const CATEGORY_MESSAGE = {
   GET_CATEGORY_LIST_SUCCESS: "Get category list successfully",
+  GET_ALL_CATEGORY_SUCCESS: "Get all categories successfully",
   CREATE_CATEGORY_SUCCESS: "Create category successfully",
   UPDATE_CATEGORY_SUCCESS: "Update category successfully",
   GET_PUBLIC_CATEGORY_LIST_SUCCESS: "Get public category list successfully",

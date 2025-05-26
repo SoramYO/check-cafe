@@ -743,7 +743,6 @@ const getReservationDetail = async (req) => {
   try {
     const { reservationId } = req.params;
     const { shopId } = req.body;
-    console.log("🚀 ~ getReservationDetail ~ shopId:", shopId)
     const { userId, role } = req.user;
 
     if (!isValidObjectId(shopId) || !isValidObjectId(reservationId)) {
