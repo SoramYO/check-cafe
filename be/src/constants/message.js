@@ -29,6 +29,15 @@ const USER_MESSAGE = {
   USER_CHANGE_PASSWORD_SUCCESS: "Change password successfully",
   USER_CHANGE_AVATAR_SUCCESS: "Update avatar successfully",
   USER_SAVE_FCM_TOKEN_SUCCESS: "Save FCM token successfully",
+  USER_ADD_FAVORITE_SHOP_SUCCESS: "Add favorite shop successfully",
+  USER_GET_FAVORITE_SHOP_SUCCESS: "Get favorite shop successfully",
+  USER_ADD_FAVORITE_PRODUCT_SUCCESS: "Add favorite product successfully",
+  USER_GET_FAVORITE_PRODUCT_SUCCESS: "Get favorite product successfully",
+  USER_REMOVE_FAVORITE_SHOP_SUCCESS: "Remove favorite shop successfully",
+  USER_REMOVE_FAVORITE_PRODUCT_SUCCESS: "Remove favorite product successfully",
+  USER_BUY_VIP_PACKAGE_SUCCESS: "Buy vip package successfully",
+  USER_RECEIVE_HOOK_SUCCESS: "Receive hook successfully",
+  USER_GET_USER_PACKAGES_SUCCESS: "Get user packages successfully",
 };
 
 const ADMIN_MESSAGE = {
@@ -60,13 +69,16 @@ const SHOP_MESSAGE = {
   ASSIGN_THEMES_SUCCESS: "Assign themes successfully",
   CREATE_SEAT_SUCCESS: "Create seat successfully",
   UPDATE_SEAT_SUCCESS: "Update seat successfully",
+  DELETE_SEAT_SUCCESS: "Delete seat successfully",
   CREATE_MENU_ITEM_SUCCESS: "Create menu item successfully",
   UPDATE_MENU_ITEM_SUCCESS: "Update menu item successfully",
+  DELETE_MENU_ITEM_SUCCESS: "Delete menu item successfully",
   CREATE_TIME_SLOT_SUCCESS: "Create time slot successfully",
   UPDATE_TIME_SLOT_SUCCESS: "Update time slot successfully",
   SUBMIT_VERIFICATION_SUCCESS: "Submit verification successfully",
   GET_ALL_PUBLIC_SUCCESS: "Get all public shops successfully",
   GET_SHOPS_IN_RANGE_SUCCESS: "Get shops in range successfully",
+  GET_SHOP_FOR_STAFF_SUCCESS: "Get shop for staff successfully",
 };
 
 const ADVERTISEMENT_MESSAGE = {
@@ -79,6 +91,7 @@ const ADVERTISEMENT_MESSAGE = {
 
 const CATEGORY_MESSAGE = {
   GET_CATEGORY_LIST_SUCCESS: "Get category list successfully",
+  GET_ALL_CATEGORY_SUCCESS: "Get all categories successfully",
   CREATE_CATEGORY_SUCCESS: "Create category successfully",
   UPDATE_CATEGORY_SUCCESS: "Update category successfully",
   GET_PUBLIC_CATEGORY_LIST_SUCCESS: "Get public category list successfully",
@@ -112,6 +125,12 @@ const VERIFICATION_MESSAGE = {
   DELETE_VERIFICATION_SUCCESS: "Deleted verification successfully",
 };
 
+const PACKAGE_MESSAGE = {
+  CREATE_SUCCESS: "Create package successfully",
+  GET_SUCCESS: "Get package successfully",
+  UPDATE_SUCCESS: "Update package successfully",
+  DELETE_SUCCESS: "Delete package successfully",
+};
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
@@ -123,5 +142,6 @@ module.exports = {
   RESERVATION_MESSAGE,
   NOTIFICATION_MESSAGE,
   CATEGORY_MESSAGE,
-  VERIFICATION_MESSAGE
+  VERIFICATION_MESSAGE,
+  PACKAGE_MESSAGE,
 };
