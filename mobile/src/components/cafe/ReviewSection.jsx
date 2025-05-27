@@ -60,7 +60,7 @@ const ReviewSection = ({
   const renderStars = (rating, size = 20, interactive = false) => {
     const stars = [];
     const roundedRating = interactive ? Math.floor(rating) : rating;
-    
+
     for (let i = 1; i <= 5; i++) {
       if (interactive) {
         stars.push(
@@ -81,7 +81,7 @@ const ReviewSection = ({
         let starIcon = "star-outline";
         if (diff >= 1) starIcon = "star";
         else if (diff > 0) starIcon = "star-half-full";
-        
+
         stars.push(
           <MaterialCommunityIcons
             key={i}
@@ -99,7 +99,7 @@ const ReviewSection = ({
     const stats = Object.entries(reviewStats).map(([stars, count]) => {
       const percentage =
         reviewCount && reviewCount > 0 ? (count / reviewCount) * 100 : 0;
-    
+
       return {
         stars: parseInt(stars),
         percentage,
@@ -301,9 +301,7 @@ const ReviewSection = ({
       <View style={styles.ratingOverview}>
         <View style={styles.ratingMain}>
           <Text style={styles.averageRating}>{rating.toFixed(1)}</Text>
-          <View style={styles.starsContainer}>
-            {renderStars(rating)}
-          </View>
+          <View style={styles.starsContainer}>{renderStars(rating)}</View>
           <Text style={styles.totalReviews}>{reviewCount} đánh giá</Text>
         </View>
         {renderRatingStats()}
@@ -381,6 +379,11 @@ const styles = StyleSheet.create({
     padding: 16,
     marginVertical: 8,
     gap: 16,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   header: {
     flexDirection: "row",
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
   },
   seeAllButton: {
     flexDirection: "row",
@@ -399,12 +402,12 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: "#4A90E2",
+    color: "#7a5545",
     fontWeight: "500",
   },
   ratingOverview: {
     flexDirection: "row",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
     gap: 24,
@@ -417,7 +420,7 @@ const styles = StyleSheet.create({
   averageRating: {
     fontSize: 48,
     fontWeight: "bold",
-    color: "#1E293B",
+    color: "#6B4F3F",
   },
   starsContainer: {
     flexDirection: "row",
@@ -425,7 +428,7 @@ const styles = StyleSheet.create({
   },
   totalReviews: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#7a5545",
   },
   ratingStats: {
     flex: 2,
@@ -439,23 +442,23 @@ const styles = StyleSheet.create({
   ratingStarText: {
     width: 16,
     textAlign: "center",
-    color: "#64748B",
+    color: "#7a5545",
   },
   ratingBar: {
     flex: 1,
     height: 4,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "#E8D3C3",
     borderRadius: 2,
   },
   ratingFill: {
     height: "100%",
-    backgroundColor: "#FFD700",
+    backgroundColor: "#7a5545",
     borderRadius: 2,
   },
   ratingPercentage: {
     width: 40,
     fontSize: 12,
-    color: "#64748B",
+    color: "#7a5545",
     textAlign: "right",
   },
   reviewCard: {
@@ -464,7 +467,12 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E8D3C3",
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   reviewHeader: {
     flexDirection: "row",
@@ -485,19 +493,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#f1f1f1",
     justifyContent: "center",
     alignItems: "center",
   },
   username: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
     marginBottom: 4,
   },
   date: {
     fontSize: 12,
-    color: "#64748B",
+    color: "#7a5545",
   },
   ratingContainer: {
     flexDirection: "row",
@@ -505,7 +513,7 @@ const styles = StyleSheet.create({
   },
   comment: {
     fontSize: 14,
-    color: "#1E293B",
+    color: "#6B4F3F",
     lineHeight: 20,
   },
   photosContainer: {
@@ -536,7 +544,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#7a5545",
   },
   actionButtonTextActive: {
     color: "#EF4444",
@@ -548,7 +556,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#7a5545",
     textAlign: "center",
     marginBottom: 16,
   },
@@ -557,24 +565,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
     padding: 16,
     borderRadius: 12,
   },
   writeReviewText: {
-    color: "white",
+    color: "#FFF9F5",
     fontSize: 16,
     fontWeight: "600",
   },
   writeReviewContainer: {
     padding: 16,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "white",
     borderRadius: 12,
   },
   writeReviewTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#7a5545",
     marginBottom: 16,
   },
   starsInputContainer: {
@@ -586,11 +594,6 @@ const styles = StyleSheet.create({
   starButton: {
     padding: 4,
   },
-  writeReviewButton: {
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
   writeReviewButtonText: {
     fontSize: 16,
     fontWeight: "600",
@@ -601,7 +604,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -616,7 +619,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
   },
   closeButton: {
     padding: 4,
@@ -629,23 +632,24 @@ const styles = StyleSheet.create({
   },
   reviewInput: {
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E8D3C3",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: "#1E293B",
+    color: "#6B4F3F",
     height: 120,
     textAlignVertical: "top",
     marginBottom: 24,
+    backgroundColor: "#FFF9F5",
   },
   submitButton: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
   },
   submitButtonText: {
-    color: "white",
+    color: "#FFF9F5",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -654,14 +658,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
     marginTop: 16,
   },
   reviewedText: {
     fontSize: 16,
-    color: "#10B981",
+    color: "#6B4F3F",
     fontWeight: "500",
   },
 });

@@ -80,25 +80,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const renderStats = () => (
-    <View style={styles.statsContainer}>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{userInfo?.reservation_count}</Text>
-        <Text style={styles.statLabel}>Lượt đặt chỗ</Text>
-      </View>
-      <View style={styles.statDivider} />
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{userInfo?.review_count}</Text>
-        <Text style={styles.statLabel}>Đánh giá</Text>
-      </View>
-      <View style={styles.statDivider} />
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{userInfo?.points}</Text>
-        <Text style={styles.statLabel}>Điểm thưởng</Text>
-      </View>
-    </View>
-  );
-
   const renderMenuItem = (item) => (
     <TouchableOpacity
       key={item.label}
@@ -160,9 +141,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
-        {renderStats()}
-
         {/* Menu Sections */}
         {MENU_SECTIONS.map((section) => (
           <View key={section.title} style={styles.menuSection}>
@@ -182,7 +160,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'white',
   },
   scrollView: {
     flex: 1,
@@ -204,7 +182,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: '#4A90E2',
+    borderColor: '#7a5545',
   },
   userDetails: {
     gap: 4,
@@ -217,7 +195,7 @@ const styles = StyleSheet.create({
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: 'white',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -225,7 +203,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   levelText: {
-    color: '#6366F1',
+    color: '#7a5545',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -233,13 +211,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: '#fcedd6',
     marginTop: 1,
     padding: 20,
     justifyContent: 'space-around',
@@ -268,13 +245,22 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#7a5545',
     marginBottom: 8,
   },
   menuItems: {
     backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#BFA58E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#fcedd6',
+    borderBottomWidth: 0,
   },
   menuItem: {
     flexDirection: 'row',
@@ -282,7 +268,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#fcedd6',
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -295,21 +281,21 @@ const styles = StyleSheet.create({
   },
   version: {
     textAlign: 'center',
-    color: '#94A3B8',
+    color: '#7a5545',
     fontSize: 14,
     marginVertical: 24,
   },
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8E1',
+    backgroundColor: 'white',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
   },
   premiumText: {
-    color: '#FFD700',
+    color: '#7a5545',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -340,21 +326,20 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   packageCard: {
-    backgroundColor: '#F8FAFC',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   recommendedPackage: {
-    borderColor: '#FFD700',
+    borderColor: '#7a5545',
     borderWidth: 2,
   },
   recommendedBadge: {
     position: 'absolute',
     top: -12,
     right: 16,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#7a5545',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -383,18 +368,18 @@ const styles = StyleSheet.create({
   },
   packageDescription: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#7a5545',
     marginBottom: 16,
     lineHeight: 20,
   },
   upgradeButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#7a5545',
     padding: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
   recommendedButton: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#7a5545',
   },
   upgradeButtonText: {
     color: 'white',

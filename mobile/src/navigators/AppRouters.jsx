@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import * as SplashScreen from "expo-splash-screen";
 import AuthNavigator from "./AuthNavigator";
-import MainNavigator from "./MainNavigator";
+import MainNavigatorCustomer from "./customer/MainNavigatorCustomer";
+// import MainNavigatorStaff from "./staff/MainNavigatorStaff";
 import { addAuth, authSelector } from "../redux/reducers/authReducer";
 import { useSelector, useDispatch } from "react-redux";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import MainNavigatorStaff from "./staff/MainNavigatorStaff";
 
 const AppRouters = () => {
   const auth = useSelector(authSelector);
@@ -28,7 +29,11 @@ const AppRouters = () => {
       dispatch(addAuth({ token, user: JSON.parse(userData) }));
   };
 
-  return auth.token ? <MainNavigator /> : <AuthNavigator />;
+  if (!auth.token) return <AuthNavigator />;
+  if (auth.user.role === "CUSTOMER") return <MainNavigatorCustomer />;
+  if (auth.user.role === "STAFF") return <MainNavigatorStaff />;
+
+  return <AuthNavigator />;
 };
 
 export default AppRouters;

@@ -18,7 +18,7 @@ import SeatSelection from "../components/booking/SeatSelection";
 import TimeSlotPicker from "../components/booking/TimeSlotPicker";
 import BookingTypeSelector from "../components/booking/BookingTypeSelector";
 import shopAPI from "../services/shopAPI";
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from "@react-native-community/datetimepicker";
 import reservationAPI from "../services/reservationAPI";
 
 export default function BookingScreen({ navigation, route }) {
@@ -37,7 +37,7 @@ export default function BookingScreen({ navigation, route }) {
   const [specialRequests, setSpecialRequests] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { shopId } = route.params
+  const { shopId } = route.params;
   const [shop, setShop] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -89,10 +89,10 @@ export default function BookingScreen({ navigation, route }) {
   };
 
   const handleDateChange = (event, selectedDate) => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       setShowDatePicker(false);
     }
-    
+
     if (selectedDate) {
       setSelectedDate(selectedDate);
     }
@@ -103,11 +103,11 @@ export default function BookingScreen({ navigation, route }) {
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("vi-VN", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -122,13 +122,17 @@ export default function BookingScreen({ navigation, route }) {
         reservation_date: selectedDate.toISOString(),
         number_of_people: parseInt(guests),
         notes: specialRequests,
-        reservation_type: isPriorityBooking ? "Priority" : "Standard"
+        reservation_type: isPriorityBooking ? "Priority" : "Standard",
       };
-      
-      const response = await reservationAPI.HandleReservation('', reservationData, 'post');
+
+      const response = await reservationAPI.HandleReservation(
+        "",
+        reservationData,
+        "post"
+      );
 
       if (response.status !== 200) {
-        throw new Error('Failed to create reservation');
+        throw new Error("Failed to create reservation");
       }
 
       toast.success("Đặt chỗ thành công!", {
@@ -137,13 +141,13 @@ export default function BookingScreen({ navigation, route }) {
           navigation.dispatch(
             CommonActions.reset({
               index: 0,
-              routes: [{ name: "TabNavigator" }],
+              routes: [{ name: "TabNavigatorCustomer" }],
             })
           );
         },
       });
     } catch (error) {
-      console.error('Booking error:', error);
+      console.error("Booking error:", error);
       toast.error("Có lỗi xảy ra. Vui lòng thử lại sau.");
     } finally {
       setIsSubmitting(false);
@@ -180,32 +184,41 @@ export default function BookingScreen({ navigation, route }) {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Chọn ngày</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.datePickerButton}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <MaterialCommunityIcons name="calendar" size={24} color="#4A90E2" />
-                  <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
+                  <MaterialCommunityIcons
+                    name="calendar"
+                    size={24}
+                    color="#7a5545"
+                  />
+                  <Text style={styles.dateText}>
+                    {formatDate(selectedDate)}
+                  </Text>
                 </TouchableOpacity>
                 {showDatePicker && (
                   <>
                     <DateTimePicker
                       value={selectedDate}
                       mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
                       onChange={handleDateChange}
                       minimumDate={new Date()}
                     />
-                    {Platform.OS === 'ios' && (
+                    {Platform.OS === "ios" && (
                       <View style={styles.datePickerButtons}>
-                        <TouchableOpacity 
-                          style={[styles.datePickerButton, styles.cancelButton]} 
+                        <TouchableOpacity
+                          style={[styles.datePickerButton, styles.cancelButton]}
                           onPress={() => setShowDatePicker(false)}
                         >
                           <Text style={styles.cancelButtonText}>Hủy</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={[styles.datePickerButton, styles.confirmButton]} 
+                        <TouchableOpacity
+                          style={[
+                            styles.datePickerButton,
+                            styles.confirmButton,
+                          ]}
                           onPress={handleConfirmDate}
                         >
                           <Text style={styles.confirmButtonText}>Xác nhận</Text>
@@ -228,7 +241,7 @@ export default function BookingScreen({ navigation, route }) {
                   <MaterialCommunityIcons
                     name="account"
                     size={24}
-                    color="#4A90E2"
+                    color="#7a5545"
                   />
                   <TextInput
                     style={styles.input}
@@ -242,7 +255,7 @@ export default function BookingScreen({ navigation, route }) {
                   <MaterialCommunityIcons
                     name="phone"
                     size={24}
-                    color="#4A90E2"
+                    color="#7a5545"
                   />
                   <TextInput
                     style={styles.input}
@@ -268,7 +281,7 @@ export default function BookingScreen({ navigation, route }) {
                     <MaterialCommunityIcons
                       name="minus"
                       size={24}
-                      color="#4A90E2"
+                      color="#7a5545"
                     />
                   </TouchableOpacity>
                   <Text style={styles.guestsNumber}>{guests}</Text>
@@ -281,7 +294,7 @@ export default function BookingScreen({ navigation, route }) {
                     <MaterialCommunityIcons
                       name="plus"
                       size={24}
-                      color="#4A90E2"
+                      color="#7a5545"
                     />
                   </TouchableOpacity>
                 </View>
@@ -353,7 +366,7 @@ export default function BookingScreen({ navigation, route }) {
                       : "table-furniture"
                   }
                   size={20}
-                  color="#4A90E2"
+                  color="#7a5545"
                 />
                 <Text style={styles.summaryText}>
                   {bookingType === "scenic"
@@ -366,7 +379,7 @@ export default function BookingScreen({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="account"
                   size={20}
-                  color="#4A90E2"
+                  color="#7a5545"
                 />
                 <Text style={styles.summaryText}>{name}</Text>
               </View>
@@ -375,7 +388,7 @@ export default function BookingScreen({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="phone"
                   size={20}
-                  color="#4A90E2"
+                  color="#7a5545"
                 />
                 <Text style={styles.summaryText}>{phone}</Text>
               </View>
@@ -384,7 +397,7 @@ export default function BookingScreen({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="calendar-clock"
                   size={20}
-                  color="#4A90E2"
+                  color="#7a5545"
                 />
                 <Text style={styles.summaryText}>
                   {selectedTimeSlot?.start} đến {selectedTimeSlot?.end}
@@ -395,7 +408,7 @@ export default function BookingScreen({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="account-group"
                   size={20}
-                  color="#4A90E2"
+                  color="#7a5545"
                 />
                 <Text style={styles.summaryText}>{guests} người</Text>
               </View>
@@ -416,7 +429,7 @@ export default function BookingScreen({ navigation, route }) {
                   <MaterialCommunityIcons
                     name="note-text"
                     size={20}
-                    color="#4A90E2"
+                    color="#7a5545"
                   />
                   <Text style={styles.summaryText}>{specialRequests}</Text>
                 </View>
@@ -443,7 +456,7 @@ export default function BookingScreen({ navigation, route }) {
               <MaterialCommunityIcons
                 name="arrow-left"
                 size={20}
-                color="#4A90E2"
+                color="#7a5545"
               />
               <Text style={styles.backButtonText}>Quay lại</Text>
             </TouchableOpacity>
@@ -475,7 +488,7 @@ export default function BookingScreen({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="arrow-right"
                   size={20}
-                  color="#4A90E2"
+                  color="#7a5545"
                 />
               )}
             </TouchableOpacity>
@@ -489,7 +502,7 @@ export default function BookingScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
   },
   scrollView: {
     flex: 1,
@@ -519,7 +532,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#7a5545",
   },
   inputGroup: {
     gap: 12,
@@ -527,46 +540,56 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#1E293B",
+    color: "#7a5545",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
     borderRadius: 12,
     padding: 16,
     gap: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#1E293B",
+    color: "#7a5545",
   },
   guestsContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 24,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   guestButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#f1f1f1",
     justifyContent: "center",
     alignItems: "center",
   },
   guestsNumber: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#7a5545",
     minWidth: 40,
     textAlign: "center",
   },
@@ -579,18 +602,23 @@ const styles = StyleSheet.create({
     width: "100%",
     textAlignVertical: "top",
     fontSize: 16,
-    color: "#1E293B",
+    color: "#7a5545",
   },
   summaryContainer: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
     borderRadius: 12,
     padding: 16,
     gap: 12,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#7a5545",
     marginBottom: 8,
   },
   summaryItem: {
@@ -600,7 +628,7 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 16,
-    color: "#1E293B",
+    color: "#7a5545",
     flex: 1,
   },
   priceSummary: {
@@ -615,12 +643,12 @@ const styles = StyleSheet.create({
   priceTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#7a5545",
   },
   totalPrice: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#4A90E2",
+    color: "#7a5545",
   },
   buttonContainer: {
     flexDirection: "row",
@@ -637,17 +665,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   prevButton: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
   nextButton: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
     borderWidth: 1,
-    borderColor: "#4A90E2",
+    borderColor: "#E2E8F0",
   },
   submitButton: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
   },
   buttonDisabled: {
     opacity: 0.7,
@@ -657,18 +685,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   nextButtonText: {
-    color: "#4A90E2",
+    color: "#7a5545",
   },
   submitButtonText: {
     color: "white",
   },
   backButtonText: {
-    color: "#4A90E2",
+    color: "#7a5545",
     fontSize: 16,
     fontWeight: "600",
   },
   priorityOption: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -676,8 +704,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   priorityOptionActive: {
-    backgroundColor: "#F0F9FF",
-    borderColor: "#4A90E2",
+    backgroundColor: "#f1f1f1",
+    borderColor: "#E2E8F0",
   },
   priorityHeader: {
     flexDirection: "row",
@@ -692,59 +720,64 @@ const styles = StyleSheet.create({
   priorityTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#64748B",
+    color: "#7a5545",
   },
   priorityTitleActive: {
-    color: "#1E293B",
+    color: "#7a5545",
   },
   priorityPrice: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#4A90E2",
+    color: "#7a5545",
   },
   priorityDescription: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#7a5545",
     lineHeight: 20,
   },
   datePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f1f1",
     borderRadius: 12,
     padding: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   dateText: {
     fontSize: 16,
-    color: '#1E293B',
+    color: "#7a5545",
   },
   datePickerButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: 12,
     marginTop: 8,
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: "#f1f1f1",
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   confirmButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: "#7a5545",
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   cancelButtonText: {
-    color: '#64748B',
+    color: "#7a5545",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   confirmButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

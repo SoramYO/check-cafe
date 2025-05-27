@@ -1,12 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 
-interface StepIndicatorProps {
-  currentStep: number;
-  totalSteps: number;
-}
-
-export default function StepIndicator({ currentStep, totalSteps }: StepIndicatorProps) {
+export default function StepIndicator({ currentStep, totalSteps }) {
   return (
     <View style={styles.stepIndicator}>
       {Array.from({ length: totalSteps }).map((_, index) => (
@@ -35,27 +30,27 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E2E8F0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   stepActive: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: "#7a5545",
   },
   stepLine: {
     width: 24,
     height: 2,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: "#E2E8F0",
   },
   stepLineActive: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: "#7a5545",
   },
   stepText: {
-    color: '#64748B',
+    color: "#7a5545",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   stepTextActive: {
-    color: 'white',
+    color: "white",
   },
 });

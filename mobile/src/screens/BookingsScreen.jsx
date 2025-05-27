@@ -211,7 +211,7 @@ export default function BookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF9F5",
+    backgroundColor: "white",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontFamily: "Poppins_600SemiBold",
-    color: "#6B4F3F",
+    color: "#7a5545",
     fontWeight: "bold",
   },
   tabContainer: {
@@ -238,15 +238,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   activeTab: {
-    backgroundColor: "#6B4F3F",
+    backgroundColor: "#7a5545",
   },
   tabText: {
     fontFamily: "Poppins_500Medium",
-    color: "#6B4F3F",
+    color: "#7a5545",
     fontSize: 14,
   },
   activeTabText: {
-    color: "#FFF9F5",
+    color: "white",
   },
   listContainer: {
     padding: 20,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderColor: "#BFA58E",
     borderWidth: 1,
-    shadowColor: "#6B4F3F",
+    shadowColor: "#7a5545",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 12,
-    backgroundColor: "#FFF9F5",
+    backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#BFA58E",
   },
@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontFamily: "Poppins_500Medium",
+    color: "#7a5545",
   },
   pendingText: {
     color: "#F59E0B",
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
   cafeName: {
     fontSize: 20,
     fontFamily: "Poppins_600SemiBold",
-    color: "#6B4F3F",
+    color: "#7a5545",
     marginBottom: 12,
   },
   detailsContainer: {
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 15,
     fontFamily: "Poppins_400Regular",
-    color: "#6B4F3F",
+    color: "#7a5545",
   },
   actionButtons: {
     flexDirection: "row",
@@ -364,10 +365,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   primaryButton: {
-    backgroundColor: "#6B4F3F",
+    backgroundColor: "#7a5545",
   },
   primaryButtonText: {
-    color: "#FFF9F5",
+    color: "white",
     fontFamily: "Poppins_500Medium",
     fontSize: 14,
   },

@@ -182,7 +182,7 @@ export default function CafeDetailScreen({ navigation, route }) {
           <MaterialCommunityIcons
             name={amenitie.icon}
             size={24}
-            color="#4A90E2"
+            color="#7a5545"
           />
           <Text style={styles.featureLabel}>{amenitie.label}</Text>
         </View>
@@ -264,7 +264,7 @@ export default function CafeDetailScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="arrow-left" size={26} color="white" />
+          <MaterialCommunityIcons name="arrow-left" size={26} color="#7a5545" />
         </TouchableOpacity>
 
         {/* Share Button */}
@@ -272,7 +272,7 @@ export default function CafeDetailScreen({ navigation, route }) {
           <MaterialCommunityIcons
             name="share-variant"
             size={24}
-            color="white"
+            color="#7a5545"
           />
         </TouchableOpacity>
       </View>
@@ -309,7 +309,7 @@ export default function CafeDetailScreen({ navigation, route }) {
           <MaterialCommunityIcons
             name={isFavorite ? "heart" : "heart-outline"}
             size={28}
-            color={isFavorite ? "#FF4B4B" : "#4A90E2"}
+            color={isFavorite ? "#FF4B4B" : "#7a5545"}
           />
         </TouchableOpacity>
 
@@ -325,7 +325,6 @@ export default function CafeDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   content: {
@@ -335,13 +334,18 @@ const styles = StyleSheet.create({
   descriptionContainer: {
     marginBottom: 20,
     padding: 16,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFF9F5",
     borderRadius: 12,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   description: {
     fontSize: 15,
     lineHeight: 24,
-    color: "#64748B",
+    color: "#6B4F3F",
   },
   featuresContainer: {
     flexDirection: "row",
@@ -349,8 +353,13 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 24,
     padding: 16,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFF9F5",
     borderRadius: 12,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   featureItem: {
     alignItems: "center",
@@ -359,13 +368,13 @@ const styles = StyleSheet.create({
   },
   featureLabel: {
     fontSize: 12,
-    color: "#64748B",
+    color: "#6B4F3F",
     textAlign: "center",
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
     marginBottom: 16,
   },
   sectionHeader: {
@@ -381,7 +390,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: "#4A90E2",
+    color: "#6B4F3F",
     fontWeight: "500",
   },
   popularDishesContainer: {
@@ -393,19 +402,16 @@ const styles = StyleSheet.create({
   },
   popularDishCard: {
     width: 300,
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    borderColor: "#E8D3C3",
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
+    elevation: 2,
   },
   popularDishImage: {
     width: "100%",
@@ -437,10 +443,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
   },
   popularDishPriceTag: {
-    backgroundColor: "#F0F9FF",
+    backgroundColor: "#fcedd6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -448,11 +454,11 @@ const styles = StyleSheet.create({
   popularDishPrice: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#4A90E2",
+    color: "#6B4F3F",
   },
   popularDishDescription: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#6B4F3F",
     lineHeight: 20,
   },
   popularDishFooter: {
@@ -469,17 +475,17 @@ const styles = StyleSheet.create({
   popularDishRatingText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
   },
   popularDishRatingCount: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#BFA58E",
   },
   addToCartButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F0F9FF",
+    backgroundColor: "#fcedd6",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -488,32 +494,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     gap: 16,
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
     borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
+    borderTopColor: "#E8D3C3",
   },
   favoriteButton: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#fcedd6",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E8D3C3",
   },
   bookingButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
     padding: 16,
     borderRadius: 12,
     gap: 8,
   },
   bookingButtonText: {
-    color: "white",
+    color: "#FFF9F5",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -524,10 +530,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   shareButton: {
     position: "absolute",
@@ -536,9 +547,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
 });

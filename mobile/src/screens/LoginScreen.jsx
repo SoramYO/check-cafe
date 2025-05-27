@@ -11,10 +11,10 @@ import {
   Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { toast } from "sonner-native";
 import { useAuth } from "../hooks/useAuth";
 import authenticationAPI from "../services/authAPI";
+import { useShop } from "../context/ShopContext";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -36,7 +36,6 @@ export default function LoginScreen({ navigation }) {
         { email, password },
         "post"
       );
-      console.log("response", response);
       if (response.status === 200) {
         await login(response.data.tokens.accessToken, response.data.user);
         toast.success("Đăng nhập thành công");
@@ -65,13 +64,13 @@ export default function LoginScreen({ navigation }) {
           <MaterialCommunityIcons
             name="email"
             size={24}
-            color="white"
+            color="#6b4544"
             style={styles.icon}
           />
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="rgba(255,255,255,0.7)"
+            placeholderTextColor="#6b4544"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -83,13 +82,13 @@ export default function LoginScreen({ navigation }) {
           <MaterialCommunityIcons
             name="lock"
             size={24}
-            color="white"
+            color="#6b4544"
             style={styles.icon}
           />
           <TextInput
             style={styles.input}
             placeholder="Mật khẩu"
-            placeholderTextColor="rgba(255,255,255,0.7)"
+            placeholderTextColor="#6b4544"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -98,7 +97,7 @@ export default function LoginScreen({ navigation }) {
             <MaterialCommunityIcons
               name={showPassword ? "eye-off" : "eye"}
               size={24}
-              color="white"
+              color="#6b4544"
             />
           </TouchableOpacity>
         </View>
@@ -113,7 +112,7 @@ export default function LoginScreen({ navigation }) {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#4A90E2" />
+            <ActivityIndicator color="#f1f1f1" />
           ) : (
             <Text style={styles.loginButtonText}>Đăng nhập</Text>
           )}
@@ -134,9 +133,7 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <LinearGradient colors={["#6B4F3F", "#BFA58E"]} style={styles.container}>
-        {renderContent()}
-      </LinearGradient>
+      {renderContent()}
     </KeyboardAvoidingView>
   );
 }
@@ -144,6 +141,7 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
   },
   logo: {
     width: 150,
@@ -161,11 +159,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "white",
+    color: "#745745",
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(0,0,0,0.8)",
     marginTop: 5,
   },
   form: {
@@ -174,7 +172,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(107, 79, 63, 0.2)",
+    backgroundColor: "#f1f1f1",
     borderRadius: 12,
     padding: 12,
     marginBottom: 15,
@@ -184,25 +182,25 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: "white",
+    color: "#6b4544",
     fontSize: 16,
   },
   forgotPassword: {
     alignSelf: "flex-end",
   },
   forgotPasswordText: {
-    color: "white",
+    color: "#745745",
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: "#FFF9F5",
+    backgroundColor: "#745745",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 20,
   },
   loginButtonText: {
-    color: "#6B4F3F",
+    color: "white",
     fontSize: 18,
     fontWeight: "600",
   },
@@ -215,11 +213,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   registerText: {
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(0,0,0,0.8)",
     fontSize: 16,
   },
   registerLink: {
-    color: "white",
+    color: "#745745",
     fontSize: 16,
     fontWeight: "bold",
   },

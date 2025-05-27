@@ -78,7 +78,7 @@ export default function FeaturedDetailScreen({ navigation, route }) {
       key={feature.title}
       style={styles.featureCard}
     >
-      <MaterialCommunityIcons name={feature.icon} size={32} color="#4A90E2" />
+      <MaterialCommunityIcons name={feature.icon} size={32} color="#7a5545" />
       <View style={styles.featureContent}>
         <Text style={styles.featureTitle}>{feature.title}</Text>
         <Text style={styles.featureDescription}>{feature.description}</Text>
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#745745',
     padding: 16,
     borderRadius: 12,
     gap: 8,

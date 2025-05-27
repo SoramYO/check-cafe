@@ -1,22 +1,21 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import CafeDetailScreen from "../screens/CafeDetailScreen";
-import TabNavigator from "./TabNavigator";
-import BookingScreen from "../screens/BookingScreen";
-import ProfileScreen from "../screens/ProfileScreen";
-import EditProfileScreen from "../screens/EditProfileScreen";
-import NotificationsScreen from "../screens/NotificationsScreen";
-import VoucherScreen from "../screens/VoucherScreen";
-import FavoritesScreen from "../screens/FavoritesScreen";
-import LanguageScreen from "../screens/LanguageScreen";
-import CheckinCameraScreen from "../screens/CheckinCameraScreen";
-import FeaturedDetailScreen from "../screens/FeaturedDetailScreen";
-import BookingDetailScreen from "../screens/BookingDetailScreen";
-import DefaultLocationScreen from "../screens/DefaultLocationScreen";
-import ThemeScreen from "../screens/ThemeScreen";
-import PremiumScreen from '../screens/PremiumScreen';
+import CafeDetailScreen from "../../screens/CafeDetailScreen";
+import BookingScreen from "../../screens/BookingScreen";
+import EditProfileScreen from "../../screens/EditProfileScreen";
+import NotificationsScreen from "../../screens/NotificationsScreen";
+import VoucherScreen from "../../screens/VoucherScreen";
+import FavoritesScreen from "../../screens/FavoritesScreen";
+import LanguageScreen from "../../screens/LanguageScreen";
+import CheckinCameraScreen from "../../screens/CheckinCameraScreen";
+import FeaturedDetailScreen from "../../screens/FeaturedDetailScreen";
+import BookingDetailScreen from "../../screens/BookingDetailScreen";
+import DefaultLocationScreen from "../../screens/DefaultLocationScreen";
+import ThemeScreen from "../../screens/ThemeScreen";
+import PremiumScreen from "../../screens/PremiumScreen";
+import TabNavigatorCustomer from "./TabNavigatorCustomer";
 
-const MainNavigator = () => {
+const MainNavigatorCustomer = () => {
   const Stack = createNativeStackNavigator();
 
   return (
@@ -27,7 +26,7 @@ const MainNavigator = () => {
         animation: "fade_from_bottom",
       }}
     >
-      <Stack.Screen name="TabNavigator" component={TabNavigator} />
+      <Stack.Screen name="TabNavigatorCustomer" component={TabNavigatorCustomer} />
       <Stack.Screen name="CafeDetail" component={CafeDetailScreen} />
       <Stack.Screen name="Booking" component={BookingScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
@@ -45,4 +44,4 @@ const MainNavigator = () => {
   );
 };
 
-export default MainNavigator;
+export default MainNavigatorCustomer;

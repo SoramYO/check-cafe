@@ -24,7 +24,7 @@ export default function BookingDetailScreen({ route }) {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <MaterialCommunityIcons name="arrow-left" size={26} color="#1E293B" />
+          <MaterialCommunityIcons name="arrow-left" size={26} color="#7a5545" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chi tiết đặt chỗ</Text>
         <View style={{ width: 40 }} />
@@ -42,7 +42,7 @@ export default function BookingDetailScreen({ route }) {
             <MaterialCommunityIcons
               name="map-marker"
               size={20}
-              color="#4A90E2"
+              color="#7a5545"
             />
             <Text style={styles.address}>{booking.shop_id?.address}</Text>
           </View>
@@ -137,7 +137,10 @@ export default function BookingDetailScreen({ route }) {
             <View style={styles.qrSection}>
               <Text style={styles.sectionTitle}>Mã QR Check-in</Text>
               <View style={styles.qrContainer}>
-                <Image source={{ uri: booking?.qr_code }} style={styles.qrImage} />
+                <Image
+                  source={{ uri: booking?.qr_code }}
+                  style={styles.qrImage}
+                />
               </View>
               <Text style={styles.qrHint}>
                 Vui lòng xuất trình mã này khi đến quán để xác nhận đặt chỗ.
@@ -230,7 +233,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#4A90E2",
+    color: "#7a5545",
     marginBottom: 10,
   },
   infoRow: {

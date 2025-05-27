@@ -9,6 +9,7 @@ import store from "./src/redux/store";
 import { Provider } from "react-redux";
 import { StatusBar } from "expo-status-bar";
 import { LocationProvider, useLocation } from "./src/context/LocationContext";
+import { ShopProvider } from "./src/context/ShopContext";
 
 export default function App() {
   const [isLoaded] = useFonts({
@@ -25,11 +26,13 @@ export default function App() {
       <Provider store={store}>
         <SafeAreaProvider style={styles.container}>
           <Toaster />
-          <LocationProvider>
-            <NavigationContainer>
-              <AppRouters />
-            </NavigationContainer>
-          </LocationProvider>
+          <ShopProvider>
+            <LocationProvider>
+              <NavigationContainer>
+                <AppRouters />
+              </NavigationContainer>
+            </LocationProvider>
+          </ShopProvider>
         </SafeAreaProvider>
       </Provider>
     </GestureHandlerRootView>
