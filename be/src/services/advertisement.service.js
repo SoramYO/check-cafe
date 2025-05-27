@@ -17,7 +17,7 @@ class AdvertisementService {
     } = req.query;
 
     const query = {
-      status: "Active",
+      status: "Approved",
     };
 
     if (search) {

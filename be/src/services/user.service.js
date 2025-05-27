@@ -206,7 +206,7 @@ class userService {
       query,
       page,
       limit,
-      select: "_id full_name email role is_active",
+      select: "_id full_name email avatar role is_active createdAt",
       search,
       searchFields: ["full_name", "email"],
     });

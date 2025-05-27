@@ -168,6 +168,14 @@ class AdminController {
       next(error);
     }
   };
+
+  getUserById = async (req, res, next) => {
+    try {
+      res.status(200).json(await adminService.getUserById(req.params.id));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new AdminController();

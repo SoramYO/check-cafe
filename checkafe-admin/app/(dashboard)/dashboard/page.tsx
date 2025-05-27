@@ -644,7 +644,7 @@ export default function DashboardPage() {
                 <CardContent className="space-y-3">
                   {Object.entries(statsData.reviews.distribution).reverse().map(([star, count]) => (
                     <div key={star} className="flex items-center gap-2">
-                      <span className="text-sm w-8">{star} ⭐</span>
+                      <span className="text-sm w-8">{star}⭐</span>
                       <Progress value={(count / statsData.reviews.total) * 100} className="flex-1" />
                       <span className="text-sm text-muted-foreground w-8">{count}</span>
                     </div>

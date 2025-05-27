@@ -32,9 +32,7 @@ export function UserDetailModal({ userId, onClose }: UserDetailModalProps) {
     try {
       setLoading(true)
       const response = await authorizedAxiosInstance.get<UserDetailResponse>(`/v1/admin/users/${userId}`)
-      if (response.data.status === 200) {
-        setUser(response.data.data.user)
-      }
+      setUser(response.data as User)
     } catch (error) {
       console.error('Error fetching user details:', error)
     } finally {

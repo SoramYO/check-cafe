@@ -830,6 +830,19 @@ class AdminService {
       };
     }
   };
+
+  getUserById = async (id) => {
+    try {
+      const user = await userModel.findById(id);
+      return user;
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
 }
 
 module.exports = new AdminService();

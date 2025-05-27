@@ -27,11 +27,16 @@ export interface UserResponse {
 }
 
 export interface UserDetailResponse {
-  message: string
-  status: number
-  data: {
-    user: User
-  }
+  _id: string
+  full_name: string
+  phone: string 
+  points: number
+  vip_status: boolean
+  role: string
+  email: string
+  avatar: string
+  is_active: boolean
+  createdAt: string
 }
 
 export interface FilterParams {

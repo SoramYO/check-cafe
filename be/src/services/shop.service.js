@@ -636,6 +636,12 @@ const getShop = async (req) => {
       throw new NotFoundError("Shop not found");
     }
 
+    // Lấy main image
+    const mainImageDoc = await shopImageModel
+      .findOne({ shop_id: shopId })
+      .select("url publicId")
+      .lean();
+    const mainImage = mainImageDoc ? { url: mainImageDoc.url, publicId: mainImageDoc.publicId } : null;
 
     // Lấy thông tin liên quan
     const images = await shopImageModel
@@ -689,6 +695,7 @@ const getShop = async (req) => {
           ],
           object: shop,
         }),
+        mainImage,
         images,
         seats,
         menuItems,
