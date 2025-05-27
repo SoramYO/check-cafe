@@ -71,7 +71,7 @@ export default function SpotSelection({ selectedSeat, onSelectSeat, seats, booki
               <Text style={styles.spotDescription}>{seat.description}</Text>
               
               <View style={styles.capacityContainer}>
-                <MaterialCommunityIcons name="account-group" size={16} color="#64748B" />
+                <MaterialCommunityIcons name="account-group" size={16} color="#7a5545" />
                 <Text style={styles.capacityText}>Sức chứa: {seat.capacity} người</Text>
               </View>
 
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1E293B',
+    color: '#7a5545',
     marginBottom: 12,
   },
   spotsContainer: {
@@ -111,10 +111,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   spotCardSelected: {
-    borderColor: '#4A90E2',
-    backgroundColor: '#F0F9FF',
+    borderColor: '#7a5545',
+    backgroundColor: '#f1f1f1',
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   spotCardUnavailable: {
     opacity: 0.7,
@@ -135,10 +145,10 @@ const styles = StyleSheet.create({
   spotName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#7a5545',
   },
   unavailableBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#fcedd6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -150,7 +160,7 @@ const styles = StyleSheet.create({
   },
   spotDescription: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#7a5545',
     marginBottom: 12,
   },
   capacityContainer: {
@@ -161,10 +171,10 @@ const styles = StyleSheet.create({
   },
   capacityText: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#7a5545',
   },
   regularBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#fcedd6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -172,7 +182,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   regularText: {
-    color: '#64748B',
+    color: '#7a5545',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -188,7 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   featureText: {
-    color: '#64748B',
+    color: '#7a5545',
     fontSize: 12,
     fontWeight: '500',
   },

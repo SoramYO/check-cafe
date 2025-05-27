@@ -51,7 +51,7 @@ export default function FeaturedBanner() {
   }, [advertisements.length]);
 
   const getAdvertisements = async (page = 1, limit = 10) => {
-    const response = await advertisementAPI.HandleAdvertisement(`?page=${page}&limit=${limit}`);
+    const response = await advertisementAPI.HandleAdvertisement(`?page=${page}&limit=${limit}&status=`);
     setAdvertisements(response.data.data);
     console.log(response.data.data);
   };
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6B4F3F',
+    backgroundColor: '#7a5545',
     alignSelf: 'flex-start',
     paddingHorizontal: 18,
     paddingVertical: 10,

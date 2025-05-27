@@ -24,7 +24,7 @@ export default function BookingTypeSelector({ selectedType, onSelectType }) {
               <MaterialCommunityIcons
                 name="table-furniture"
                 size={24}
-                color={selectedType === 'regular' ? '#4A90E2' : '#64748B'}
+                color={selectedType === 'regular' ? '#7a5545' : '#7a5545'}
               />
               <Text style={[
                 styles.optionTitle,
@@ -59,7 +59,7 @@ export default function BookingTypeSelector({ selectedType, onSelectType }) {
               <MaterialCommunityIcons
                 name="image-filter-hdr"
                 size={24}
-                color={selectedType === 'scenic' ? '#4A90E2' : '#64748B'}
+                color={selectedType === 'scenic' ? '#7a5545' : '#7a5545'}
               />
               <Text style={[
                 styles.optionTitle,
@@ -88,8 +88,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1E293B',
+    fontWeight: "500",
+    color: "#7a5545",
     marginBottom: 12,
   },
   optionsContainer: {
@@ -97,14 +97,24 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     borderRadius: 12,
-    backgroundColor: 'white',
-    overflow: 'hidden',
+    backgroundColor: "white",
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   selectedCard: {
-    borderColor: '#4A90E2',
-    backgroundColor: '#F0F9FF',
+    borderColor: "#7a5545",
+    backgroundColor: "#f1f1f1",
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   optionImage: {
     width: '100%',
@@ -121,15 +131,15 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontWeight: "600",
+    color: "#7a5545",
   },
   selectedText: {
-    color: '#4A90E2',
+    color: "#7a5545",
   },
   optionDescription: {
     fontSize: 14,
-    color: '#64748B',
+    color: "#7a5545",
   },
   priceContainer: {
     flexDirection: 'row',
@@ -139,11 +149,11 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: "#7a5545",
   },
   price: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#4A90E2',
+    fontWeight: "600",
+    color: "#7a5545",
   },
 });

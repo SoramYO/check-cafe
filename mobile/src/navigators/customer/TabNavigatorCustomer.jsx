@@ -1,13 +1,12 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Platform, Text } from "react-native";
-import ProfileScreen from "./../screens/ProfileScreen";
-import DiscoverScreen from "../screens/DiscoverScreen";
-import MapScreen from "../screens/MapScreen";
-import BookingsScreen from "../screens/BookingsScreen";
+import DiscoverScreen from "../../screens/DiscoverScreen";
+import MapScreen from "../../screens/MapScreen";
+import BookingsScreen from "../../screens/BookingsScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import ProfileScreen from "../../screens/ProfileScreen";
 
-const TabNavigator = () => {
+const TabNavigatorCustomer = () => {
   const Tab = createBottomTabNavigator();
 
   return (
@@ -36,8 +35,8 @@ const TabNavigator = () => {
           marginTop: 8,
         },
         
-        tabBarActiveTintColor: '#4A90E2',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: '#7a5545',
+        tabBarInactiveTintColor: '#7a5545',
       })}
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} />
@@ -48,4 +47,4 @@ const TabNavigator = () => {
   );
 };
 
-export default TabNavigator;
+export default TabNavigatorCustomer;

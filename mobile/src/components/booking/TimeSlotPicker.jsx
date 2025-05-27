@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#7a5545',
     marginBottom: 8,
   },
   timeSlotsContainer: {
@@ -47,17 +47,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#f1f1f1',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   timeSlotActive: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
+    backgroundColor: '#7a5545',
+    borderColor: '#7a5545',
   },
   timeSlotText: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#7a5545',
     fontWeight: '500',
   },
   timeSlotTextActive: {

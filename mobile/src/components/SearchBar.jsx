@@ -181,7 +181,7 @@ const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: '#6B4F3F',
+    backgroundColor: '#fff',
   },
   searchContainer: {
     flexDirection: 'row',

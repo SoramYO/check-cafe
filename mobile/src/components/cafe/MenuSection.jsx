@@ -38,7 +38,7 @@ const MenuSection = ({
       <MaterialCommunityIcons
         name={getCategoryIcon(category)}
         size={20}
-        color={selectedCategory === category ? "white" : "#64748B"}
+        color={selectedCategory === category ? "white" : "#7a5545"}
         style={styles.categoryIcon}
       />
       <Text
@@ -159,6 +159,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginVertical: 8,
     maxHeight: 700,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   header: {
     flexDirection: "row",
@@ -170,21 +175,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#BFA58E",
   },
   filterButton: {
     padding: 10,
     borderRadius: 12,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#fcedd6",
   },
   categoriesWrapper: {
     paddingBottom: 8,
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
   },
   categoriesContainer: {
     flexGrow: 0,
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 24,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#fcedd6",
     gap: 6,
     justifyContent: "center",
   },
@@ -207,33 +212,33 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   categoryTabActive: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
   },
   categoryTabText: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#6B4F3F",
     fontWeight: "500",
   },
   categoryTabTextActive: {
-    color: "white",
+    color: "#FFF9F5",
   },
   menuList: {
     padding: 16,
     gap: 16,
   },
   menuItem: {
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
+    borderColor: "#E8D3C3",
+    shadowColor: "#BFA58E",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
     elevation: 2,
   },
   menuItemContent: {
@@ -252,13 +257,13 @@ const styles = StyleSheet.create({
   menuItemName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#6B4F3F",
     flex: 1,
   },
   popularBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEF9C3",
+    backgroundColor: "#fcedd6",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -266,12 +271,12 @@ const styles = StyleSheet.create({
   },
   popularText: {
     fontSize: 12,
-    color: "#854D0E",
+    color: "#6B4F3F",
     fontWeight: "500",
   },
   menuItemDescription: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#BFA58E",
     lineHeight: 20,
   },
   menuItemFooter: {
@@ -283,7 +288,7 @@ const styles = StyleSheet.create({
   menuItemPrice: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#4A90E2",
+    color: "#7a5545",
   },
   imageContainer: {
     position: "relative",
@@ -300,10 +305,10 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "white",
+    backgroundColor: "#FFF9F5",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: "#BFA58E",
     shadowOffset: {
       width: 0,
       height: 2,

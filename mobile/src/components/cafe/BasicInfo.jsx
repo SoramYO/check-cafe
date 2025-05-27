@@ -61,24 +61,24 @@ export default function BasicInfo({ shop }) {
       </View>
 
       <View style={styles.row}>
-        <MaterialCommunityIcons name="palette" size={24} color="#666" />
+        <MaterialCommunityIcons name="palette" size={24} color="#7a5545" />
         <Text style={styles.text}>Chủ đề: {shop?.theme_ids.map(theme => theme.name).join(', ')}</Text>
       </View>
 
       <TouchableOpacity style={styles.row} onPress={handleDirections}>
-        <MaterialCommunityIcons name="map-marker" size={24} color="#666" />
+        <MaterialCommunityIcons name="map-marker" size={24} color="#7a5545" />
         <Text style={styles.text}>{shop?.address}</Text>
-        <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#7a5545" />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.row} onPress={handleCall}>
-        <MaterialCommunityIcons name="phone" size={24} color="#666" />
+        <MaterialCommunityIcons name="phone" size={24} color="#7a5545" />
         <Text style={styles.text}>{shop?.phone}</Text>
-        <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#7a5545" />
       </TouchableOpacity>
 
       <View style={styles.row}>
-        <MaterialCommunityIcons name="clock" size={24} color="#666" />
+        <MaterialCommunityIcons name="clock" size={24} color="#7a5545" />
         <Text style={styles.text}>{getCurrentDaySchedule()}</Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
           <Text style={styles.statusText}>{getStatusText()}</Text>
@@ -87,9 +87,9 @@ export default function BasicInfo({ shop }) {
 
       {shop?.website && (
         <TouchableOpacity style={styles.row} onPress={handleWebsite}>
-          <MaterialCommunityIcons name="web" size={24} color="#666" />
+          <MaterialCommunityIcons name="web" size={24} color="#7a5545" />
           <Text style={styles.text}>Website</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#7a5545" />
         </TouchableOpacity>
       )}
     </View>
@@ -99,40 +99,48 @@ export default function BasicInfo({ shop }) {
 const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#BFA58E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   name: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#6B4F3F",
     marginBottom: 8,
   },
   ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 15,
     gap: 4,
   },
   rating: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#6B4F3F",
   },
   reviews: {
     fontSize: 14,
-    color: '#666',
+    color: "#BFA58E",
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#E8D3C3",
     gap: 10,
   },
   text: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: "#6B4F3F",
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -140,8 +148,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: 'white',
+    color: "#FFF9F5",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
