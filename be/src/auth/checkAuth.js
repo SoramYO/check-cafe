@@ -121,7 +121,7 @@ const checkRole = (allowedRoles) => {
           message: "User information or role not found",
         });
       }
-
+      
       const userRole = req.user.role;
 
       if (!allowedRoles.includes(userRole)) {

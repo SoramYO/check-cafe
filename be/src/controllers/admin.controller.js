@@ -140,6 +140,42 @@ class AdminController {
       next(error);
     }
   };
+
+  // Dashboard Stats
+  getDashboardStats = async (req, res, next) => {
+    try {
+      const result = await adminService.getDashboardStats();
+      new OK({ message: "Get dashboard stats successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Create new user
+  createUser = async (req, res, next) => {
+    try {
+      res.status(201).json(await adminService.createUser(req.body));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get shop owners without shops
+  getShopOwnersWithoutShops = async (req, res, next) => {
+    try {
+      res.status(200).json(await adminService.getShopOwnersWithoutShops(req.query));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getUserById = async (req, res, next) => {
+    try {
+      res.status(200).json(await adminService.getUserById(req.params.id));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new AdminController();

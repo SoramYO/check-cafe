@@ -29,7 +29,12 @@ export default function BasicInfo({ shop }) {
     const schedule = getCurrentDaySchedule();
     if (schedule === 'Không có thông tin') return false;
 
-    const [openTime, closeTime] = schedule.split(' - ');
+    let openTime = '';
+    let closeTime = '';
+    if (typeof schedule === 'string' && schedule.includes(' - ')) {
+      [openTime, closeTime] = schedule.split(' - ');
+    }
+    
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
     

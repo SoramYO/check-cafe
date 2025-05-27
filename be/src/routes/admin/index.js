@@ -9,10 +9,22 @@ const router = express.Router();
 
 // Auth routes
 router.use(checkAuth);
-router.use(checkRole(USER_ROLE.ADMIN));
+router.use(checkRole([USER_ROLE.ADMIN]));
 
 router.get("/users", adminController.getUsers);
+router.get("/users/:id", adminController.getUserById);
 router.patch("/users", adminController.manageUserAccount);
+router.post("/users", adminController.createUser);
+
+// Dashboard Stats
+router.get("/stats", adminController.getDashboardStats);
+
+// Shop owners without shops
+router.get("/shop-owners-without-shops", adminController.getShopOwnersWithoutShops);
+
+// Shop management by admin
+const shopController = require("../../controllers/shop.controller");
+router.post("/shops", shopController.createShopByAdmin);
 
 // Ads Management
 router.get("/ads", checkAdmin, adminController.getAds);
@@ -29,6 +41,7 @@ router.get(
   checkAdmin,
   adminController.getOverviewStats
 );
+
 
 // Account Management
 router.get("/accounts", checkAdmin, adminController.getAccounts);
