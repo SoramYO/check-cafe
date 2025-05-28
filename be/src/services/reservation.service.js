@@ -188,9 +188,10 @@ const confirmReservation = async (req) => {
       time_slot_id: reservation.time_slot_id.toString(),
       user_id: reservation.user_id.toString()
     };
+    const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
 
     reservation.status = RESERVATION_STATUS.CONFIRMED;
-    reservation.qr_code = qrData;
+    reservation.qr_code = qrCodeUrl;
     reservation.updatedAt = new Date();
     await reservation.save();
 
@@ -421,14 +422,12 @@ const checkInReservationCustomer = async (req) => {
       throw new BadRequestError("QR code must be a JSON string or object");
     }
 
+    // Generate QR code data URL to compare with stored QR code
+    const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
+
     // Validate QR code data matches reservation
-    if (
-      qrData.shop_id !== reservation.shop_id._id.toString() ||
-      qrData.seat_id !== reservation.seat_id._id.toString() ||
-      qrData.time_slot_id !== reservation.time_slot_id._id.toString() ||
-      qrData.user_id !== reservation.user_id.toString()
-    ) {
-      throw new BadRequestError("Invalid QR code data");
+    if (reservation.qr_code !== qrCodeUrl) {
+      throw new BadRequestError("Invalid QR code");
     }
 
     const now = new Date();
@@ -571,13 +570,14 @@ const checkInReservationByShop = async (req) => {
       throw new BadRequestError("QR code must contain shop_id, seat_id, time_slot_id, and user_id");
     }
 
-    // Find reservation by QR code data
+    // Generate QR code data URL to compare with stored QR code
+    const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
+
+    // Find reservation by QR code data URL
     const reservation = await reservationModel
       .findOne({ 
-        shop_id: qrData.shop_id,
-        seat_id: qrData.seat_id,
-        time_slot_id: qrData.time_slot_id,
-        user_id: qrData.user_id
+        qr_code: qrCodeUrl,
+        shop_id: qrData.shop_id
       })
       .populate([
         { path: "shop_id", select: "_id status name" },
