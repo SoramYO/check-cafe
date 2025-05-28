@@ -18,7 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 export default function BookingsScreen() {
   const [activeTab, setActiveTab] = useState("Pending");
   const [reservations, setReservations] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const navigation = useNavigation();
@@ -28,18 +28,21 @@ export default function BookingsScreen() {
   );
 
   useEffect(() => {
-    const fetchReservations = async () => {
-      try {
-        const response = await reservationAPI.HandleReservation("/me");
-        setReservations(response.data.reservations);
-      } catch (error) {
-        console.error("Error fetching reservations:", error);
-      }
-    };
-
     fetchReservations();
   }, []);
 
+  const fetchReservations = async () => {
+    try {
+      setLoading(true);
+      const response = await reservationAPI.HandleReservation("/me");
+      setReservations(response.data.reservations);
+    } catch (error) {
+      console.error("Error fetching reservations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleShowQR = (booking) => {
     setSelectedBooking(booking);
     setShowQRModal(true);
@@ -63,30 +66,44 @@ export default function BookingsScreen() {
               <MaterialCommunityIcons name="close" size={24} color="#64748B" />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.qrContainer}>
             <Image
               source={{ uri: selectedBooking?.qr_code }}
               style={styles.qrImage}
             />
           </View>
-          
+
           <View style={styles.bookingInfo}>
-            <Text style={styles.cafeName}>{selectedBooking?.shop_id?.name}</Text>
+            <Text style={styles.cafeName}>
+              {selectedBooking?.shop_id?.name}
+            </Text>
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="calendar" size={20} color="#64748B" />
+              <MaterialCommunityIcons
+                name="calendar"
+                size={20}
+                color="#64748B"
+              />
               <Text style={styles.infoText}>
-                {selectedBooking && new Date(selectedBooking.reservation_date).toLocaleDateString("vi-VN")}
+                {selectedBooking &&
+                  new Date(selectedBooking.reservation_date).toLocaleDateString(
+                    "vi-VN"
+                  )}
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="clock-outline" size={20} color="#64748B" />
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={20}
+                color="#64748B"
+              />
               <Text style={styles.infoText}>
-                {selectedBooking?.time_slot_id?.start_time} - {selectedBooking?.time_slot_id?.end_time}
+                {selectedBooking?.time_slot_id?.start_time} -{" "}
+                {selectedBooking?.time_slot_id?.end_time}
               </Text>
             </View>
           </View>
-          
+
           <Text style={styles.qrHint}>
             Vui lòng xuất trình mã này khi đến quán để xác nhận đặt chỗ
           </Text>
@@ -264,6 +281,8 @@ export default function BookingsScreen() {
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          refreshing={loading}
+          onRefresh={fetchReservations}
         />
       ) : (
         <View style={styles.emptyState}>

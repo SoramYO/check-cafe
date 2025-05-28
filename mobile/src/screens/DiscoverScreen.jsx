@@ -302,8 +302,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   iconTheme: {
-    width: 22,
-    height: 22,
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    backgroundColor: '#FFF9F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8D3C3',
   },
   header: {
     backgroundColor: "#6B4F3F",

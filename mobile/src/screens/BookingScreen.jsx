@@ -28,6 +28,7 @@ export default function BookingScreen({ navigation, route }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingType, setBookingType] = useState("regular");
   const [selectedSeat, setSelectedSeat] = useState(null);
+  const [filteredTimeSlots, setFilteredTimeSlots] = useState([]);
 
   // Step 1 states
   const [name, setName] = useState(user?.full_name);
@@ -97,6 +98,15 @@ export default function BookingScreen({ navigation, route }) {
 
     if (selectedDate) {
       setSelectedDate(selectedDate);
+      // Reset selected time slot when date changes
+      setSelectedTimeSlot(null);
+      
+      // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+      const dayOfWeek = selectedDate.getDay();
+      
+      // Filter time slots based on day of week
+      const filtered = shop?.timeSlots?.filter(slot => slot.day_of_week === dayOfWeek) || [];
+      setFilteredTimeSlots(filtered);
     }
   };
 
@@ -119,7 +129,7 @@ export default function BookingScreen({ navigation, route }) {
 
       const reservationData = {
         shopId: shopId,
-        seatId: selectedSeat,
+        seatId: selectedSeat._id,
         timeSlotId: selectedTimeSlot?._id,
         reservation_date: selectedDate.toISOString(),
         number_of_people: parseInt(guests),
@@ -155,7 +165,7 @@ export default function BookingScreen({ navigation, route }) {
       setIsSubmitting(false);
     }
   };
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -234,7 +244,7 @@ export default function BookingScreen({ navigation, route }) {
               <TimeSlotPicker
                 selectedTimeSlot={selectedTimeSlot}
                 onSelectTimeSlot={setSelectedTimeSlot}
-                timeSlots={shop?.timeSlots}
+                timeSlots={filteredTimeSlots}
               />
 
               <View style={styles.inputGroup}>
@@ -273,30 +283,50 @@ export default function BookingScreen({ navigation, route }) {
                 <Text style={styles.inputLabel}>Số người</Text>
                 <View style={styles.guestsContainer}>
                   <TouchableOpacity
-                    style={styles.guestButton}
+                    style={[
+                      styles.guestButton,
+                      parseInt(guests) <= 1 && styles.guestButtonDisabled
+                    ]}
                     onPress={() =>
                       setGuests((prev) =>
                         Math.max(1, parseInt(prev) - 1).toString()
                       )
                     }
+                    disabled={parseInt(guests) <= 1}
                   >
                     <MaterialCommunityIcons
                       name="minus"
                       size={24}
-                      color="#7a5545"
+                      color={parseInt(guests) <= 1 ? "#94A3B8" : "#7a5545"}
                     />
                   </TouchableOpacity>
-                  <Text style={styles.guestsNumber}>{guests}</Text>
+                  <View style={styles.guestsNumberContainer}>
+                    <Text style={styles.guestsNumber}>{guests}</Text>
+                    {selectedSeat && (
+                      <Text style={styles.capacityText}>
+                        (Tối đa {selectedSeat.capacity} người)
+                      </Text>
+                    )}
+                  </View>
                   <TouchableOpacity
-                    style={styles.guestButton}
+                    style={[
+                      styles.guestButton,
+                      (!selectedSeat || parseInt(guests) >= selectedSeat.capacity) && styles.guestButtonDisabled
+                    ]}
                     onPress={() =>
-                      setGuests((prev) => (parseInt(prev) + 1).toString())
+                      setGuests((prev) => {
+                        const newValue = parseInt(prev) + 1;
+                        return selectedSeat && newValue <= selectedSeat.capacity 
+                          ? newValue.toString() 
+                          : prev;
+                      })
                     }
+                    disabled={!selectedSeat || parseInt(guests) >= selectedSeat.capacity}
                   >
                     <MaterialCommunityIcons
                       name="plus"
                       size={24}
-                      color="#7a5545"
+                      color={(!selectedSeat || parseInt(guests) >= selectedSeat.capacity) ? "#94A3B8" : "#7a5545"}
                     />
                   </TouchableOpacity>
                 </View>
@@ -588,12 +618,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  guestsNumberContainer: {
+    alignItems: 'center',
+  },
   guestsNumber: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#7a5545",
+    fontWeight: '600',
+    color: '#7a5545',
     minWidth: 40,
-    textAlign: "center",
+    textAlign: 'center',
+  },
+  capacityText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  guestButtonDisabled: {
+    opacity: 0.5,
   },
   textAreaContainer: {
     height: 120,
