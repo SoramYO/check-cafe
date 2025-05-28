@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "seed": "node src/seeds/runSeed.js",
+    "seed:dev": "MONGODB_URI=mongodb://localhost:27017/checkafe-dev node src/seeds/runSeed.js",
+    "seed:test": "node src/seeds/testSeed.js"
   },
   "author": "RiseUp",
   "license": "ISC",
