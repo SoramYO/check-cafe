@@ -6,7 +6,7 @@ const { BadRequestError, NotFoundError } = require("../configs/error.response");
 
 class PackageService {
   createPackage = async (req) => {
-    const { name, description, price, duration } = req.body;
+    const { icon, name, description, price, duration } = req.body;
     const createdPackage = await packageModel.create({ icon, name, description, price, duration });
     return {
       package: getInfoData({

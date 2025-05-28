@@ -38,6 +38,8 @@ const USER_MESSAGE = {
   USER_BUY_VIP_PACKAGE_SUCCESS: "Buy vip package successfully",
   USER_RECEIVE_HOOK_SUCCESS: "Receive hook successfully",
   USER_GET_USER_PACKAGES_SUCCESS: "Get user packages successfully",
+  USER_GET_USER_PACKAGE_BY_ID_SUCCESS: "Get user package by ID successfully",
+  USER_GET_MY_PACKAGES_SUCCESS: "Get my packages successfully",
 };
 
 const ADMIN_MESSAGE = {
@@ -131,6 +133,14 @@ const PACKAGE_MESSAGE = {
   UPDATE_SUCCESS: "Update package successfully",
   DELETE_SUCCESS: "Delete package successfully",
 };
+
+const DISCOUNT_MESSAGE = {
+  CREATE_DISCOUNT_SUCCESS: "Create discount successfully",
+  GET_DISCOUNTS_SUCCESS: "Get discounts successfully",
+  UPDATE_DISCOUNT_SUCCESS: "Update discount successfully",
+  DELETE_DISCOUNT_SUCCESS: "Delete discount successfully",
+  GET_DISCOUNT_BY_ID_SUCCESS: "Get discount by ID successfully",
+};
 module.exports = {
   ACCESS_MESSAGE,
   USER_MESSAGE,
@@ -144,4 +154,5 @@ module.exports = {
   CATEGORY_MESSAGE,
   VERIFICATION_MESSAGE,
   PACKAGE_MESSAGE,
+  DISCOUNT_MESSAGE,
 };

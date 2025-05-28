@@ -13,6 +13,20 @@ class UserPackageController {
       data: result,
     }).send(res);
   });
+  getUserPackageById = asyncHandler(async (req, res) => {
+    const result = await userPackageService.getUserPackageById(req);
+    new OK({
+      message: USER_MESSAGE.USER_GET_USER_PACKAGE_BY_ID_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+  getMyPackages = asyncHandler(async (req, res) => {
+    const result = await userPackageService.getMyPackages(req);
+    new OK({
+      message: USER_MESSAGE.USER_GET_MY_PACKAGES_SUCCESS,
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new UserPackageController();

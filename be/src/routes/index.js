@@ -18,4 +18,5 @@ router.use("/verifications", require("./verification"));
 router.use("/advertisements", require("./advertisement"));
 router.use("/packages", require("./package"));
 router.use("/user-packages", require("./userPackage"));
+router.use("/discounts", require("./discount"));
 module.exports = router;
