@@ -55,18 +55,17 @@ export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModa
     try {
       setLoading(true)
       const response = await authorizedAxiosInstance.get<UserDetailResponse>(`/v1/admin/users/${userId}`)
-      if (response.data.status === 200) {
-        const user = response.data.data.user
+        const user = response.data
         setFormData({
           full_name: user.full_name,
           email: user.email,
-          role: user.role,
+          role: user.role as "ADMIN" | "CUSTOMER" | "SHOP_OWNER",
           is_active: user.is_active,
           phone: user.phone || "",
           vip_status: user.vip_status || false,
           points: user.points || 0
         })
-      }
+    
     } catch (error) {
       console.error('Error fetching user details:', error)
       toast.error('Không thể tải thông tin người dùng')

@@ -1,3 +1,4 @@
+'use client'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -5,6 +6,14 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search, Plus, Edit, Trash2, Calendar, Clock, MapPin, Percent, Package } from "lucide-react"
 import Image from "next/image"
+import { useEffect, useState } from "react"
+import authorizedAxiosInstance from "@/lib/axios"
+import { Discount } from "./types"
+import ModalCreateDiscount from "./components/ModalCreateDiscount"
+import ModalEditDiscount from "./components/ModalEditDiscount"
+
+// Define Discount type for API data
+
 
 const goldenHours = [
   {
@@ -118,6 +127,30 @@ const systemPromotions = [
 ]
 
 export default function PromotionsPage() {
+  const [discounts, setDiscounts] = useState<Discount[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [open, setOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editDiscount, setEditDiscount] = useState<Discount | null>(null)
+
+  useEffect(() => {
+    setIsLoading(true)
+    authorizedAxiosInstance.get("/v1/discounts")
+      .then(res => {
+        setDiscounts(res.data?.data?.data || [])
+      })
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  const reloadDiscounts = () => {
+    setIsLoading(true)
+    authorizedAxiosInstance.get("/v1/discounts")
+      .then(res => {
+        setDiscounts(res.data?.data?.data || [])
+      })
+      .finally(() => setIsLoading(false))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -134,9 +167,7 @@ export default function PromotionsPage() {
             <TabsTrigger value="regional-combos">Combo khu vực</TabsTrigger>
             <TabsTrigger value="system-promotions">Ưu đãi hệ thống</TabsTrigger>
           </TabsList>
-          <Button className="bg-primary hover:bg-primary-dark">
-            <Plus className="mr-2 h-4 w-4" /> Tạo mới
-          </Button>
+          <Button onClick={() => setOpen(true)}>Tạo mới</Button>
         </div>
 
         <TabsContent value="golden-hours" className="space-y-4">
@@ -146,69 +177,68 @@ export default function PromotionsPage() {
               <Input type="search" placeholder="Tìm kiếm giờ vàng..." className="pl-8 bg-white" />
             </div>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {goldenHours.map((item) => (
-              <Card key={item.id} className="overflow-hidden">
-                <div className="relative h-40 w-full">
-                  <Image src={item.image || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
-                  <div className="absolute top-2 right-2">
-                    {item.status === "active" ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                        Đang áp dụng
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-                        Đã lên lịch
-                      </Badge>
-                    )}
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Đang tải dữ liệu...</div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-3">
+              {discounts.map((item: Discount) => (
+                <Card key={item._id} className="overflow-hidden">
+                  <div className="relative h-40 w-full">
+                    <Image src={"/placeholder.svg"} alt={item.title} fill className="object-cover" />
+                    <div className="absolute top-2 right-2">
+                      {item.is_active ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                          Đang áp dụng
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+                          Đã lên lịch
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <CardHeader>
-                  <CardTitle>{item.title}</CardTitle>
-                  <CardDescription>{item.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="text-gray-500 flex items-center">
-                        <Clock className="mr-1 h-4 w-4" /> Thời gian
+                  <CardHeader>
+                    <CardTitle>{item.title}</CardTitle>
+                    <CardDescription>{item.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="text-gray-500 flex items-center">
+                          <Percent className="mr-1 h-4 w-4" /> Giá trị
+                        </div>
+                        <div>{item.discount_value}{item.discount_type === "percent" ? "%" : "đ"}</div>
                       </div>
-                      <div>{item.time}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 flex items-center">
-                        <Calendar className="mr-1 h-4 w-4" /> Ngày áp dụng
+                      <div>
+                        <div className="text-gray-500 flex items-center">
+                          <Calendar className="mr-1 h-4 w-4" /> Thời gian
+                        </div>
+                        <div>{new Date(item.start_date).toLocaleDateString()} - {new Date(item.end_date).toLocaleDateString()}</div>
                       </div>
-                      <div>{item.days}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500 flex items-center">
-                        <Percent className="mr-1 h-4 w-4" /> Giảm giá
-                      </div>
-                      <div>{item.discount}</div>
-                    </div>
-                    {item.status === "active" && (
                       <div>
                         <div className="text-gray-500 flex items-center">
                           <Package className="mr-1 h-4 w-4" /> Đã sử dụng
                         </div>
-                        <div>{item.usageCount} lần</div>
+                        <div>{item.used_count} / {item.usage_limit}</div>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline" size="sm">
-                    <Edit className="mr-2 h-4 w-4" /> Sửa
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50">
-                    <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                      <div>
+                        <div className="text-gray-500 flex items-center">
+                          <Badge className="mr-1 h-4 w-4" /> Mã code
+                        </div>
+                        <div>{item.code}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button variant="outline" size="sm" onClick={() => { setEditDiscount(item); setEditOpen(true); }}>
+                      <Edit className="mr-2 h-4 w-4" /> Sửa
+                    </Button>
+
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="regional-combos" className="space-y-4">
@@ -268,9 +298,6 @@ export default function PromotionsPage() {
                 <CardFooter className="flex justify-between">
                   <Button variant="outline" size="sm">
                     <Edit className="mr-2 h-4 w-4" /> Sửa
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50">
-                    <Trash2 className="mr-2 h-4 w-4" /> Xóa
                   </Button>
                 </CardFooter>
               </Card>
@@ -339,15 +366,20 @@ export default function PromotionsPage() {
                   <Button variant="outline" size="sm">
                     <Edit className="mr-2 h-4 w-4" /> Sửa
                   </Button>
-                  <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50">
-                    <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                  </Button>
                 </CardFooter>
               </Card>
             ))}
           </div>
         </TabsContent>
       </Tabs>
+
+      <ModalCreateDiscount open={open} onClose={() => setOpen(false)} onSuccess={reloadDiscounts} />
+      <ModalEditDiscount
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        discount={editDiscount}
+        onSuccess={reloadDiscounts}
+      />
     </div>
   )
 }
