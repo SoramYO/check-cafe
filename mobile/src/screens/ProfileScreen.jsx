@@ -18,45 +18,82 @@ import { useDispatch, useSelector } from "react-redux";
 import { authSelector, setUser } from "../redux/reducers/authReducer";
 import userAPI from "../services/userAPI";
 
-const MENU_SECTIONS = [
-  {
-    title: "Tài khoản",
-    items: [
+const getMenuSections = (role) => {
+  if (role === "STAFF") {
+    return [
       {
-        icon: "account-edit",
-        label: "Chỉnh sửa thông tin",
-        route: "EditProfile",
+        title: "Tài khoản",
+        items: [
+          {
+            icon: "account-edit",
+            label: "Chỉnh sửa thông tin",
+            route: "EditProfile",
+          },
+          { 
+            icon: "qrcode-scan", 
+            label: "Quét mã QR", 
+            route: "ScanQR",
+            color: "#7a5545"
+          },
+          { 
+            icon: "calendar-check", 
+            label: "Quản lý đặt chỗ", 
+            route: "Bookings",
+            color: "#7a5545"
+          },
+        ],
       },
-      { icon: "ticket-percent", label: "Voucher của tôi", route: "Vouchers" },
-      { icon: "heart-outline", label: "Yêu thích", route: "Favorites" },
-      { icon: "history", label: "Lịch sử giao dịch", route: "PaymentHistory" },
       {
-        icon: "map-marker-outline",
-        label: "Địa điểm mặc định",
-        route: "DefaultLocation",
+        title: "Cài đặt",
+        items: [
+          { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
+          { icon: "logout", label: "Đăng xuất", route: "Logout", color: "#EF4444" },
+        ],
       },
-      {
-        icon: "crown",
-        label: "Nâng cấp Premium",
-        route: "Premium",
-        color: "#FFD700",
-      },
-    ],
-  },
-  {
-    title: "Cài đặt",
-    items: [
-      { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
-      { icon: "logout", label: "Đăng xuất", route: "Logout", color: "#EF4444" },
-    ],
-  },
-];
+    ];
+  }
+
+  return [
+    {
+      title: "Tài khoản",
+      items: [
+        {
+          icon: "account-edit",
+          label: "Chỉnh sửa thông tin",
+          route: "EditProfile",
+        },
+        { icon: "ticket-percent", label: "Voucher của tôi", route: "Vouchers" },
+        { icon: "heart-outline", label: "Yêu thích", route: "Favorites" },
+        { icon: "history", label: "Lịch sử giao dịch", route: "PaymentHistory" },
+        {
+          icon: "map-marker-outline",
+          label: "Địa điểm mặc định",
+          route: "DefaultLocation",
+        },
+        {
+          icon: "crown",
+          label: "Nâng cấp Premium",
+          route: "Premium",
+          color: "#FFD700",
+        },
+      ],
+    },
+    {
+      title: "Cài đặt",
+      items: [
+        { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
+        { icon: "logout", label: "Đăng xuất", route: "Logout", color: "#EF4444" },
+      ],
+    },
+  ];
+};
 
 export default function ProfileScreen() {
   const { logout } = useAuth();
   const { user } = useSelector(authSelector);
   const [userInfo, setUserInfo] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const menuSections = getMenuSections(user?.role);
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -122,13 +159,26 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.userInfo}>
-            <Image source={{ uri: user?.avatar }} style={styles.avatar} />
+            <Image 
+              source={{ 
+                uri: user?.avatar || "https://via.placeholder.com/60"
+              }} 
+              style={styles.avatar} 
+            />
             <View style={styles.userDetails}>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-              >
+              <View style={styles.nameContainer}>
                 <Text style={styles.userName}>{userInfo?.full_name}</Text>
-                {userInfo?.vip_status && (
+                {user?.role === "STAFF" && (
+                  <View style={styles.staffBadge}>
+                    <MaterialCommunityIcons
+                      name="badge-account"
+                      size={16}
+                      color="#7a5545"
+                    />
+                    <Text style={styles.staffText}>Nhân viên</Text>
+                  </View>
+                )}
+                {user?.role !== "STAFF" && userInfo?.vip_status && (
                   <View style={styles.premiumBadge}>
                     <MaterialCommunityIcons
                       name="crown"
@@ -141,11 +191,16 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.levelBadge}>
                 <MaterialCommunityIcons
-                  name="shield-star"
+                  name={user?.role === "STAFF" ? "shield-account" : "shield-star"}
                   size={16}
-                  color="#6366F1"
+                  color={user?.role === "STAFF" ? "#7a5545" : "#6366F1"}
                 />
-                <Text style={styles.levelText}>{user?.role}</Text>
+                <Text style={[
+                  styles.levelText,
+                  user?.role === "STAFF" && styles.staffLevelText
+                ]}>
+                  {user?.role === "STAFF" ? "Nhân viên" : user?.role}
+                </Text>
               </View>
             </View>
           </View>
@@ -155,7 +210,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Menu Sections */}
-        {MENU_SECTIONS.map((section) => (
+        {menuSections.map((section) => (
           <View key={section.title} style={styles.menuSection}>
             <Text style={styles.menuTitle}>{section.title}</Text>
             <View style={styles.menuItems}>
@@ -398,5 +453,27 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  nameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  staffBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fcedd6",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  staffText: {
+    color: "#7a5545",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  staffLevelText: {
+    color: "#7a5545",
   },
 });

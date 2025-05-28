@@ -57,7 +57,7 @@ export default function ScanQRScreen({ navigation }) {
 
       if (response.status === 200) {
         toast.success("Check-in thành công!");
-        navigation.navigate("CheckinSuccess", { checkinData: response.data });
+        navigation.navigate("CheckinSuccessScreen", { checkinData: response.data });
       } else {
         toast.error("Mã QR không hợp lệ");
         setTimeout(() => setScanned(false), 2000);
