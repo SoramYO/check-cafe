@@ -85,6 +85,16 @@ class ReservationController {
       data: result,
     }).send(res);
   });
+
+  getShopReservations = asyncHandler(async (req, res) => {
+    const result = await reservationService.getShopReservations(req);
+    new OK({
+      message: RESERVATION_MESSAGE.GET_ALL_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+
 }
 
 module.exports = new ReservationController();

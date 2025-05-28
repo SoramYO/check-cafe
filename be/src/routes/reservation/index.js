@@ -8,7 +8,7 @@ const { USER_ROLE } = require("../../constants/enum");
 
 router.use(checkAuth);
 router.use(checkRole([USER_ROLE.CUSTOMER, USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN, USER_ROLE.STAFF]));
-
+router.get("/shop-reservations", reservationController.getShopReservations);
 router.post("/", reservationController.createReservation);
 router.get("/", reservationController.getAllReservations);
 router.get("/staff/:shopId", reservationController.getReservationForShopStaff);
