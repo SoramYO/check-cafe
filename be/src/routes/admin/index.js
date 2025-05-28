@@ -24,6 +24,7 @@ router.get("/shop-owners-without-shops", adminController.getShopOwnersWithoutSho
 
 // Shop management by admin
 const shopController = require("../../controllers/shop.controller");
+const discountController = require("../../controllers/discount.controller");
 router.post("/shops", shopController.createShopByAdmin);
 
 // Ads Management

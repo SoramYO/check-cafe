@@ -8,5 +8,7 @@ const userPackageController = require("../../controllers/userPackage.controller.
 router.use(checkAuth);
 
 router.get("/", userPackageController.getUserPackages);
+router.get("/:id", userPackageController.getUserPackageById);
+router.get("/my-packages", userPackageController.getMyPackages);
 
 module.exports = router;

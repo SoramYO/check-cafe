@@ -10,9 +10,6 @@ const nextConfig = {
     unoptimized: true,
   },
   reactStrictMode: true,
-  server: {
-    port: 3002
-  },
   async rewrites() {
     return [
       {

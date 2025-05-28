@@ -19,7 +19,9 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
+  ShoppingCart,
 } from "lucide-react"
+import { title } from "process"
 
 const adminNavItems = [
   {
@@ -36,6 +38,11 @@ const adminNavItems = [
     title: "Quản lý người dùng",
     href: "/admin/users",
     icon: Users,
+  },
+  {
+    title: "Quản lí giao dịch",
+    href: "/admin/transactions",
+    icon: ShoppingCart,
   },
   {
     title: "Kiểm duyệt",
