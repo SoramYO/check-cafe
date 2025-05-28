@@ -619,8 +619,9 @@ const checkInReservationByShop = async (req) => {
       )
       .populate([
         { path: "shop_id", select: "_id name address" },
-        { path: "seat_id", select: "_id name capacity" },
-        { path: "time_slot_id", select: "_id start_time end_time" },
+        { path: "seat_id", select: "_id seat_name capacity is_premium description" },
+        { path: "time_slot_id", select: "_id start_time end_time day_of_week" },
+        { path: "user_id", select: "_id email full_name avatar phone points vip_status" },
       ])
       .select(
         getSelectData([
