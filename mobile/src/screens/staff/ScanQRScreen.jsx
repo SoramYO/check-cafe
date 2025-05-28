@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -8,25 +8,25 @@ import {
   Platform,
   ActivityIndicator,
   Dimensions,
-} from 'react-native';
-import { CameraView, Camera } from 'expo-camera';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { toast } from 'sonner-native';
-import reservationAPI from '../../services/reservationAPI';
+} from "react-native";
+import { CameraView, Camera } from "expo-camera";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { toast } from "sonner-native";
+import reservationAPI from "../../services/reservationAPI";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const scanSize = width * 0.7;
 
 export default function ScanQRScreen({ navigation }) {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [flashMode, setFlashMode] = useState('off');
+  const [flashMode, setFlashMode] = useState("off");
 
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      setHasPermission(status === "granted");
     })();
   }, []);
 
@@ -36,18 +36,34 @@ export default function ScanQRScreen({ navigation }) {
       setScanned(true);
       setIsProcessing(true);
 
-      const response = await reservationAPI.HandleReservation('/verify', { token: data }, 'post');
-      
+      const parsedData = JSON.parse(data);
+      const { shop_id, seat_id, time_slot_id, user_id } = parsedData;
+
+      // Format request body
+      const requestBody = {
+        qr_code: {
+          shop_id,
+          seat_id,
+          time_slot_id,
+          user_id,
+        },
+      };
+
+      const response = await reservationAPI.HandleReservation(
+        `/shops/${shop_id}/checkin`,
+        requestBody,
+        "post"
+      );
+
       if (response.status === 200) {
-        toast.success('Check-in thành công!');
-        navigation.navigate('CheckinSuccess', { checkinData: response.data });
+        toast.success("Check-in thành công!");
+        navigation.navigate("CheckinSuccess", { checkinData: response.data });
       } else {
-        toast.error('Mã QR không hợp lệ');
+        toast.error("Mã QR không hợp lệ");
         setTimeout(() => setScanned(false), 2000);
       }
     } catch (error) {
-      console.error('Check-in error:', error);
-      toast.error('Có lỗi xảy ra khi xử lý check-in');
+      toast.error("Có lỗi xảy ra khi xử lý check-in");
       setTimeout(() => setScanned(false), 2000);
     } finally {
       setIsProcessing(false);
@@ -55,7 +71,7 @@ export default function ScanQRScreen({ navigation }) {
   };
 
   const toggleFlash = () => {
-    setFlashMode(flashMode === 'torch' ? 'off' : 'torch');
+    setFlashMode(flashMode === "torch" ? "off" : "torch");
   };
 
   if (hasPermission === null) {
@@ -92,7 +108,7 @@ export default function ScanQRScreen({ navigation }) {
         <Text style={styles.headerTitle}>Quét mã QR Check-in</Text>
         <TouchableOpacity style={styles.headerButton} onPress={toggleFlash}>
           <MaterialCommunityIcons
-            name={flashMode === 'torch' ? 'flash' : 'flash-off'}
+            name={flashMode === "torch" ? "flash" : "flash-off"}
             size={24}
             color="#FFFFFF"
           />
@@ -102,9 +118,9 @@ export default function ScanQRScreen({ navigation }) {
       <View style={styles.scannerContainer}>
         <CameraView
           style={StyleSheet.absoluteFillObject}
-          enableTorch={flashMode === 'torch'}
+          enableTorch={flashMode === "torch"}
           barcodeScannerSettings={{
-            barcodeTypes: ['qr'],
+            barcodeTypes: ["qr"],
           }}
           onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         />
@@ -118,7 +134,7 @@ export default function ScanQRScreen({ navigation }) {
             )}
           </View>
         </View>
-        
+
         <View style={styles.guideContainer}>
           <Text style={styles.guideText}>
             Đặt mã QR check-in vào khung hình để quét
@@ -142,13 +158,13 @@ export default function ScanQRScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: "#000000",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 20 : 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "ios" ? 20 : 40,
     paddingBottom: 16,
     paddingHorizontal: 20,
   },
@@ -156,100 +172,100 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(122, 85, 69, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(122, 85, 69, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   scannerContainer: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   scanArea: {
     width: scanSize,
     height: scanSize,
     borderWidth: 2,
-    borderColor: '#7a5545',
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#7a5545",
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
   },
   processingOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 16,
   },
   processingText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   guideContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 120,
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 20,
   },
   guideText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    textAlign: 'center',
-    backgroundColor: 'rgba(122, 85, 69, 0.7)',
+    textAlign: "center",
+    backgroundColor: "rgba(122, 85, 69, 0.7)",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
   },
   rescanButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 40,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#7a5545',
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#7a5545",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
   },
   rescanText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
   },
   text: {
-    color: '#7a5545',
+    color: "#7a5545",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#7a5545',
+    backgroundColor: "#7a5545",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
 });

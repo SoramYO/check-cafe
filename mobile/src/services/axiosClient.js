@@ -42,13 +42,6 @@ axiosClient.interceptors.response.use(
     throw new Error("Error");
   },
   (error) => {
-    const errorMessage =
-      error.response?.data?.message || error.message || "An error occurred";
-    console.error("API Error:", {
-      status: error.response?.status,
-      message: errorMessage,
-      data: error.response?.data,
-    });
     throw error;
   }
 );

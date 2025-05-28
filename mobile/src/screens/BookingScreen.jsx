@@ -20,15 +20,18 @@ import BookingTypeSelector from "../components/booking/BookingTypeSelector";
 import shopAPI from "../services/shopAPI";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import reservationAPI from "../services/reservationAPI";
+import { useSelector } from "react-redux";
+import { authSelector } from "../redux/reducers/authReducer";
 
 export default function BookingScreen({ navigation, route }) {
+  const { user } = useSelector(authSelector);
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingType, setBookingType] = useState("regular");
   const [selectedSeat, setSelectedSeat] = useState(null);
 
   // Step 1 states
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(user?.full_name);
+  const [phone, setPhone] = useState(user?.phone);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [guests, setGuests] = useState("1");
   const [isPriorityBooking, setIsPriorityBooking] = useState(false);
@@ -64,7 +67,6 @@ export default function BookingScreen({ navigation, route }) {
         toast.error("Vui lòng nhập thông tin cá nhân");
         return;
       }
-      console.log(selectedSeat);
       if (!selectedSeat) {
         toast.error("Vui lòng chọn vị trí");
         return;
