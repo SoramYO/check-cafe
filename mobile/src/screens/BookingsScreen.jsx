@@ -42,7 +42,7 @@ export default function BookingsScreen() {
       setLoading(false);
     }
   };
-  
+
   const handleShowQR = (booking) => {
     setSelectedBooking(booking);
     setShowQRModal(true);
@@ -203,7 +203,7 @@ export default function BookingsScreen() {
                 <Text style={styles.primaryButtonText}>Chỉnh sửa</Text>
               </TouchableOpacity>
             </>
-          ) : (
+          ) : activeTab === "Confirmed" ? (
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.secondaryButton]}
@@ -220,6 +220,12 @@ export default function BookingsScreen() {
                 <Text style={styles.primaryButtonText}>Xem chi tiết</Text>
               </TouchableOpacity>
             </>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.primaryButton]}
+            >
+              <Text style={styles.primaryButtonText}>Xem chi tiết</Text>
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -454,7 +460,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#EF4444",
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
+    fontSize: 12,
   },
   primaryButton: {
     backgroundColor: "#7a5545",

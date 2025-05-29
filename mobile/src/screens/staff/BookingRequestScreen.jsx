@@ -17,10 +17,10 @@ import reservationAPI from "../../services/reservationAPI";
 import shopAPI from "../../services/shopAPI";
 import { useShop } from "../../context/ShopContext";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const CARD_PADDING = 16;
 const CARD_MARGIN = 8;
-const CARD_WIDTH = width - (CARD_PADDING * 2);
+const CARD_WIDTH = width - CARD_PADDING * 2;
 
 const BOOKING_STATUSES = [
   {
@@ -97,35 +97,36 @@ export default function BookingRequestScreen() {
 
   const handleUpdateStatus = async (bookingId, newStatus) => {
     try {
-      const response = await bookingAPI.HandleBooking(
-        `/${bookingId}/status`,
-        { status: newStatus },
-        "put"
+      const action = newStatus === "Confirmed" ? "confirm" : "cancel";
+      const response = await reservationAPI.HandleReservation(
+        `/${bookingId}/${action}`,
+        {},
+        "patch"
       );
       if (response.status === 200) {
         toast.success("Cập nhật trạng thái thành công");
-        fetchBookings();
+        onRefresh();
       }
     } catch (error) {
-      console.error("Error updating booking status:", error);
       toast.error("Không thể cập nhật trạng thái");
     }
   };
 
   const getStatusInfo = (status) => {
-    return BOOKING_STATUSES.find(s => s.key === status) || BOOKING_STATUSES[0];
+    return (
+      BOOKING_STATUSES.find((s) => s.key === status) || BOOKING_STATUSES[0]
+    );
   };
 
   const renderBookingCard = ({ item }) => {
     const statusInfo = getStatusInfo(item.status);
-    
     return (
       <View style={styles.bookingCard}>
         <View style={styles.bookingHeader}>
           <View style={styles.userInfo}>
             <Image
               source={{
-                uri: item.user_id?.avatar || "https://via.placeholder.com/40",
+                uri: item?.user_id?.avatar,
               }}
               style={styles.avatar}
             />
@@ -135,15 +136,12 @@ export default function BookingRequestScreen() {
             </View>
           </View>
           <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: statusInfo.color },
-            ]}
+            style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}
           >
-            <MaterialCommunityIcons 
-              name={statusInfo.icon} 
-              size={16} 
-              color="white" 
+            <MaterialCommunityIcons
+              name={statusInfo.icon}
+              size={16}
+              color="white"
               style={styles.statusIcon}
             />
             <Text style={styles.statusText}>{statusInfo.label}</Text>
@@ -152,16 +150,16 @@ export default function BookingRequestScreen() {
 
         <View style={styles.bookingDetails}>
           <View style={styles.detailRow}>
-            <MaterialCommunityIcons 
-              name="calendar-clock" 
-              size={20} 
-              color="#7a5545" 
+            <MaterialCommunityIcons
+              name="calendar-clock"
+              size={20}
+              color="#7a5545"
             />
             <Text style={styles.detailText}>
               {formatDateTime(item.reservation_date)}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <MaterialCommunityIcons
               name="table-furniture"
@@ -169,7 +167,7 @@ export default function BookingRequestScreen() {
               color="#7a5545"
             />
             <Text style={styles.detailText}>
-              Bàn {item.seat_id?.name || "N/A"}
+              Bàn {item.seat_id?.seat_name || "N/A"}
             </Text>
           </View>
 
@@ -184,10 +182,10 @@ export default function BookingRequestScreen() {
 
           {item.notes && (
             <View style={styles.detailRow}>
-              <MaterialCommunityIcons 
-                name="note-text" 
-                size={20} 
-                color="#7a5545" 
+              <MaterialCommunityIcons
+                name="note-text"
+                size={20}
+                color="#7a5545"
               />
               <Text style={styles.detailText}>{item.notes}</Text>
             </View>
@@ -228,14 +226,17 @@ export default function BookingRequestScreen() {
             style={[
               styles.filterButton,
               selectedStatus === item.key && styles.filterButtonActive,
-              { backgroundColor: selectedStatus === item.key ? item.color : '#FFF9F5' }
+              {
+                backgroundColor:
+                  selectedStatus === item.key ? item.color : "#FFF9F5",
+              },
             ]}
             onPress={() => setSelectedStatus(item.key)}
           >
             <MaterialCommunityIcons
               name={item.icon}
               size={20}
-              color={selectedStatus === item.key ? '#FFFFFF' : item.color}
+              color={selectedStatus === item.key ? "#FFFFFF" : item.color}
             />
             <Text
               style={[
@@ -263,14 +264,14 @@ export default function BookingRequestScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>
-              {bookings.filter(b => b.status === "Pending").length}
+              {bookings.filter((b) => b.status === "Pending").length}
             </Text>
             <Text style={styles.statLabel}>Chờ xác nhận</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>
-              {bookings.filter(b => b.status === "Confirmed").length}
+              {bookings.filter((b) => b.status === "Confirmed").length}
             </Text>
             <Text style={styles.statLabel}>Hôm nay</Text>
           </View>
@@ -285,8 +286,8 @@ export default function BookingRequestScreen() {
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             colors={["#7a5545"]}
             tintColor="#7a5545"

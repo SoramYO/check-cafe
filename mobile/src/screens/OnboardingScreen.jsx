@@ -58,7 +58,7 @@ export default function OnboardingScreen({ navigation }) {
 
     const markOnboardingComplete = async () => {
         try {
-            await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+            await AsyncStorage.setItem('onboardingStatus', 'true');
         } catch (error) {
             console.error('Error saving onboarding status:', error);
         }
