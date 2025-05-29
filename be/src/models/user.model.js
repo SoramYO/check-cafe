@@ -10,13 +10,17 @@ const userSchema = new mongoose.Schema(
     email: { type: String, trim: true, unique: true },
     password: { type: String, required: true },
     phone: { type: String },
-    avatar: { type: String },
+    avatar: {
+      type: String,
+      default:
+        "https://www.pngplay.com/wp-content/uploads/12/User-Avatar-Profile-PNG-Photos.png",
+    },
     avatarPublicId: { type: String },
     role: { type: String },
     points: { type: Number, default: 0 },
     vip_status: { type: Boolean, default: false },
     fcm_token: { type: String },
-    is_active: { type: Boolean, default: true }
+    is_active: { type: Boolean, default: true },
   },
   { timestamps: true, collection: COLLECTION_NAME }
 );

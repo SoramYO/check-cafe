@@ -60,7 +60,7 @@ export default function DefaultLocationScreen({ navigation }) {
           <MaterialCommunityIcons
             name={isDefault ? "map-marker" : "map-marker-outline"}
             size={24}
-            color="#4A90E2"
+            color="#7a5545"
           />
           <Text style={styles.addressType}>
             {isDefault ? "Vị trí hiện tại" : "Địa chỉ đã lưu"}
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
     margin: 16,
     padding: 16,
     borderRadius: 12,

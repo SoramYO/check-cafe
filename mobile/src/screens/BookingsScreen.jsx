@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
   Platform,
+  Modal,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import reservationAPI from "../services/reservationAPI";
@@ -17,28 +18,104 @@ import { useNavigation } from "@react-navigation/native";
 export default function BookingsScreen() {
   const [activeTab, setActiveTab] = useState("Pending");
   const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const navigation = useNavigation();
+
   const filteredBookings = reservations.filter(
     (booking) => booking.status === activeTab
   );
-  const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchReservations = async () => {
-      try {
-        const response = await reservationAPI.HandleReservation("/me");
-        setReservations(response.data.reservations);
-      } catch (error) {
-        console.error("Error fetching reservations:", error);
-      }
-    };
-
     fetchReservations();
   }, []);
 
-  const renderBookingCard = ({ item }) => (
+  const fetchReservations = async () => {
+    try {
+      setLoading(true);
+      const response = await reservationAPI.HandleReservation("/me");
+      setReservations(response.data.reservations);
+    } catch (error) {
+      console.error("Error fetching reservations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShowQR = (booking) => {
+    setSelectedBooking(booking);
+    setShowQRModal(true);
+  };
+
+  const renderQRModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showQRModal}
+      onRequestClose={() => setShowQRModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Mã QR Check-in</Text>
+            <TouchableOpacity
+              onPress={() => setShowQRModal(false)}
+              style={styles.closeButton}
+            >
+              <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.qrContainer}>
+            <Image
+              source={{ uri: selectedBooking?.qr_code }}
+              style={styles.qrImage}
+            />
+          </View>
+
+          <View style={styles.bookingInfo}>
+            <Text style={styles.cafeName}>
+              {selectedBooking?.shop_id?.name}
+            </Text>
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons
+                name="calendar"
+                size={20}
+                color="#64748B"
+              />
+              <Text style={styles.infoText}>
+                {selectedBooking &&
+                  new Date(selectedBooking.reservation_date).toLocaleDateString(
+                    "vi-VN"
+                  )}
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={20}
+                color="#64748B"
+              />
+              <Text style={styles.infoText}>
+                {selectedBooking?.time_slot_id?.start_time} -{" "}
+                {selectedBooking?.time_slot_id?.end_time}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.qrHint}>
+            Vui lòng xuất trình mã này khi đến quán để xác nhận đặt chỗ
+          </Text>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderRequestItem = ({ item }) => (
     <TouchableOpacity
+      style={styles.requestCard}
       onPress={() => navigation.navigate("BookingDetail", { booking: item })}
-      style={styles.bookingCard}
     >
       <View style={styles.ticketHeader}>
         <View style={styles.statusIndicator}>
@@ -113,7 +190,7 @@ export default function BookingsScreen() {
         </View>
 
         <View style={styles.actionButtons}>
-          {activeTab === "Pending" || activeTab === "Confirmed" ? (
+          {activeTab === "Pending" ? (
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.cancelButton]}
@@ -126,11 +203,28 @@ export default function BookingsScreen() {
                 <Text style={styles.primaryButtonText}>Chỉnh sửa</Text>
               </TouchableOpacity>
             </>
+          ) : activeTab === "Confirmed" ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.secondaryButton]}
+                onPress={() => handleShowQR(item)}
+              >
+                <Text style={styles.secondaryButtonText}>Hiện QR code</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.primaryButton]}
+                onPress={() =>
+                  navigation.navigate("BookingDetail", { booking: item })
+                }
+              >
+                <Text style={styles.primaryButtonText}>Xem chi tiết</Text>
+              </TouchableOpacity>
+            </>
           ) : (
             <TouchableOpacity
               style={[styles.actionButton, styles.primaryButton]}
             >
-              <Text style={styles.primaryButtonText}>Đặt lại</Text>
+              <Text style={styles.primaryButtonText}>Xem chi tiết</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -189,10 +283,12 @@ export default function BookingsScreen() {
       {filteredBookings.length > 0 ? (
         <FlatList
           data={filteredBookings}
-          renderItem={renderBookingCard}
+          renderItem={renderRequestItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          refreshing={loading}
+          onRefresh={fetchReservations}
         />
       ) : (
         <View style={styles.emptyState}>
@@ -204,6 +300,8 @@ export default function BookingsScreen() {
           <Text style={styles.emptyStateText}>Chưa có đặt chỗ nào</Text>
         </View>
       )}
+
+      {renderQRModal()}
     </SafeAreaView>
   );
 }
@@ -249,30 +347,30 @@ const styles = StyleSheet.create({
     color: "white",
   },
   listContainer: {
-    padding: 20,
-    gap: 16,
+    padding: 16,
+    gap: 12,
   },
-  bookingCard: {
+  requestCard: {
     backgroundColor: "white",
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: 12,
     borderColor: "#BFA58E",
     borderWidth: 1,
     shadowColor: "#7a5545",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 4,
   },
   ticketHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 12,
+    padding: 10,
     backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#BFA58E",
@@ -280,12 +378,12 @@ const styles = StyleSheet.create({
   statusIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   pendingDot: {
     backgroundColor: "#F59E0B",
@@ -297,7 +395,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#6366F1",
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Poppins_500Medium",
     color: "#7a5545",
   },
@@ -312,24 +410,24 @@ const styles = StyleSheet.create({
   },
   cafeImage: {
     width: "100%",
-    height: 180,
+    height: 140,
     borderBottomWidth: 1,
     borderBottomColor: "#BFA58E",
   },
   cardContent: {
-    padding: 16,
+    padding: 12,
     backgroundColor: "white",
   },
   cafeName: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: "Poppins_600SemiBold",
     color: "#7a5545",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   detailsContainer: {
-    gap: 12,
-    marginBottom: 20,
-    paddingVertical: 12,
+    gap: 8,
+    marginBottom: 12,
+    paddingVertical: 8,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#BFA58E",
@@ -337,23 +435,23 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   detailText: {
-    fontSize: 15,
+    fontSize: 13,
     fontFamily: "Poppins_400Regular",
     color: "#7a5545",
   },
   actionButtons: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
+    gap: 8,
+    marginTop: 4,
   },
   actionButton: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     alignItems: "center",
   },
   cancelButton: {
@@ -362,7 +460,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#EF4444",
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
+    fontSize: 12,
   },
   primaryButton: {
     backgroundColor: "#7a5545",
@@ -370,10 +468,10 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: "white",
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
+    fontSize: 13,
   },
   moreButton: {
-    padding: 4,
+    padding: 2,
   },
   emptyState: {
     flex: 1,
@@ -385,5 +483,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins_500Medium",
     color: "#BFA58E",
+  },
+  secondaryButton: {
+    backgroundColor: "rgba(191, 165, 142, 0.2)",
+  },
+  secondaryButtonText: {
+    color: "#7a5545",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    width: "90%",
+    maxWidth: 340,
+    alignItems: "center",
+  },
+  modalHeader: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  closeButton: {
+    padding: 4,
+  },
+  qrContainer: {
+    padding: 16,
+    backgroundColor: "white",
+    borderColor: "#BFA58E",
+    borderWidth: 1,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  qrImage: {
+    width: 200,
+    height: 200,
+    resizeMode: "contain",
+  },
+  bookingInfo: {
+    width: "100%",
+    marginTop: 20,
+    gap: 8,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "center",
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+  qrHint: {
+    marginTop: 16,
+    fontSize: 13,
+    color: "#64748B",
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
 });

@@ -151,7 +151,7 @@ const confirmReservation = async (req) => {
       throw new NotFoundError("Reservation not found");
     }
 
-    if (role !== "ADMIN" && reservation.shop_id.owner_id.toString() !== userId) {
+    if (role !== "ADMIN" && role !== "STAFF" && reservation.shop_id.owner_id.toString() !== userId) {
       throw new ForbiddenError("You are not authorized to confirm this reservation");
     }
 
@@ -246,7 +246,7 @@ const cancelReservation = async (req) => {
     }
 
     if (
-      role !== "ADMIN" &&
+      role !== "ADMIN" && role !== "STAFF" &&
       reservation.user_id.toString() !== userId &&
       reservation.shop_id.owner_id.toString() !== userId
     ) {
@@ -1046,7 +1046,7 @@ const getReservationForShopStaff = async (req) => {
       ]),
       populate: [
         { path: "user_id", select: "_id email full_name avatar" },
-        { path: "seat_id", select: "_id name capacity" },
+        { path: "seat_id", select: "_id name capacity seat_name" },
         { path: "time_slot_id", select: "_id start_time end_time" },
       ],
       sort,

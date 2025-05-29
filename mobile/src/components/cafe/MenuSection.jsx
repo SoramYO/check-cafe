@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,51 +11,66 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatPrice } from "../../utils/formatHelpers";
 
-const MenuSection = ({
-  menuItems,
-  onItemPress,
-}) => {
+const MenuSection = ({ menuItems, onItemPress }) => {
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const categories = [
-    "all",
-    ...new Set(menuItems?.map((item) => item.category)),
-  ];
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    // Create a map to store unique categories
+    const uniqueCategories = new Map();
+    
+    // Add "all" category first
+    uniqueCategories.set("all", {
+      _id: "all",
+      name: "Tất cả"
+    });
+
+    // Add other categories, preventing duplicates by _id
+    menuItems?.forEach(item => {
+      if (item.category && !uniqueCategories.has(item.category._id)) {
+        uniqueCategories.set(item.category._id, item.category);
+      }
+    });
+
+    // Convert map to array
+    setCategories(Array.from(uniqueCategories.values()));
+  }, [menuItems]);
 
   const filteredItems =
     selectedCategory === "all"
       ? menuItems
-      : menuItems?.filter((item) => item.category === selectedCategory);
+      : menuItems?.filter((item) => item.category?._id === selectedCategory);
 
   const renderCategoryTab = (category) => (
     <TouchableOpacity
-      key={category}
+      key={category._id}
       style={[
         styles.categoryTab,
-        selectedCategory === category && styles.categoryTabActive,
+        selectedCategory === category._id && styles.categoryTabActive,
       ]}
-      onPress={() => setSelectedCategory(category)}
+      onPress={() => setSelectedCategory(category._id)}
     >
       <MaterialCommunityIcons
         name={getCategoryIcon(category)}
         size={20}
-        color={selectedCategory === category ? "white" : "#7a5545"}
+        color={selectedCategory === category._id ? "white" : "#7a5545"}
         style={styles.categoryIcon}
       />
       <Text
         style={[
           styles.categoryTabText,
-          selectedCategory === category && styles.categoryTabTextActive,
+          selectedCategory === category._id && styles.categoryTabTextActive,
         ]}
       >
-        {category === "all" ? "Tất cả" : category}
+        {category.name}
       </Text>
     </TouchableOpacity>
   );
 
   const getCategoryIcon = (category) => {
-    switch (category.toLowerCase()) {
-      case "all":
-        return "menu";
+    if (category._id === "all") return "menu";
+    
+    switch (category?.name?.toLowerCase()) {
       case "cà phê":
         return "coffee";
       case "trà":
@@ -73,7 +88,7 @@ const MenuSection = ({
 
   const renderMenuItem = (item) => (
     <TouchableOpacity
-      key={item.id || item.name}
+      key={item._id || item.name}
       style={styles.menuItem}
       onPress={() => onItemPress && onItemPress(item)}
     >
@@ -138,7 +153,7 @@ const MenuSection = ({
           style={styles.categoriesContainer}
           contentContainerStyle={styles.categoriesContent}
         >
-          {categories?.map(renderCategoryTab)}
+          {categories.map(renderCategoryTab)}
         </ScrollView>
       </View>
 
@@ -189,7 +204,6 @@ const styles = StyleSheet.create({
   },
   categoriesWrapper: {
     paddingBottom: 8,
-    backgroundColor: "#FFF9F5",
   },
   categoriesContainer: {
     flexGrow: 0,
@@ -204,9 +218,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 24,
-    backgroundColor: "#fcedd6",
     gap: 6,
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E8D3C3",
   },
   categoryIcon: {
     marginRight: 4,

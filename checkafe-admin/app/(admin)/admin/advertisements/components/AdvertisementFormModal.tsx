@@ -101,9 +101,7 @@ export function AdvertisementFormModal({ advertisement, isOpen, onClose, onSucce
     try {
       setLoadingShops(true)
       const response = await authorizedAxiosInstance.get('/v1/shops?limit=100')
-      console.log('Shops API response:', response.data)
       if (response.data.status === 200) {
-        // Backend returns: { message, status, data: { shops: [...], metadata: {...} } }
         setShops(response.data.data?.shops || [])
       }
     } catch (error) {
@@ -130,7 +128,7 @@ export function AdvertisementFormModal({ advertisement, isOpen, onClose, onSucce
     setFeatures([])
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }

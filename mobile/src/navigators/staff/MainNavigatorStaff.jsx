@@ -1,6 +1,8 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import TabNavigatorStaff from "./TabNavigatorStaff";
+import CheckinSuccessScreen from "../../screens/staff/CheckinSuccessScreen";
+import EditProfileScreen from "../../screens/EditProfileScreen";
 
 const MainNavigatorStaff = () => {
   const Stack = createNativeStackNavigator();
@@ -14,6 +16,8 @@ const MainNavigatorStaff = () => {
       }}
     >
       <Stack.Screen name="TabNavigatorStaff" component={TabNavigatorStaff} />
+      <Stack.Screen name="CheckinSuccessScreen" component={CheckinSuccessScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
   );
 };

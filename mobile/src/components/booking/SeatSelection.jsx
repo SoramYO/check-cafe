@@ -2,33 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const SPOTS = [
-  {
-    id: '1',
-    name: 'Ban công tầng 2',
-    description: 'View toàn cảnh thành phố, không gian thoáng đãng',
-    image: 'https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?q=80&w=2940&auto=format&fit=crop',
-    features: ['View đẹp', 'Ngoài trời', 'Yên tĩnh'],
-    isAvailable: true,
-  },
-  {
-    id: '2',
-    name: 'Góc vườn',
-    description: 'Không gian xanh mát, phù hợp cho nhóm nhỏ',
-    image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=2940&auto=format&fit=crop',
-    features: ['Ngoài trời', 'Cây xanh', 'Riêng tư'],
-    isAvailable: true,
-  },
-  {
-    id: '3',
-    name: 'Phòng kính',
-    description: 'Không gian kín đáo, phù hợp cho cuộc họp',
-    image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?q=80&w=2940&auto=format&fit=crop',
-    features: ['Máy lạnh', 'Riêng tư', 'Yên tĩnh'],
-    isAvailable: false,
-  },
-];
-
 export default function SpotSelection({ selectedSeat, onSelectSeat, seats, bookingType }) {
   // Filter seats based on bookingType
   const filteredSeats = seats?.filter(seat => {
@@ -52,10 +25,10 @@ export default function SpotSelection({ selectedSeat, onSelectSeat, seats, booki
             key={seat._id}
             style={[
               styles.spotCard,
-              selectedSeat === seat._id && styles.spotCardSelected,
+              selectedSeat?._id === seat._id && styles.spotCardSelected,
               !seat.is_available && styles.spotCardUnavailable,
             ]}
-            onPress={() => seat.is_available && onSelectSeat(seat._id)}
+            onPress={() => seat.is_available && onSelectSeat(seat)}
             disabled={!seat.is_available}
           >
             <Image source={{ uri: seat.image }} style={styles.spotImage} />

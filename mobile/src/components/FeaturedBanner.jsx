@@ -51,9 +51,8 @@ export default function FeaturedBanner() {
   }, [advertisements.length]);
 
   const getAdvertisements = async (page = 1, limit = 10) => {
-    const response = await advertisementAPI.HandleAdvertisement(`?page=${page}&limit=${limit}&status=`);
+    const response = await advertisementAPI.HandleAdvertisement(`?page=${page}&limit=${limit}`);
     setAdvertisements(response.data.data);
-    console.log(response.data.data);
   };
 
   const handleBannerPress = (banner) => {
@@ -75,7 +74,7 @@ export default function FeaturedBanner() {
         {advertisements.map((banner, index) => (
           <View key={banner._id} style={styles.slide}>
             <Image
-              source={{ uri: banner.image || "https://placehold.co/400x200" }}
+              source={{ uri: banner?.image}}
               style={styles.image}
             />
             <View style={styles.overlay}>
