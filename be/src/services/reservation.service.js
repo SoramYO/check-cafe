@@ -1092,6 +1092,108 @@ const getReservationForShopStaff = async (req) => {
   }
 };
 
+
+const getShopReservations = async (req) => {
+  try {
+
+    const { userId } = req.user;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      status,
+      reservation_date,
+    } = req.query;
+
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    const shop = await shopModel.findOne({ owner_id: userId });
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+    const query = { shop_id: shop._id };
+    if (status && Object.values(RESERVATION_STATUS).includes(status)) {
+      query.status = status;
+    }
+    if (reservation_date) {
+      const date = new Date(reservation_date);
+      if (isNaN(date.getTime())) {
+        throw new BadRequestError("Invalid reservation_date format");
+      }
+      const startDate = new Date(date.setHours(0, 0, 0, 0));
+      const endDate = new Date(date.setHours(23, 59, 59, 999));
+      query.reservation_date = { $gte: startDate, $lte: endDate };
+    }
+
+    const paginateOptions = {
+      model: reservationModel,
+      query,
+      page,
+      limit,
+      select: getSelectData([
+        "_id",
+        "user_id",
+        "shop_id",
+        "seat_id",
+        "time_slot_id",
+        "reservation_type",
+        "reservation_date",
+        "number_of_people",
+        "notes",
+        "qr_code",
+        "status",
+        "createdAt",
+        "updatedAt",
+      ]),
+      populate: [
+        { path: "user_id", select: "_id email full_name avatar phone" },
+        { path: "seat_id", select: "_id seat_name capacity" },
+        { path: "time_slot_id", select: "_id start_time end_time" },
+      ],
+      sort,
+    };
+
+    const result = await getPaginatedData(paginateOptions);
+
+    const reservations = result.data.map((reservation) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "user_id",
+          "shop_id",
+          "seat_id",
+          "time_slot_id",
+          "reservation_type",
+          "reservation_date",
+          "number_of_people",
+          "notes",
+          "qr_code",
+          "status",
+          "createdAt",
+          "updatedAt",
+        ],
+        object: reservation,
+      })
+    );
+
+    return {
+      reservations,
+      metadata: {
+        totalItems: result.metadata.total,
+        totalPages: result.metadata.totalPages,
+        currentPage: result.metadata.page,
+        limit: result.metadata.limit,
+      },
+      message: reservations.length === 0 ? "No reservations found" : undefined,
+    };
+  } catch (error) {
+    throw error instanceof BadRequestError || error instanceof NotFoundError
+      ? error
+      : new BadRequestError(error.message || "Failed to retrieve reservations");
+  }
+};
+
 module.exports = {
   createReservation,
   confirmReservation,
@@ -1103,4 +1205,5 @@ module.exports = {
   checkInReservationCustomer,
   getAllReservationsByUser,
   getReservationForShopStaff,
+  getShopReservations,
 };
