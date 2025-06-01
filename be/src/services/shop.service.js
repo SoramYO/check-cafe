@@ -23,6 +23,7 @@ const mongoose = require("mongoose");
 const shopAmenityModel = require("../models/shopAmenity.model");
 const { calculateDistance, getDistanceFromLatLonInKm } = require("../utils/distanceCaculate");
 const userModel = require("../models/user.model");
+const { signUp } = require("./access.service");
 
 const getAllPublicShops = async (req) => {
   try {
@@ -66,14 +67,14 @@ const getAllPublicShops = async (req) => {
 
     // Lọc theo amenities
     if (amenities) {
-      const amenityIds = amenities.split(",").map(id => 
+      const amenityIds = amenities.split(",").map(id =>
         new mongoose.Types.ObjectId(id.trim())
       );
       query.amenities = { $all: amenityIds };
     }
 
     if (themes) {
-      const themeIds = themes.split(",").map(id => 
+      const themeIds = themes.split(",").map(id =>
         new mongoose.Types.ObjectId(id.trim())
       );
       query.theme_ids = { $all: themeIds };
@@ -2060,6 +2061,221 @@ const getShopForStaff = async (req) => {
   }
 };
 
+const getStaffList = async (req) => {
+  const { shopId } = req.params;
+
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    search
+  } = req.query;
+
+  try {
+    // First, get the shop to find staff_ids
+    const shop = await shopModel.findById(shopId).select('staff_ids');
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    // Build query for users who are staff of this shop
+    let query = {
+      _id: { $in: shop.staff_ids || [] },
+      role: 'STAFF'
+    };
+
+    // Add search functionality
+    if (search) {
+      query.$or = [
+        { full_name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Build sort object
+    const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+    // Use User model for pagination
+    const paginateOptions = {
+      model: require('../models/user.model'),
+      query,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sort,
+      select: getSelectData([
+        "_id",
+        "full_name",
+        "email",
+        "phone",
+        "avatar",
+        "role",
+        "is_active",
+        "createdAt",
+        "updatedAt",
+      ])
+    };
+
+    const result = await getPaginatedData(paginateOptions);
+
+    return {
+      data: result.data,
+      metadata: result.metadata
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError 
+      ? error 
+      : new BadRequestError(error.message || "Failed to get staff list");
+  }
+}
+
+const getStaffById = async (req) => {
+  try {
+    const { staffId, shopId } = req.params;
+    const { userId, role } = req.user;
+
+    // Find the staff user
+    const staffUser = await userModel.findById(staffId);
+    if (!staffUser) {
+      throw new NotFoundError("Staff not found");
+    }
+
+    if (staffUser.role !== 'STAFF') {
+      throw new BadRequestError("User is not a staff member");
+    }
+
+    return staffUser;
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get staff by ID");
+  }
+};
+
+const createStaff = async (req) => {
+  try {
+    const { full_name, email, password, phone } = req.body;
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+
+    // Validate required fields
+    if (!full_name || !email || !password) {
+      throw new BadRequestError("Full name, email and password are required");
+    }
+
+    // Check if shop exists and user has permission
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to create staff for this shop");
+    }
+
+    // Check if email already exists
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
+      throw new BadRequestError("Email already exists");
+    }
+
+    // Create staff user
+    const staffData = {
+      full_name,
+      email,
+      password,
+      phone,
+      role: 'STAFF'
+    };
+
+    const user = await userModel.create(staffData);
+
+    // Add staff to shop
+    shop.staff_ids.push(user._id);
+    await shop.save();
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "full_name", 
+        "email",
+        "phone",
+        "role",
+        "is_active",
+        "createdAt"
+      ],
+      object: user
+    });
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to create staff");
+  }
+}
+
+const updateStaff = async (req) => {
+  try {
+    const { staffId } = req.params;
+    const { full_name, phone, is_active } = req.body;
+    const { userId, role } = req.user;
+
+    // Find the staff user
+    const staffUser = await userModel.findById(staffId);
+    if (!staffUser) {
+      throw new NotFoundError("Staff not found");
+    }
+
+    if (staffUser.role !== 'STAFF') {
+      throw new BadRequestError("User is not a staff member");
+    }
+
+    // Check if user has permission to update this staff
+    if (role !== "ADMIN") {
+      // Find shop that contains this staff
+      const shop = await shopModel.findOne({ 
+        $and: [
+          { staff_ids: { $in: [staffId] } },
+          { owner_id: userId }
+        ]
+      });
+      
+      if (!shop) {
+        throw new ForbiddenError("You are not authorized to update this staff member");
+      }
+    }
+
+    // Update staff user
+    const updateData = {};
+    if (full_name) updateData.full_name = full_name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (is_active !== undefined) updateData.is_active = is_active;
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      staffId, 
+      updateData, 
+      { new: true }
+    );
+
+    return getInfoData({
+      fields: [
+        "_id",
+        "full_name", 
+        "email",
+        "phone",
+        "role",
+        "is_active",
+        "createdAt",
+        "updatedAt"
+      ],
+      object: updatedUser
+    });
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to update staff");
+  }
+}
+
 module.exports = {
   createShop,
   updateShop,
@@ -2083,4 +2299,8 @@ module.exports = {
   getAllMenuItems,
   deleteMenuItem,
   getShopForStaff,
+  getStaffList,
+  getStaffById,
+  createStaff,
+  updateStaff
 };
