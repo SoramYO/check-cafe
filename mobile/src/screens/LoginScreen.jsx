@@ -14,7 +14,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { toast } from "sonner-native";
 import { useAuth } from "../hooks/useAuth";
 import authenticationAPI from "../services/authAPI";
-import { useShop } from "../context/ShopContext";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -44,8 +43,7 @@ export default function LoginScreen({ navigation }) {
         toast.error(response.message || "Đăng nhập thất bại");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi đăng nhập");
+      toast.error("Có lỗi xảy ra khi đăng nhập");
     } finally {
       setIsLoading(false);
     }

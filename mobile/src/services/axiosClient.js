@@ -3,7 +3,7 @@ import axios from "axios";
 import queryString from "query-string";
 
 // Thay đổi IP này thành IP của máy chủ của bạn
-export const BASE_URL = "http://192.168.100.62:3000/api/v1"; // Thay x bằng số thích hợp
+export const BASE_URL = "http://192.168.100.23:3000/api/v1"; // Thay x bằng số thích hợp
 
 const getAccessToken = async () => {
   const res = await AsyncStorage.getItem("token");
@@ -42,13 +42,6 @@ axiosClient.interceptors.response.use(
     throw new Error("Error");
   },
   (error) => {
-    const errorMessage =
-      error.response?.data?.message || error.message || "An error occurred";
-    console.error("API Error:", {
-      status: error.response?.status,
-      message: errorMessage,
-      data: error.response?.data,
-    });
     throw error;
   }
 );

@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 20,
     bottom: 40,
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
     padding: 15,
     borderRadius: 50,
     shadowColor: "#000",

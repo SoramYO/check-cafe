@@ -14,17 +14,7 @@ import { toast } from 'sonner-native';
 import { authSelector } from '../redux/reducers/authReducer';
 import { useSelector, useDispatch } from 'react-redux';
 import userAPI from '../services/userAPI';
-import { useIsFocused } from '@react-navigation/native';
 import { setUser } from '../redux/reducers/authReducer';
-
-const MOCK_USER = {
-  name: 'Nguyễn Văn A',
-  email: 'nguyenvana@gmail.com',
-  phone: '0123456789',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=2940&auto=format&fit=crop',
-  address: '123 Đường ABC, Phường XYZ, Đà Lạt',
-  birthday: '1990-01-01',
-};
 
 export default function EditProfileScreen({ navigation }) {
   const { user } = useSelector(authSelector);
@@ -68,7 +58,7 @@ export default function EditProfileScreen({ navigation }) {
           <MaterialCommunityIcons
             name={isEditing ? "content-save" : "pencil"}
             size={24}
-            color="#4A90E2"
+            color="#7a5545"
           />
         </TouchableOpacity>
       </View>
@@ -85,7 +75,7 @@ export default function EditProfileScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Họ và tên</Text>
             <View style={styles.inputContainer}>
-              <MaterialCommunityIcons name="account" size={24} color="#4A90E2" />
+              <MaterialCommunityIcons name="account" size={24} color="#7a5545" />
               <TextInput
                 style={styles.input}
                 value={userInfo.full_name}
@@ -98,7 +88,7 @@ export default function EditProfileScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <View style={styles.inputContainer}>
-              <MaterialCommunityIcons name="email" size={24} color="#4A90E2" />
+              <MaterialCommunityIcons name="email" size={24} color="#7a5545" />
               <TextInput
                 style={styles.input}
                 value={userInfo.email}
@@ -112,39 +102,13 @@ export default function EditProfileScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Số điện thoại</Text>
             <View style={styles.inputContainer}>
-              <MaterialCommunityIcons name="phone" size={24} color="#4A90E2" />
+              <MaterialCommunityIcons name="phone" size={24} color="#7a5545" />
               <TextInput
                 style={styles.input}
                 value={userInfo.phone}
                 onChangeText={(text) => setUserInfo({ ...userInfo, phone: text })}
                 editable={isEditing}
                 keyboardType="phone-pad"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Địa chỉ</Text>
-            <View style={styles.inputContainer}>
-              <MaterialCommunityIcons name="map-marker" size={24} color="#4A90E2" />
-              <TextInput
-                style={styles.input}
-                value={userInfo.address}
-                onChangeText={(text) => setUserInfo({ ...userInfo, address: text })}
-                editable={isEditing}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Ngày sinh</Text>
-            <View style={styles.inputContainer}>
-              <MaterialCommunityIcons name="calendar" size={24} color="#4A90E2" />
-              <TextInput
-                style={styles.input}
-                value={userInfo.birthday}
-                onChangeText={(text) => setUserInfo({ ...userInfo, birthday: text })}
-                editable={isEditing}
               />
             </View>
           </View>
@@ -198,13 +162,13 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: '#4A90E2',
+    borderColor: '#7a5545',
   },
   changeAvatarButton: {
     position: 'absolute',
     bottom: 0,
     right: '35%',
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#7a5545',
     padding: 8,
     borderRadius: 20,
   },

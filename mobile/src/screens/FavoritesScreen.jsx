@@ -14,67 +14,6 @@ import { getFavoriteShops, toggleFavorite } from "../utils/favoritesStorage";
 import { useFocusEffect } from "@react-navigation/native";
 import userAPI from "../services/userAPI";
 
-const FAVORITE_CAFES = [
-  {
-    id: "1",
-    name: "The Dreamer Coffee",
-    address: "123 Đường Trần Hưng Đạo, Phường 10, Đà Lạt",
-    rating: 4.8,
-    reviews: 256,
-    image:
-      "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
-    status: "open",
-    distance: "0.8km",
-  },
-  {
-    id: "2",
-    name: "Mountain View Café",
-    address: "45 Đường Lê Đại Hành, Đà Lạt",
-    rating: 4.6,
-    reviews: 189,
-    image:
-      "https://images.unsplash.com/photo-1493857671505-72967e2e2760?q=80&w=2940&auto=format&fit=crop",
-    status: "busy",
-    distance: "1.2km",
-  },
-  {
-    id: "3",
-    name: "Horizon Coffee",
-    address: "78 Đường Nguyễn Chí Thanh, Đà Lạt",
-    rating: 4.7,
-    reviews: 210,
-    image:
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2940&auto=format&fit=crop",
-    status: "open",
-    distance: "2.0km",
-  },
-];
-
-const FAVORITE_DISHES = [
-  {
-    id: "1",
-    name: "Cà phê sữa đá",
-    price: "35.000đ",
-    description: "Cà phê phin truyền thống với sữa đặc",
-    image:
-      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
-    cafe: "The Dreamer Coffee",
-    rating: 4.8,
-    reviews: 120,
-  },
-  {
-    id: "2",
-    name: "Cappuccino",
-    price: "45.000đ",
-    description: "Cà phê Ý với sữa tươi đánh bông",
-    image:
-      "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=2787&auto=format&fit=crop",
-    cafe: "Mountain View Café",
-    rating: 4.6,
-    reviews: 85,
-  },
-];
-
 export default function FavoritesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("cafes");
   const [shops, setShops] = useState([]);
@@ -92,7 +31,6 @@ export default function FavoritesScreen({ navigation }) {
     try {
       const response = await userAPI.HandleUser(`/favorite-shop?page=${page}&limit=${limit}`);
       setShops(response.data.data);
-      console.log(response.data.data);
       setMetadata(response.data.data.metadata);
     } catch (err) {
       // handle error
@@ -228,7 +166,7 @@ export default function FavoritesScreen({ navigation }) {
           <MaterialCommunityIcons
             name="store"
             size={20}
-            color={activeTab === "cafes" ? "#4A90E2" : "#64748B"}
+            color={activeTab === "cafes" ? "#7a5545" : "#7a5545"}
           />
           <Text
             style={[
@@ -247,7 +185,7 @@ export default function FavoritesScreen({ navigation }) {
           <MaterialCommunityIcons
             name="food"
             size={20}
-            color={activeTab === "dishes" ? "#4A90E2" : "#64748B"}
+            color={activeTab === "dishes" ? "#7a5545" : "#7a5545"}
           />
           <Text
             style={[
@@ -291,7 +229,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "white",
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: "#BFA58E",
   },
   backButton: {
     marginRight: 16,
@@ -312,7 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 16,
     backgroundColor: "white",
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: "#BFA58E",
     borderBottomWidth: 1,
     gap: 12,
   },
@@ -326,19 +264,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAF9",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#BFA58E",
   },
   activeTab: {
-    backgroundColor: "#E0ECFF",
-    borderColor: "#4A90E2",
+    backgroundColor: "#f1f1f1",
+    borderColor: "#BFA58E",
   },
   tabText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#64748B",
+    color: "#6B4F3F",
   },
   activeTabText: { 
-    color: "#1D4ED8", 
+    color: "#6B4F3F", 
     fontWeight: "700" 
   },
   shopCard: {
@@ -351,7 +289,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: "#BFA58E",
     overflow: "hidden",
   },
   cafeImage: {
@@ -443,7 +381,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#7a5545",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
