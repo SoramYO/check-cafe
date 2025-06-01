@@ -185,6 +185,38 @@ class ShopController {
       data: result,
     }).send(res);
   });
+
+  getStaffList = asyncHandler(async (req, res) => {
+    const result = await shopService.getStaffList(req);
+    new OK({
+      message: SHOP_MESSAGE.GET_STAFF_LIST_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getStaffById = asyncHandler(async (req, res) => {
+    const result = await shopService.getStaffById(req);
+    new OK({
+      message: SHOP_MESSAGE.GET_STAFF_BY_ID_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  createStaff = asyncHandler(async (req, res) => {
+    const result = await shopService.createStaff(req);
+    new OK({
+      message: SHOP_MESSAGE.CREATE_STAFF_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  updateStaff = asyncHandler(async (req, res) => {
+    const result = await shopService.updateStaff(req);
+    new OK({
+      message: SHOP_MESSAGE.UPDATE_STAFF_SUCCESS,
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new ShopController();

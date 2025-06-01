@@ -30,6 +30,14 @@ router.post("/", shopController.createShop);
 
 router.get("/staff/list", shopController.getShopForStaff);
 
+router.get("/:shopId/staff", shopController.getStaffList);
+
+router.get("/:shopId/staff/:staffId", shopController.getStaffById);
+
+router.post("/:shopId/staff", shopController.createStaff);
+
+router.patch("/:shopId/staff/:staffId", shopController.updateStaff);
+
 // Update shop
 router.patch("/:shopId", shopController.updateShop);
 

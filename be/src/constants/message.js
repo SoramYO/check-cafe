@@ -81,6 +81,10 @@ const SHOP_MESSAGE = {
   GET_ALL_PUBLIC_SUCCESS: "Get all public shops successfully",
   GET_SHOPS_IN_RANGE_SUCCESS: "Get shops in range successfully",
   GET_SHOP_FOR_STAFF_SUCCESS: "Get shop for staff successfully",
+  GET_STAFF_LIST_SUCCESS: "Get staff list successfully",
+  CREATE_STAFF_SUCCESS: "Create staff successfully",
+  UPDATE_STAFF_SUCCESS: "Update staff successfully",
+  GET_STAFF_BY_ID_SUCCESS: "Get staff by ID successfully",
 };
 
 const ADVERTISEMENT_MESSAGE = {
