@@ -3,7 +3,7 @@ import axios from "axios";
 import queryString from "query-string";
 
 // Thay đổi IP này thành IP của máy chủ của bạn
-export const BASE_URL = "http://192.168.100.23:3000/api/v1"; // Thay x bằng số thích hợp
+export const BASE_URL = "https://soramyo.id.vn/api/v1"; // Thay x bằng số thích hợp
 
 const getAccessToken = async () => {
   const res = await AsyncStorage.getItem("token");

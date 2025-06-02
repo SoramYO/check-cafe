@@ -19,10 +19,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.phuuthanh2003.checkafe"
     },
     "web": {
       "favicon": "./assets/logo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "780192d7-cd27-4eaa-9978-801f4d568fff"
+      }
     }
   }
 }
