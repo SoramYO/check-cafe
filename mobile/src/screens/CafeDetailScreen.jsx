@@ -19,6 +19,7 @@ import ReviewSection from "../components/cafe/ReviewSection";
 import ImageCarousel from "../components/cafe/ImageCarousel";
 import BasicInfo from "../components/cafe/BasicInfo";
 import shopAPI from "../services/shopAPI";
+import { getFavoriteShops, toggleFavorite } from "../utils/favoritesStorage";
 const popularDishes = [
   {
     id: "1",
@@ -41,9 +42,6 @@ const popularDishes = [
 export default function CafeDetailScreen({ navigation, route }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [shop, setShop] = useState(null);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
-  const [reviewComment, setReviewComment] = useState("");
   const { shopId } = route.params;
 
   useEffect(() => {
@@ -51,8 +49,19 @@ export default function CafeDetailScreen({ navigation, route }) {
       const response = await shopAPI.HandleCoffeeShops(`/${shopId}`);
       setShop(response.data.shop);
     };
+    checkButtonStatus();
     fetchShop();
   }, []);
+
+  const checkButtonStatus = async () => {
+    const favorites = await getFavoriteShops();
+    setIsFavorite(favorites.some((fav) => fav._id === shopId));
+  };
+
+  const toggleFavoriteShop = async () => {
+    await toggleFavorite(shop);
+    checkButtonStatus();
+  };
 
   const handleBooking = () => {
     navigation.navigate("Booking", {
@@ -189,7 +198,7 @@ export default function CafeDetailScreen({ navigation, route }) {
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.favoriteButton}
-          onPress={() => setIsFavorite(!isFavorite)}
+          onPress={() => toggleFavoriteShop()}
         >
           <MaterialCommunityIcons
             name={isFavorite ? "heart" : "heart-outline"}

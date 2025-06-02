@@ -10,53 +10,32 @@ import {
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
-
-const MOCK_TRANSACTIONS = [
-  {
-    id: "1",
-    type: "booking",
-    amount: 150000,
-    status: "completed",
-    date: "2024-03-15T10:30:00",
-    description: "Đặt chỗ tại The Coffee House",
-    paymentMethod: "Ví MoMo",
-  },
-  {
-    id: "2",
-    type: "topup",
-    amount: 500000,
-    status: "completed",
-    date: "2024-03-14T15:45:00",
-    description: "Nạp tiền vào ví",
-    paymentMethod: "Thẻ ngân hàng",
-  },
-  {
-    id: "3",
-    type: "booking",
-    amount: 200000,
-    status: "failed",
-    date: "2024-03-13T09:15:00",
-    description: "Đặt chỗ tại Highland Coffee",
-    paymentMethod: "Ví điện tử",
-  },
-];
+import paymentAPI from "../services/paymentAPI";
 
 export default function PaymentHistoryScreen({ navigation }) {
   const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, completed, failed
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("all"); // all, success, pending
 
   useEffect(() => {
-    // Simulate API call
-    setTransactions(MOCK_TRANSACTIONS);
-    setLoading(false);
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await paymentAPI.HandlePayment("/me");
+      setTransactions(res.data.data);
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "completed":
+      case "success":
         return "#10B981";
       case "failed":
         return "#EF4444";
@@ -69,7 +48,7 @@ export default function PaymentHistoryScreen({ navigation }) {
 
   const getStatusText = (status) => {
     switch (status) {
-      case "completed":
+      case "success":
         return "Thành công";
       case "failed":
         return "Thất bại";
@@ -80,72 +59,50 @@ export default function PaymentHistoryScreen({ navigation }) {
     }
   };
 
-  const getTransactionIcon = (type) => {
-    switch (type) {
-      case "booking":
-        return "calendar-check";
-      case "topup":
-        return "wallet-plus";
-      default:
-        return "cash";
-    }
-  };
-
   const renderTransaction = ({ item }) => (
     <TouchableOpacity style={styles.transactionCard}>
       <View style={styles.transactionHeader}>
         <View style={styles.transactionLeft}>
-          <View
-            style={[
-              styles.iconContainer,
-              {
-                backgroundColor: item.type === "topup" ? "#DFF7E9" : "#FFF3E9",
-              },
-            ]}
-          >
+          <View style={[styles.iconContainer, { backgroundColor: "#FFF3E9" }]}>
             <MaterialCommunityIcons
-              name={getTransactionIcon(item.type)}
+              name="package-variant"
               size={20}
-              color={item.type === "topup" ? "#10B981" : "#F97316"}
+              color="#F97316"
             />
           </View>
           <View>
-            <Text style={styles.transactionTitle}>{item.description}</Text>
-            <Text style={styles.transactionDate}>
-              {format(new Date(item.date), "dd/MM/yyyy HH:mm", { locale: vi })}
+            <Text style={styles.transactionTitle}>
+              {item?.package_id?.name}
+            </Text>
+            <Text style={styles.packageDuration}>
+              Thời hạn: {item?.package_id?.duration} ngày
             </Text>
           </View>
         </View>
         <View style={styles.transactionRight}>
-          <Text
-            style={[
-              styles.transactionAmount,
-              { color: item.type === "topup" ? "#10B981" : "#1E293B" },
-            ]}
-          >
-            {item.type === "topup" ? "+" : "-"}
-            {item.amount.toLocaleString()}đ
+          <Text style={styles.transactionAmount}>
+            {item?.amount?.toLocaleString()}đ
           </Text>
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: `${getStatusColor(item.status)}15` },
+              { backgroundColor: `${getStatusColor(item?.status)}15` },
             ]}
           >
             <Text
               style={[
                 styles.statusText,
-                { color: getStatusColor(item.status) },
+                { color: getStatusColor(item?.status) },
               ]}
             >
-              {getStatusText(item.status)}
+              {getStatusText(item?.status)}
             </Text>
           </View>
         </View>
       </View>
       <View style={styles.transactionFooter}>
-        <MaterialCommunityIcons name="credit-card" size={16} color="#64748B" />
-        <Text style={styles.paymentMethod}>{item.paymentMethod}</Text>
+        <MaterialCommunityIcons name="barcode" size={16} color="#64748B" />
+        <Text style={styles.paymentMethod}>Mã đơn: {item?.orderCode}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -158,7 +115,7 @@ export default function PaymentHistoryScreen({ navigation }) {
       >
         <MaterialCommunityIcons name="arrow-left" size={24} color="#1E293B" />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Lịch sử giao dịch</Text>
+      <Text style={styles.headerTitle}>Lịch sử thanh toán gói</Text>
       <View style={styles.placeholder} />
     </View>
   );
@@ -181,14 +138,14 @@ export default function PaymentHistoryScreen({ navigation }) {
       <TouchableOpacity
         style={[
           styles.filterButton,
-          filter === "completed" && styles.activeFilter,
+          filter === "success" && styles.activeFilter,
         ]}
-        onPress={() => setFilter("completed")}
+        onPress={() => setFilter("success")}
       >
         <Text
           style={[
             styles.filterText,
-            filter === "completed" && styles.activeFilterText,
+            filter === "success" && styles.activeFilterText,
           ]}
         >
           Thành công
@@ -197,17 +154,17 @@ export default function PaymentHistoryScreen({ navigation }) {
       <TouchableOpacity
         style={[
           styles.filterButton,
-          filter === "failed" && styles.activeFilter,
+          filter === "pending" && styles.activeFilter,
         ]}
-        onPress={() => setFilter("failed")}
+        onPress={() => setFilter("pending")}
       >
         <Text
           style={[
             styles.filterText,
-            filter === "failed" && styles.activeFilterText,
+            filter === "pending" && styles.activeFilterText,
           ]}
         >
-          Thất bại
+          Đang xử lý
         </Text>
       </TouchableOpacity>
     </View>
@@ -230,12 +187,16 @@ export default function PaymentHistoryScreen({ navigation }) {
           (t) => filter === "all" || t.status === filter
         )}
         renderItem={renderTransaction}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="history" size={48} color="#CBD5E1" />
+            <MaterialCommunityIcons
+              name="package-variant"
+              size={48}
+              color="#CBD5E1"
+            />
             <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
           </View>
         }
@@ -333,7 +294,7 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     marginBottom: 4,
   },
-  transactionDate: {
+  packageDuration: {
     fontSize: 13,
     color: "#64748B",
   },

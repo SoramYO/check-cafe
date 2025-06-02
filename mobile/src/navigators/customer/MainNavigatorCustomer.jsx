@@ -13,6 +13,7 @@ import ThemeScreen from "../../screens/ThemeScreen";
 import PremiumScreen from "../../screens/PremiumScreen";
 import TabNavigatorCustomer from "./TabNavigatorCustomer";
 import PaymentHistoryScreen from "../../screens/PaymentHistoryScreen";
+import MenuItemDetailScreen from "../../screens/MenuItemDetailScreen";
 
 const MainNavigatorCustomer = () => {
   const Stack = createNativeStackNavigator();
@@ -38,6 +39,7 @@ const MainNavigatorCustomer = () => {
       <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
       <Stack.Screen name="Premium" component={PremiumScreen} />
       <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
+      <Stack.Screen name="MenuItemDetail" component={MenuItemDetailScreen} />
     </Stack.Navigator>
   );
 };

@@ -6,35 +6,103 @@ import packageAPI from '../services/packageAPI';
 import userPackageAPI from '../services/userPackageAPI';
 import QRCode from 'react-native-qrcode-svg';
 import userAPI from '../services/userAPI';
+import Toast from 'react-native-toast-message';
+import paymentAPI from '../services/paymentAPI';
 
 export default function PremiumScreen() {
   const navigation = useNavigation();
   const [packages, setPackages] = useState([]);
   const [currentPackage, setCurrentPackage] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [paymentId, setPaymentId] = useState("");
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const [packagesResponse, currentPackageResponse] = await Promise.all([
-        packageAPI.HandlePackage(""),
-        userPackageAPI.HandleUserPackage("/my-packages")
-      ]);
-      
-      setPackages(packagesResponse.data.packages);
-      const active = currentPackageResponse.data.find(pkg => pkg.status === "active");
-      setCurrentPackage(active);
-    };
     fetchData();
   }, []);
+
+  const fetchData = async () => {
+    const [packagesResponse, currentPackageResponse] = await Promise.all([
+      packageAPI.HandlePackage(""),
+      userPackageAPI.HandleUserPackage("/my-packages")
+    ]);
+    
+    setPackages(packagesResponse.data.packages);
+    const active = currentPackageResponse.data.find(pkg => pkg.status === "active");
+    setCurrentPackage(active);
+  };
+
+  // Reset all payment states
+  const resetPaymentStates = () => {
+    setPaymentInfo(null);
+    setPaymentId("");
+    setCheckingStatus(false);
+  };
+
+  useEffect(() => {
+    let intervalId;
+
+    const checkPaymentStatus = async () => {
+      if (paymentId && !checkingStatus) {
+        try {
+          setCheckingStatus(true);
+          const response = await paymentAPI.HandlePayment(`/${paymentId}/status`);
+          if (response.data.status === "success") {
+            Toast.show({
+              type: 'success',
+              text1: 'Thanh toán thành công',
+              text2: 'Gói Premium của bạn đã được kích hoạt'
+            });
+            resetPaymentStates();
+            fetchData();
+          } else if (response.data.status === "failed") {
+            Toast.show({
+              type: 'error',
+              text1: 'Thanh toán thất bại',
+              text2: 'Vui lòng thử lại sau'
+            });
+            resetPaymentStates();
+          }
+        } catch (error) {
+          console.error("Error checking payment status:", error);
+        } finally {
+          setCheckingStatus(false);
+        }
+      }
+    };
+
+    if (paymentId) {
+      checkPaymentStatus();
+      intervalId = setInterval(checkPaymentStatus, 5000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [paymentId]);
   
   const handleUpgrade = async (packageId) => {
     try {
       const response = await userAPI.HandleUser("/buy-vip-package", { packageId }, "post");
-      if (response?.data?.paymentLinkResponse) {
+      
+      if (response.status === 200) {
         setPaymentInfo(response.data.paymentLinkResponse);
+        setPaymentId(response.data.paymentId);
       }
     } catch (error) {
-      console.log(error);
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể tạo đơn hàng. Vui lòng thử lại sau'
+      });
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (!checkingStatus) {
+      resetPaymentStates();
     }
   };
 
@@ -99,14 +167,18 @@ export default function PremiumScreen() {
         visible={!!paymentInfo}
         transparent
         animationType="slide"
-        onRequestClose={() => setPaymentInfo(null)}
+        onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={styles.paymentTitle}>Thông tin thanh toán</Text>
-              <TouchableOpacity onPress={() => setPaymentInfo(null)}>
-                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+              <TouchableOpacity onPress={handleCloseModal} disabled={checkingStatus}>
+                <MaterialCommunityIcons 
+                  name="close" 
+                  size={24} 
+                  color={checkingStatus ? "#CBD5E1" : "#64748B"} 
+                />
               </TouchableOpacity>
             </View>
             {paymentInfo && (
@@ -115,12 +187,6 @@ export default function PremiumScreen() {
                 <Text>Số tài khoản: {paymentInfo.accountNumber}</Text>
                 <Text>Số tiền: {paymentInfo.amount.toLocaleString('vi-VN')}đ</Text>
                 <Text>Mô tả: {paymentInfo.description}</Text>
-                <TouchableOpacity
-                  style={styles.payButton}
-                  onPress={() => Linking.openURL(paymentInfo.checkoutUrl)}
-                >
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Thanh toán ngay</Text>
-                </TouchableOpacity>
                 <View style={{ alignItems: 'center', marginTop: 16 }}>
                   <QRCode
                     value={paymentInfo.qrCode}
@@ -135,6 +201,7 @@ export default function PremiumScreen() {
           </View>
         </View>
       </Modal>
+      <Toast />
     </View>
   );
 }
@@ -256,4 +323,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '90%' },
+  disabledButton: {
+    opacity: 0.5,
+  },
 }); 

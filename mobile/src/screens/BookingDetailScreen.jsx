@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import QRCode from "react-native-qrcode-svg";
@@ -17,7 +18,7 @@ export default function BookingDetailScreen({ route }) {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+    <SafeAreaView style={styles.container}>
       {/* Header with back button */}
       <View style={styles.headerBar}>
         <TouchableOpacity
@@ -154,17 +155,19 @@ export default function BookingDetailScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
+  },
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 16,
-    paddingBottom: 8,
-    paddingHorizontal: 8,
-    backgroundColor: "#F8FAFC",
+    justifyContent: "space-between",
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
-    elevation: 2,
-    zIndex: 10,
+    backgroundColor: "white",
   },
   backBtn: {
     width: 40,
@@ -181,7 +184,6 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     letterSpacing: 0.2,
   },
-  container: { flex: 1, backgroundColor: "#F8FAFC" },
   image: {
     width: "100%",
     height: 220,
