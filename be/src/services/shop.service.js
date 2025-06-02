@@ -656,8 +656,8 @@ const getShop = async (req) => {
       .lean();
     const menuItems = await shopMenuItemModel
       .find({ shop_id: shopId })
-      .select("name description price category images is_available").populate([
-        { path: "category", select: "_id name" },
+      .select("_id shop_id name description price category images is_available").populate([
+        { path: "category", select: "_id name description" },
       ])
       .lean();
     const timeSlots = await shopTimeSlotModel

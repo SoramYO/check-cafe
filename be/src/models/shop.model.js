@@ -66,6 +66,7 @@ const shopSchema = new mongoose.Schema(
       default: 0,
       min: 0,
       max: 5,
+      get: (v) => Number(v.toFixed(1)),
     },
     rating_count: {
       type: Number,
