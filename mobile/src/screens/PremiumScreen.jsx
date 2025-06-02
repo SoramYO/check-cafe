@@ -17,7 +17,7 @@ export default function PremiumScreen() {
     const fetchData = async () => {
       const [packagesResponse, currentPackageResponse] = await Promise.all([
         packageAPI.HandlePackage(""),
-        userPackageAPI.HandleUserPackage("/")
+        userPackageAPI.HandleUserPackage("/my-packages")
       ]);
       
       setPackages(packagesResponse.data.packages);

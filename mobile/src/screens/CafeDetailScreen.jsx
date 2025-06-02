@@ -37,109 +37,6 @@ const popularDishes = [
     description: "Bánh mì nướng với trứng và pate",
   },
 ];
-// const shop = {
-//   id: "1",
-//   name: "The Dreamer Coffee",
-//   address: "123 Đường Trần Hưng Đạo, Phường 10, Đà Lạt",
-//   phone: "0123456789",
-//   hours: "07:00 - 22:00",
-//   rating: 4.8,
-//   reviews: 256,
-//   website: "https://dreamercoffee.com",
-//   description:
-//     "Quán cà phê view đẹp với không gian thoáng đãng, phong cách hiện đại pha lẫn nét cổ điển của Đà Lạt. Địa điểm lý tưởng để thưởng thức cà phê, đọc sách và ngắm nhìn thành phố từ trên cao.",
-//   images: [
-//     "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2947&auto=format&fit=crop",
-//     "https://images.unsplash.com/photo-1493857671505-72967e2e2760?q=80&w=2940&auto=format&fit=crop",
-//     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2940&auto=format&fit=crop",
-//   ],
-//   features: [
-//     { icon: "wifi", label: "Wifi miễn phí" },
-//     { icon: "car", label: "Bãi đỗ xe" },
-//     { icon: "credit-card", label: "Thanh toán thẻ" },
-//     { icon: "air-conditioner", label: "Máy lạnh" },
-//   ],
-//   popularDishes: [
-//     {
-//       id: "1",
-//       name: "Cà phê sữa đá",
-//       price: "35.000đ",
-//       image:
-//         "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
-//       description: "Cà phê phin truyền thống với sữa đặc",
-//     },
-//     {
-//       id: "2",
-//       name: "Bánh mì chảo",
-//       price: "55.000đ",
-//       image:
-//         "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=2874&auto=format&fit=crop",
-//       description: "Bánh mì nướng với trứng và pate",
-//     },
-//   ],
-//   menu: {
-//     drinks: [
-//       {
-//         id: "1",
-//         name: "Cà phê sữa đá",
-//         price: "35.000đ",
-//         description: "Cà phê phin truyền thống với sữa đặc",
-//         image:
-//           "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2787&auto=format&fit=crop",
-//         category: "Cà phê",
-//       },
-//       {
-//         id: "2",
-//         name: "Cappuccino",
-//         price: "45.000đ",
-//         description: "Cà phê Ý với sữa tươi đánh bông",
-//         image:
-//           "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?q=80&w=2787&auto=format&fit=crop",
-//         category: "Cà phê",
-//       },
-//     ],
-//     food: [
-//       {
-//         id: "3",
-//         name: "Bánh mì chảo",
-//         price: "55.000đ",
-//         description: "Bánh mì nướng với trứng và pate",
-//         image:
-//           "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=2874&auto=format&fit=crop",
-//         category: "Điểm tâm",
-//       },
-//       {
-//         id: "4",
-//         name: "Croissant",
-//         price: "35.000đ",
-//         description: "Bánh sừng bò Pháp",
-//         image:
-//           "https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=2726&auto=format&fit=crop",
-//         category: "Bánh ngọt",
-//       },
-//     ],
-//   },
-//   checkinSpots: [
-//     {
-//       id: "1",
-//       image:
-//         "https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?q=80&w=2940&auto=format&fit=crop",
-//       description: "Góc ban công view thành phố",
-//     },
-//     {
-//       id: "2",
-//       image:
-//         "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?q=80&w=2940&auto=format&fit=crop",
-//       description: "Khu vườn xanh mát",
-//     },
-//     {
-//       id: "3",
-//       image:
-//         "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=2940&auto=format&fit=crop",
-//       description: "Góc vintage trong nhà",
-//     },
-//   ],
-// };
 
 export default function CafeDetailScreen({ navigation, route }) {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -161,18 +58,6 @@ export default function CafeDetailScreen({ navigation, route }) {
     navigation.navigate("Booking", {
       shopId: shop._id,
     });
-  };
-
-  const handleSubmitReview = () => {
-    // Here you would typically send the review to your backend
-    console.log("Submitting review:", {
-      rating: selectedRating,
-      comment: reviewComment,
-    });
-    // Reset the form
-    setSelectedRating(0);
-    setReviewComment("");
-    setIsReviewModalVisible(false);
   };
 
   const renderFeatures = () => (

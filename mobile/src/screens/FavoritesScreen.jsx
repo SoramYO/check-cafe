@@ -3,16 +3,19 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { getFavoriteShops, toggleFavorite } from "../utils/favoritesStorage";
-import { useFocusEffect } from "@react-navigation/native";
+import {
+  getFavoriteMenuItems,
+  getFavoriteShops,
+  toggleFavorite,
+} from "../utils/favoritesStorage";
 import userAPI from "../services/userAPI";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function FavoritesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("cafes");
@@ -21,17 +24,18 @@ export default function FavoritesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [menuItems, setMenuItems] = useState([]);
 
-  useEffect(() => {
-    fetchFavoriteShops();
-    fetchFavoriteMenuItems();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchFavoriteShops();
+      fetchFavoriteMenuItems();
+    }, [])
+  );
 
   const fetchFavoriteShops = async (page = 1, limit = 10) => {
     setLoading(true);
     try {
-      const response = await userAPI.HandleUser(`/favorite-shop?page=${page}&limit=${limit}`);
-      setShops(response.data.data);
-      setMetadata(response.data.data.metadata);
+      const data = await getFavoriteShops();
+      setShops(data);
     } catch (err) {
       // handle error
     }
@@ -41,9 +45,8 @@ export default function FavoritesScreen({ navigation }) {
   const fetchFavoriteMenuItems = async (page = 1, limit = 10) => {
     setLoading(true);
     try {
-      const response = await userAPI.HandleUser(`/favorite-product?page=${page}&limit=${limit}`);
-      setMenuItems(response.data.data);
-      setMetadata(response.data.data.metadata);
+      const data = await getFavoriteMenuItems();
+      setMenuItems(data);
     } catch (err) {
       // handle error
     }
@@ -60,10 +63,7 @@ export default function FavoritesScreen({ navigation }) {
       style={styles.shopCard}
       onPress={() => navigation.navigate("CafeDetail", { shopId: cafe._id })}
     >
-      <Image
-        source={{ uri: cafe.shopImages?.[0]?.url }}
-        style={styles.cafeImage}
-      />
+      <Image source={{ uri: cafe?.mainImage?.url }} style={styles.cafeImage} />
       <View style={styles.cafeContent}>
         <View style={styles.cafeHeader}>
           <View>
@@ -71,7 +71,9 @@ export default function FavoritesScreen({ navigation }) {
             <View style={styles.ratingContainer}>
               <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
               <Text style={styles.rating}>{cafe.rating_avg || 0}</Text>
-              <Text style={styles.reviews}>({cafe.rating_count || 0} đánh giá)</Text>
+              <Text style={styles.reviews}>
+                ({cafe.rating_count || 0} đánh giá)
+              </Text>
             </View>
           </View>
           <TouchableOpacity style={styles.favoriteButton}>
@@ -80,7 +82,11 @@ export default function FavoritesScreen({ navigation }) {
         </View>
         <View style={styles.cafeDetails}>
           <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="map-marker" size={16} color="#64748B" />
+            <MaterialCommunityIcons
+              name="map-marker"
+              size={16}
+              color="#64748B"
+            />
             <Text style={styles.address}>{cafe.address}</Text>
           </View>
         </View>
@@ -100,51 +106,64 @@ export default function FavoritesScreen({ navigation }) {
             onPress={() => navigation.navigate("Booking", { shopId: cafe._id })}
           >
             <Text style={styles.bookButtonText}>Đặt chỗ</Text>
-            <MaterialCommunityIcons name="arrow-right" size={20} color="white" />
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={20}
+              color="white"
+            />
           </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
   );
 
-  const renderDishCard = ({ item: dish }) => (
-    <TouchableOpacity
-      style={styles.dishCard}
-      onPress={() => navigation.navigate("MenuItemDetail", { itemId: dish._id })}
-    >
-      <Image
-        source={{ uri: dish.images?.[0]?.url }}
-        style={styles.dishImage}
-      />
-      <View style={styles.dishContent}>
-        <View style={styles.dishHeader}>
-          <Text style={styles.dishName}>{dish.name}</Text>
-          <TouchableOpacity style={styles.favoriteButton}>
-            <MaterialCommunityIcons name="heart" size={24} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.dishDescription} numberOfLines={2}>
-          {dish.description}
-        </Text>
-        <View style={styles.dishInfo}>
-          <Text style={styles.dishPrice}>
-            {dish.price ? dish.price.toLocaleString() + "đ" : ""}
-          </Text>
-          <View style={styles.ratingContainer}>
-            <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-            <Text style={styles.rating}>{dish.rating || 0}</Text>
-            <Text style={styles.reviews}>({dish.reviews || 0})</Text>
+  const renderDishCard = ({ item: dish }) => {
+    console.log(dish);
+    return (
+      <TouchableOpacity
+        style={styles.dishCard}
+        onPress={() =>
+          navigation.navigate("MenuItemDetail", { itemId: dish._id })
+        }
+      >
+        <Image
+          source={{
+            uri:
+              dish.images?.[0]?.url ||
+              "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTt-kLox6r5K7OxuCAm3v7tgbXllRTBxw-RVw&s",
+          }}
+          style={styles.dishImage}
+        />
+        <View style={styles.dishContent}>
+          <View style={styles.dishHeader}>
+            <Text style={styles.dishName}>{dish.name}</Text>
+            <TouchableOpacity style={styles.favoriteButton}>
+              <MaterialCommunityIcons name="heart" size={24} color="#EF4444" />
+            </TouchableOpacity>
           </View>
+          <Text style={styles.dishDescription} numberOfLines={2}>
+            {dish.description}
+          </Text>
+          <View style={styles.dishInfo}>
+            <Text style={styles.dishPrice}>
+              {dish.price ? dish.price.toLocaleString() + "đ" : ""}
+            </Text>
+            <View style={styles.ratingContainer}>
+              <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
+              <Text style={styles.rating}>{dish.rating || 0}</Text>
+              <Text style={styles.reviews}>({dish.reviews || 0})</Text>
+            </View>
+          </View>
+          {dish.shop_id && (
+            <TouchableOpacity style={styles.cafeBadge}>
+              <MaterialCommunityIcons name="store" size={16} color="#4A90E2" />
+              <Text style={styles.cafeName}>{dish.shop_id.name || ""}</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {dish.shop_id && (
-          <TouchableOpacity style={styles.cafeBadge}>
-            <MaterialCommunityIcons name="store" size={16} color="#4A90E2" />
-            <Text style={styles.cafeName}>{dish.shop_id.name || ""}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -198,22 +217,23 @@ export default function FavoritesScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {activeTab === "cafes"
-        ? <FlatList
-            style={styles.content}
-            contentContainerStyle={styles.scrollContent}
-            data={shops}
-            keyExtractor={item => item._id}
-            renderItem={renderCafeCard}
-          />
-        : <FlatList
-            style={styles.content}
-            contentContainerStyle={styles.scrollContent}
-            data={menuItems}
-            keyExtractor={item => item._id}
-            renderItem={renderDishCard}
-          />
-      }
+      {activeTab === "cafes" ? (
+        <FlatList
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          data={shops}
+          keyExtractor={(item) => item._id}
+          renderItem={renderCafeCard}
+        />
+      ) : (
+        <FlatList
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          data={menuItems}
+          keyExtractor={(item) => item._id}
+          renderItem={renderDishCard}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -275,9 +295,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#6B4F3F",
   },
-  activeTabText: { 
-    color: "#6B4F3F", 
-    fontWeight: "700" 
+  activeTabText: {
+    color: "#6B4F3F",
+    fontWeight: "700",
   },
   shopCard: {
     backgroundColor: "white",

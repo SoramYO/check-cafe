@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { format } from "date-fns";
@@ -42,7 +43,7 @@ const MOCK_TRANSACTIONS = [
   },
 ];
 
-export default function PaymentHistoryScreen() {
+export default function PaymentHistoryScreen({ navigation }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, completed, failed
@@ -247,6 +248,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
     flexDirection: "row",
