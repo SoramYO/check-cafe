@@ -36,7 +36,12 @@ const TabNavigatorCustomer = () => {
           fontSize: 12,
         },
         tabBarIconStyle: {
-          marginTop: 0,
+          marginTop: 4,
+        },
+        tabBarStyle: {
+          height: 70,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: "#7a5545",
         tabBarInactiveTintColor: "#7a5545",
