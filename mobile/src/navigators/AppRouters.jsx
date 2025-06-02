@@ -37,8 +37,6 @@ const AppRouters = () => {
     return <AuthNavigator />;
   }
 
-  console.log("✅ Token:", auth.token);
-  console.log("✅ Role:", auth.user?.role);
   if (auth.user.role === "CUSTOMER") return <MainNavigatorCustomer />;
   if (auth.user.role === "STAFF") return <MainNavigatorStaff />;
 
