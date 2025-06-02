@@ -13,6 +13,7 @@ import {
   getFavoriteMenuItems,
   getFavoriteShops,
   toggleFavorite,
+  toggleFavoriteMenu,
 } from "../utils/favoritesStorage";
 import userAPI from "../services/userAPI";
 import { useFocusEffect } from "@react-navigation/native";
@@ -53,9 +54,14 @@ export default function FavoritesScreen({ navigation }) {
     setLoading(false);
   };
 
-  const handleToggleFavorite = async (shop) => {
+  const handleToggleFavoriteShop = async (shop) => {
     await toggleFavorite(shop);
     fetchFavoriteShops(); // Reload favorites after toggling
+  };
+
+  const handleToggleFavoriteDish = async (dish) => {
+    await toggleFavoriteMenu(dish);
+    fetchFavoriteMenuItems(); // Reload favorites after toggling
   };
 
   const renderCafeCard = ({ item: cafe }) => (
@@ -76,7 +82,7 @@ export default function FavoritesScreen({ navigation }) {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.favoriteButton}>
+          <TouchableOpacity style={styles.favoriteButton} onPress={() => handleToggleFavoriteShop(cafe)}>
             <MaterialCommunityIcons name="heart" size={24} color="#EF4444" />
           </TouchableOpacity>
         </View>
@@ -118,12 +124,11 @@ export default function FavoritesScreen({ navigation }) {
   );
 
   const renderDishCard = ({ item: dish }) => {
-    console.log(dish);
     return (
       <TouchableOpacity
         style={styles.dishCard}
         onPress={() =>
-          navigation.navigate("MenuItemDetail", { itemId: dish._id })
+          navigation.navigate("MenuItemDetail", { menuItem: dish })
         }
       >
         <Image
@@ -136,30 +141,65 @@ export default function FavoritesScreen({ navigation }) {
         />
         <View style={styles.dishContent}>
           <View style={styles.dishHeader}>
-            <Text style={styles.dishName}>{dish.name}</Text>
-            <TouchableOpacity style={styles.favoriteButton}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.dishName} numberOfLines={1}>
+                {dish.name}
+              </Text>
+              <Text style={styles.dishDescription} numberOfLines={2}>
+                {dish.description}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.favoriteButton} 
+              onPress={() => handleToggleFavoriteDish(dish)}
+            >
               <MaterialCommunityIcons name="heart" size={24} color="#EF4444" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.dishDescription} numberOfLines={2}>
-            {dish.description}
-          </Text>
+
           <View style={styles.dishInfo}>
-            <Text style={styles.dishPrice}>
-              {dish.price ? dish.price.toLocaleString() + "đ" : ""}
-            </Text>
+            <View style={styles.priceContainer}>
+              <MaterialCommunityIcons name="cash" size={16} color="#64748B" />
+              <Text style={styles.dishPrice}>
+                {dish.price ? dish.price.toLocaleString() + "đ" : ""}
+              </Text>
+            </View>
             <View style={styles.ratingContainer}>
               <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
               <Text style={styles.rating}>{dish.rating || 0}</Text>
               <Text style={styles.reviews}>({dish.reviews || 0})</Text>
             </View>
           </View>
-          {dish.shop_id && (
-            <TouchableOpacity style={styles.cafeBadge}>
-              <MaterialCommunityIcons name="store" size={16} color="#4A90E2" />
-              <Text style={styles.cafeName}>{dish.shop_id.name || ""}</Text>
-            </TouchableOpacity>
-          )}
+
+          <View style={styles.dishFooter}>
+            <View style={[styles.statusBadge, { backgroundColor: dish.is_available ? "#DFF7E9" : "#FEE2E2" }]}>
+              <MaterialCommunityIcons
+                name={dish.is_available ? "check-circle" : "close-circle"}
+                size={16}
+                color={dish.is_available ? "#10B981" : "#EF4444"}
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: dish.is_available ? "#10B981" : "#EF4444" }
+                ]}
+              >
+                {dish.is_available ? "Có sẵn" : "Hết hàng"}
+              </Text>
+            </View>
+
+            {dish.shop_id && (
+              <TouchableOpacity 
+                style={styles.cafeBadge}
+                onPress={() => navigation.navigate("CafeDetail", { shopId: dish.shop_id })}
+              >
+                <MaterialCommunityIcons name="store" size={16} color="#4A90E2" />
+                <Text style={styles.cafeBadgeText} numberOfLines={1}>
+                  {dish.shop_id.name || "Cửa hàng"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -420,66 +460,119 @@ const styles = StyleSheet.create({
   },
   dishCard: {
     backgroundColor: "white",
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: "#BFA58E",
+    flexDirection: "row",
+    height: 120,
   },
   dishImage: {
-    width: "100%",
-    height: 180,
+    width: 120,
+    height: "100%",
     resizeMode: "cover",
   },
   dishContent: {
-    padding: 16,
-    gap: 14,
+    flex: 1,
+    padding: 12,
+    justifyContent: "space-between",
   },
   dishHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: 8,
   },
   dishName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     color: "#1E293B",
-    flex: 1,
-    letterSpacing: 0.3,
+    marginBottom: 4,
   },
   dishDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#64748B",
-    lineHeight: 20,
+    lineHeight: 16,
+  },
+  favoriteButton: {
+    padding: 4,
+    backgroundColor: "#FFF1F2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FECDD3",
   },
   dishInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 12,
-    borderRadius: 12,
+    marginVertical: 4,
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   dishPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     color: "#2C3E50",
-    letterSpacing: 0.3,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FEF9C3",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  rating: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#854D0E",
+  },
+  reviews: {
+    fontSize: 10,
+    color: "#854D0E",
+  },
+  dishFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   cafeBadge: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#EFF6FF",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
     borderWidth: 1,
     borderColor: "#BFDBFE",
+  },
+  cafeBadgeText: {
+    fontSize: 12,
+    color: "#4A90E2",
+    fontWeight: "500",
+    flex: 1,
   },
 });
