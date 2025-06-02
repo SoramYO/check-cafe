@@ -8,6 +8,7 @@ import {
   Image,
   Switch,
   Modal,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -29,17 +30,17 @@ const getMenuSections = (role) => {
             label: "Chỉnh sửa thông tin",
             route: "EditProfile",
           },
-          { 
-            icon: "qrcode-scan", 
-            label: "Quét mã QR", 
+          {
+            icon: "qrcode-scan",
+            label: "Quét mã QR",
             route: "ScanQR",
-            color: "#7a5545"
+            color: "#7a5545",
           },
-          { 
-            icon: "calendar-check", 
-            label: "Quản lý đặt chỗ", 
+          {
+            icon: "calendar-check",
+            label: "Quản lý đặt chỗ",
             route: "Bookings",
-            color: "#7a5545"
+            color: "#7a5545",
           },
         ],
       },
@@ -47,7 +48,12 @@ const getMenuSections = (role) => {
         title: "Cài đặt",
         items: [
           { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
-          { icon: "logout", label: "Đăng xuất", route: "Logout", color: "#EF4444" },
+          {
+            icon: "logout",
+            label: "Đăng xuất",
+            route: "Logout",
+            color: "#EF4444",
+          },
         ],
       },
     ];
@@ -64,7 +70,11 @@ const getMenuSections = (role) => {
         },
         { icon: "ticket-percent", label: "Voucher của tôi", route: "Vouchers" },
         { icon: "heart-outline", label: "Yêu thích", route: "Favorites" },
-        { icon: "history", label: "Lịch sử giao dịch", route: "PaymentHistory" },
+        {
+          icon: "history",
+          label: "Lịch sử giao dịch",
+          route: "PaymentHistory",
+        },
         {
           icon: "map-marker-outline",
           label: "Địa điểm mặc định",
@@ -82,7 +92,12 @@ const getMenuSections = (role) => {
       title: "Cài đặt",
       items: [
         { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
-        { icon: "logout", label: "Đăng xuất", route: "Logout", color: "#EF4444" },
+        {
+          icon: "logout",
+          label: "Đăng xuất",
+          route: "Logout",
+          color: "#EF4444",
+        },
       ],
     },
   ];
@@ -159,15 +174,15 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.userInfo}>
-            <Image 
-              source={{ 
-                uri: user?.avatar || "https://via.placeholder.com/60"
-              }} 
-              style={styles.avatar} 
+            <Image
+              source={{
+                uri: user?.avatar || "https://via.placeholder.com/60",
+              }}
+              style={styles.avatar}
             />
             <View style={styles.userDetails}>
               <View style={styles.nameContainer}>
-                <Text style={styles.userName}>{userInfo?.full_name}</Text>
+                <Text style={styles.userName}>{user?.full_name}</Text>
                 {user?.role === "STAFF" && (
                   <View style={styles.staffBadge}>
                     <MaterialCommunityIcons
@@ -191,21 +206,28 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.levelBadge}>
                 <MaterialCommunityIcons
-                  name={user?.role === "STAFF" ? "shield-account" : "shield-star"}
+                  name={
+                    user?.role === "STAFF" ? "shield-account" : "shield-star"
+                  }
                   size={16}
                   color={user?.role === "STAFF" ? "#7a5545" : "#6366F1"}
                 />
-                <Text style={[
-                  styles.levelText,
-                  user?.role === "STAFF" && styles.staffLevelText
-                ]}>
+                <Text
+                  style={[
+                    styles.levelText,
+                    user?.role === "STAFF" && styles.staffLevelText,
+                  ]}
+                >
                   {user?.role === "STAFF" ? "Nhân viên" : user?.role}
                 </Text>
               </View>
             </View>
           </View>
-          <TouchableOpacity style={styles.editButton}>
-            <MaterialCommunityIcons name="pencil" size={20} color="#4A90E2" />
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate("EditProfile")}
+          >
+            <MaterialCommunityIcons name="pencil" size={20} color="#7a5545" />
           </TouchableOpacity>
         </View>
 
@@ -229,6 +251,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   scrollView: {
     flex: 1,
@@ -237,7 +260,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 20,
     backgroundColor: "white",
   },
   userInfo: {

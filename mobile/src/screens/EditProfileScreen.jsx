@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,13 +8,14 @@ import {
   Image,
   ScrollView,
   SafeAreaView,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { toast } from 'sonner-native';
-import { authSelector } from '../redux/reducers/authReducer';
-import { useSelector, useDispatch } from 'react-redux';
-import userAPI from '../services/userAPI';
-import { setUser } from '../redux/reducers/authReducer';
+  Platform,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
+import { authSelector } from "../redux/reducers/authReducer";
+import { useSelector, useDispatch } from "react-redux";
+import userAPI from "../services/userAPI";
+import { setUser } from "../redux/reducers/authReducer";
 
 export default function EditProfileScreen({ navigation }) {
   const { user } = useSelector(authSelector);
@@ -24,21 +25,31 @@ export default function EditProfileScreen({ navigation }) {
   const [isEditing, setIsEditing] = useState(false);
   const [userInfo, setUserInfo] = useState(user);
 
-
-
   const handleSave = async () => {
-    const response = await userAPI.HandleUser("/profile", {
-      full_name: userInfo.full_name,
-      email: userInfo.email,
-      phone: userInfo.phone,
-      address: userInfo.address,
-      birthday: userInfo.birthday,
-    }, "PATCH");
-    
-    toast.success("Cập nhật thành công!");
-    dispatch(setUser(response.data.user));
-    setUserInfo(response.data.user);
-    setIsEditing(false);
+    const response = await userAPI.HandleUser(
+      "/profile",
+      {
+        full_name: userInfo.full_name,
+        phone: userInfo.phone,
+      },
+      "PATCH"
+    );
+    if (response.status === 200) {
+      Toast.show({
+        type: "success",
+        text1: "Thành công",
+        text2: "Cập nhật thông tin thành công",
+      });
+      dispatch(setUser(response.data.user));
+      setUserInfo(response.data.user);
+      setIsEditing(false);
+    } else {
+      Toast.show({
+        type: "error",
+        text1: "Thất bại",
+        text2: "Cập nhật thông tin thất bại",
+      });
+    }
   };
 
   return (
@@ -73,28 +84,35 @@ export default function EditProfileScreen({ navigation }) {
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Họ và tên</Text>
-            <View style={styles.inputContainer}>
-              <MaterialCommunityIcons name="account" size={24} color="#7a5545" />
+            <Text style={styles.label}>Email</Text>
+            <View
+              style={[styles.inputContainer, { backgroundColor: "#f3f4f6" }]}
+            >
+              <MaterialCommunityIcons name="email" size={24} color="#7a5545" />
               <TextInput
                 style={styles.input}
-                value={userInfo.full_name}
-                  onChangeText={(text) => setUserInfo({ ...userInfo, full_name: text })}
-                editable={isEditing}
+                value={userInfo.email}
+                editable={false}
+                keyboardType="email-address"
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>Họ và tên</Text>
             <View style={styles.inputContainer}>
-              <MaterialCommunityIcons name="email" size={24} color="#7a5545" />
+              <MaterialCommunityIcons
+                name="account"
+                size={24}
+                color="#7a5545"
+              />
               <TextInput
                 style={styles.input}
-                value={userInfo.email}
-                onChangeText={(text) => setUserInfo({ ...userInfo, email: text })}
+                value={userInfo.full_name}
+                onChangeText={(text) =>
+                  setUserInfo({ ...userInfo, full_name: text })
+                }
                 editable={isEditing}
-                keyboardType="email-address"
               />
             </View>
           </View>
@@ -106,7 +124,9 @@ export default function EditProfileScreen({ navigation }) {
               <TextInput
                 style={styles.input}
                 value={userInfo.phone}
-                onChangeText={(text) => setUserInfo({ ...userInfo, phone: text })}
+                onChangeText={(text) =>
+                  setUserInfo({ ...userInfo, phone: text })
+                }
                 editable={isEditing}
                 keyboardType="phone-pad"
               />
@@ -120,6 +140,7 @@ export default function EditProfileScreen({ navigation }) {
           </TouchableOpacity>
         )}
       </ScrollView>
+      <Toast />
     </SafeAreaView>
   );
 }
@@ -127,24 +148,25 @@ export default function EditProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: "#E2E8F0",
   },
   backButton: {
     padding: 8,
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontWeight: "600",
+    color: "#1E293B",
   },
   editButton: {
     padding: 8,
@@ -154,7 +176,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   avatarSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 24,
   },
   avatar: {
@@ -162,13 +184,13 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: '#7a5545',
+    borderColor: "#7a5545",
   },
   changeAvatarButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
-    right: '35%',
-    backgroundColor: '#7a5545',
+    right: "35%",
+    backgroundColor: "#7a5545",
     padding: 8,
     borderRadius: 20,
   },
@@ -180,35 +202,35 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     borderRadius: 12,
-    padding: 12,
+    padding: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
     gap: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1E293B',
+    color: "#1E293B",
   },
   saveButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: "#7a5545",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 24,
     marginBottom: 32,
   },
   saveButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

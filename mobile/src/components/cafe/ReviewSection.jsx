@@ -34,6 +34,7 @@ const ReviewSection = ({
   const reviewCount = totalReviews || shop?.rating_count || 0;
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
   const [reviewComment, setReviewComment] = useState("");
+  const [hasReviewed, setHasReviewed] = useState(false);
   const { user } = useSelector(authSelector);
 
   useEffect(() => {
@@ -41,21 +42,13 @@ const ReviewSection = ({
       const response = await reviewAPI.HandleReview(`/shop/${shop._id}`);
       setReviews(response.data.reviews);
       setReviewStats(response.data.starCounts);
+      const hasReviewed = response.data.reviews.some(
+        (review) => review.user_id._id === user._id
+      );
+      setHasReviewed(hasReviewed);
     };
     fetchReviews();
   }, []);
-
-  const handleLikePress = (reviewId) => {
-    setLikedReviews((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(reviewId)) {
-        newSet.delete(reviewId);
-      } else {
-        newSet.add(reviewId);
-      }
-      return newSet;
-    });
-  };
 
   const renderStars = (rating, size = 20, interactive = false) => {
     const stars = [];
@@ -174,25 +167,6 @@ const ReviewSection = ({
         )}
 
         <View style={styles.reviewActions}>
-          {/* <TouchableOpacity
-            style={[styles.actionButton, isLiked && styles.actionButtonActive]}
-            onPress={() => handleLikePress(review.id)}
-          >
-            <MaterialCommunityIcons
-              name={isLiked ? "heart" : "heart-outline"}
-              size={20}
-              color={isLiked ? "#EF4444" : "#64748B"}
-            />
-            <Text
-              style={[
-                styles.actionButtonText,
-                isLiked && styles.actionButtonTextActive,
-              ]}
-            >
-              {review.likes + (isLiked ? 1 : 0)}
-            </Text>
-          </TouchableOpacity> */}
-
           <TouchableOpacity style={styles.actionButton}>
             <MaterialCommunityIcons
               name="comment-outline"
@@ -216,10 +190,6 @@ const ReviewSection = ({
   };
 
   const renderStarRating = () => {
-    const hasReviewed = reviews.some(
-      (review) => review.user_id._id === user._id
-    );
-
     if (hasReviewed) {
       return (
         <View style={styles.writeReviewContainer}>
@@ -248,7 +218,7 @@ const ReviewSection = ({
         <TouchableOpacity
           style={[
             styles.writeReviewButton,
-            { backgroundColor: selectedRating > 0 ? "#4A90E2" : "#E2E8F0" },
+            { backgroundColor: selectedRating > 0 ? "#7a5545" : "#E2E8F0" },
           ]}
           disabled={selectedRating === 0}
           onPress={() => setIsReviewModalVisible(true)}
@@ -267,6 +237,7 @@ const ReviewSection = ({
   };
 
   const handleSubmitReview = async () => {
+    console.log(shop);
     const data = {
       rating: selectedRating,
       comment: reviewComment,
@@ -274,11 +245,13 @@ const ReviewSection = ({
     };
     const response = await reviewAPI.HandleReview("", data, "post");
     if (response.status === 200) {
+      console.log(response.data);
       toast.success("Đánh giá đã được gửi thành công");
       setSelectedRating(0);
       setReviewComment("");
       setIsReviewModalVisible(false);
-      setReviews([...reviews, response.data]);
+      setReviews([...reviews, { ...response.data.review, user_id: user }]);
+      setHasReviewed(true);
     }
   };
 

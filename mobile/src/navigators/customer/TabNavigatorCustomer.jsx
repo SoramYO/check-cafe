@@ -15,28 +15,31 @@ const TabNavigatorCustomer = () => {
         headerShown: false,
         tabBarHideOnKeyboard: true,
         tabBarIcon: ({ focused, color, size }) => {
-            let iconName = "home";
-  
-            if (route.name === "Discover") {
-              iconName = focused ? "coffee" : "coffee-outline";
-            } else if (route.name === "Map") {
-              iconName = focused ? "map" : "map-outline";
-            } else if (route.name === "Bookings") {
-              iconName = focused ? "calendar-check" : "calendar-check-outline";
-            } else if (route.name === "Profile") {
-              iconName = focused ? "account" : "account-outline";
-            }
-  
-            return (
-              <MaterialCommunityIcons name={iconName} size={size} color={color} />
-            );
-          },
-        tabBarIconStyle: {
-          marginTop: 8,
+          let iconName = "home";
+
+          if (route.name === "Discover") {
+            iconName = focused ? "coffee" : "coffee-outline";
+          } else if (route.name === "Map") {
+            iconName = focused ? "map" : "map-outline";
+          } else if (route.name === "Bookings") {
+            iconName = focused ? "calendar-check" : "calendar-check-outline";
+          } else if (route.name === "Profile") {
+            iconName = focused ? "account" : "account-outline";
+          }
+
+          return (
+            <MaterialCommunityIcons name={iconName} size={size} color={color} />
+          );
         },
-        
-        tabBarActiveTintColor: '#7a5545',
-        tabBarInactiveTintColor: '#7a5545',
+        tabBarLabelStyle: {
+          marginBottom: 4,
+          fontSize: 12,
+        },
+        tabBarIconStyle: {
+          marginTop: 0,
+        },
+        tabBarActiveTintColor: "#7a5545",
+        tabBarInactiveTintColor: "#7a5545",
       })}
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} />

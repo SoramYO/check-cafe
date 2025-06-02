@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,23 +10,26 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatPrice } from "../../utils/formatHelpers";
+import { useFocusEffect } from "@react-navigation/native";
+import { getFavoriteMenuItems, toggleFavoriteMenu } from "../../utils/favoritesStorage";
 
 const MenuSection = ({ menuItems, onItemPress }) => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categories, setCategories] = useState([]);
+  const [favoriteMenuItems, setFavoriteMenuItems] = useState([]);
 
   useEffect(() => {
     // Create a map to store unique categories
     const uniqueCategories = new Map();
-    
+
     // Add "all" category first
     uniqueCategories.set("all", {
       _id: "all",
-      name: "Tất cả"
+      name: "Tất cả",
     });
 
     // Add other categories, preventing duplicates by _id
-    menuItems?.forEach(item => {
+    menuItems?.forEach((item) => {
       if (item.category && !uniqueCategories.has(item.category._id)) {
         uniqueCategories.set(item.category._id, item.category);
       }
@@ -36,10 +39,30 @@ const MenuSection = ({ menuItems, onItemPress }) => {
     setCategories(Array.from(uniqueCategories.values()));
   }, [menuItems]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
+
+  const loadFavorites = async () => {
+    const favorites = await getFavoriteMenuItems();
+    setFavoriteMenuItems(favorites);
+  };
+
   const filteredItems =
     selectedCategory === "all"
       ? menuItems
       : menuItems?.filter((item) => item.category?._id === selectedCategory);
+
+  const isMenuFavorite = (menuId) => {
+    return favoriteMenuItems.some((menu) => menu._id === menuId);
+  };
+
+  const handleToggleFavorite = async (menu) => {
+    await toggleFavoriteMenu(menu);
+    loadFavorites();
+  };
 
   const renderCategoryTab = (category) => (
     <TouchableOpacity
@@ -69,7 +92,7 @@ const MenuSection = ({ menuItems, onItemPress }) => {
 
   const getCategoryIcon = (category) => {
     if (category._id === "all") return "menu";
-    
+
     switch (category?.name?.toLowerCase()) {
       case "cà phê":
         return "coffee";
@@ -117,11 +140,14 @@ const MenuSection = ({ menuItems, onItemPress }) => {
               style={styles.menuItemImage}
               resizeMode="cover"
             />
-            <TouchableOpacity style={styles.favoriteButton}>
+            <TouchableOpacity
+              style={styles.favoriteButton}
+              onPress={() => handleToggleFavorite(item)}
+            >
               <MaterialCommunityIcons
-                name="heart-outline"
-                size={16}
-                color="#FF4B4B"
+                name={isMenuFavorite(item._id) ? "heart" : "heart-outline"}
+                size={20}
+                color={isMenuFavorite(item._id) ? "#EF4444" : "#666"}
               />
             </TouchableOpacity>
           </View>
