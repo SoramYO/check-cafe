@@ -19,4 +19,5 @@ router.use("/advertisements", require("./advertisement"));
 router.use("/packages", require("./package"));
 router.use("/user-packages", require("./userPackage"));
 router.use("/discounts", require("./discount"));
+router.use("/payments", require("./payment"));
 module.exports = router;
