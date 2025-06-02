@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-navigation/bottom-tabs": "^7.3.12",
     "@react-navigation/native": "^7.1.8",
@@ -35,7 +35,8 @@
     "react-native-qrcode-svg": "^6.3.15",
     "react-native-safe-area-context": "^5.4.0",
     "react-redux": "^9.2.0",
-    "sonner-native": "^0.19.1"
+    "sonner-native": "^0.19.1",
+    "react-native-reanimated": "~3.17.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
