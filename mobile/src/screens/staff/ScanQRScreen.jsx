@@ -63,7 +63,8 @@ export default function ScanQRScreen({ navigation }) {
         setTimeout(() => setScanned(false), 2000);
       }
     } catch (error) {
-      toast.error("Có lỗi xảy ra khi xử lý check-in");
+      console.error("QR scan error:", error);
+      toast.error("Lỗi xử lý mã QR. Vui lòng thử lại.");
       setTimeout(() => setScanned(false), 2000);
     } finally {
       setIsProcessing(false);
@@ -71,13 +72,16 @@ export default function ScanQRScreen({ navigation }) {
   };
 
   const toggleFlash = () => {
-    setFlashMode(flashMode === "torch" ? "off" : "torch");
+    setFlashMode(flashMode === "off" ? "on" : "off");
   };
 
   if (hasPermission === null) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#7a5545" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7a5545" />
+          <Text style={styles.loadingText}>Đang yêu cầu quyền camera...</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -85,72 +89,77 @@ export default function ScanQRScreen({ navigation }) {
   if (hasPermission === false) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.text}>Không có quyền truy cập camera</Text>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.buttonText}>Quay lại</Text>
-        </TouchableOpacity>
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons name="camera-off" size={64} color="#EF4444" />
+          <Text style={styles.errorText}>Không có quyền sử dụng camera</Text>
+          <Text style={styles.errorSubtext}>
+            Ứng dụng cần quyền camera để quét mã QR check-in
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryButtonText}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quét mã QR Check-in</Text>
-        <TouchableOpacity style={styles.headerButton} onPress={toggleFlash}>
-          <MaterialCommunityIcons
-            name={flashMode === "torch" ? "flash" : "flash-off"}
-            size={24}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.scannerContainer}>
-        <CameraView
-          style={StyleSheet.absoluteFillObject}
-          enableTorch={flashMode === "torch"}
-          barcodeScannerSettings={{
-            barcodeTypes: ["qr"],
-          }}
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-        />
+      <CameraView
+        style={styles.camera}
+        barCodeScannerSettings={{
+          barCodeTypes: ["qr"],
+        }}
+        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+        flash={flashMode}
+      >
         <View style={styles.overlay}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialCommunityIcons name="close" size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.title}>Quét mã QR</Text>
+            <TouchableOpacity style={styles.flashButton} onPress={toggleFlash}>
+              <MaterialCommunityIcons
+                name={flashMode === "off" ? "flash-off" : "flash"}
+                size={24}
+                color="white"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Scan Area */}
           <View style={styles.scanArea}>
+            <View style={styles.scanFrame}>
+              {/* Corner indicators */}
+              <View style={[styles.corner, styles.topLeft]} />
+              <View style={[styles.corner, styles.topRight]} />
+              <View style={[styles.corner, styles.bottomLeft]} />
+              <View style={[styles.corner, styles.bottomRight]} />
+            </View>
+          </View>
+
+          {/* Instructions */}
+          <View style={styles.instructions}>
+            <Text style={styles.instructionText}>
+              Đặt mã QR trong khung hình để check-in
+            </Text>
             {isProcessing && (
-              <View style={styles.processingOverlay}>
-                <ActivityIndicator size="large" color="#7a5545" />
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="small" color="white" />
                 <Text style={styles.processingText}>Đang xử lý...</Text>
               </View>
             )}
           </View>
         </View>
-
-        <View style={styles.guideContainer}>
-          <Text style={styles.guideText}>
-            Đặt mã QR check-in vào khung hình để quét
-          </Text>
-        </View>
-
-        {scanned && !isProcessing && (
-          <TouchableOpacity
-            style={styles.rescanButton}
-            onPress={() => setScanned(false)}
-          >
-            <MaterialCommunityIcons name="refresh" size={24} color="#FFFFFF" />
-            <Text style={styles.rescanText}>Quét lại</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      </CameraView>
     </SafeAreaView>
   );
 }
@@ -267,5 +276,140 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#fff",
+    fontWeight: "500",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000",
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#EF4444",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: "#fff",
+    textAlign: "center",
+    opacity: 0.8,
+  },
+  retryButton: {
+    backgroundColor: "#7a5545",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  processingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 16,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  processingText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  camera: {
+    flex: 1,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  flashButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scanFrame: {
+    width: scanSize,
+    height: scanSize,
+    borderWidth: 2,
+    borderColor: "#7a5545",
+    backgroundColor: "transparent",
+  },
+  corner: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: "#7a5545",
+    backgroundColor: "transparent",
+  },
+  topLeft: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+  },
+  topRight: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+  },
+  bottomLeft: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+  },
+  bottomRight: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+  },
+  instructions: {
+    position: "absolute",
+    bottom: 120,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  instructionText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    textAlign: "center",
+    backgroundColor: "rgba(122, 85, 69, 0.7)",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
 });

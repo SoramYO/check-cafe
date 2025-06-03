@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Modal, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import packageAPI from '../services/packageAPI';
@@ -16,20 +16,34 @@ export default function PremiumScreen() {
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [paymentId, setPaymentId] = useState("");
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    const [packagesResponse, currentPackageResponse] = await Promise.all([
-      packageAPI.HandlePackage(""),
-      userPackageAPI.HandleUserPackage("/my-packages")
-    ]);
-    
-    setPackages(packagesResponse.data.packages);
-    const active = currentPackageResponse.data.find(pkg => pkg.status === "active");
-    setCurrentPackage(active);
+    try {
+      setLoading(true);
+      const [packagesResponse, currentPackageResponse] = await Promise.all([
+        packageAPI.HandlePackage(""),
+        userPackageAPI.HandleUserPackage("/my-packages")
+      ]);
+      
+      setPackages(packagesResponse.data.packages);
+      const active = currentPackageResponse.data.find(pkg => pkg.status === "active");
+      setCurrentPackage(active);
+    } catch (error) {
+      console.error("Error fetching premium data:", error);
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể tải thông tin gói Premium'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Reset all payment states
@@ -85,18 +99,26 @@ export default function PremiumScreen() {
   
   const handleUpgrade = async (packageId) => {
     try {
-      const response = await userAPI.HandleUser("/buy-vip-package", { packageId }, "post");
+      setUpgrading(true);
+      const response = await paymentAPI.HandlePayment("/create", {
+        packageId,
+        amount: packages.find(pkg => pkg._id === packageId)?.price,
+        type: "package"
+      }, "post");
       
-      if (response.status === 200) {
-        setPaymentInfo(response.data.paymentLinkResponse);
-        setPaymentId(response.data.paymentId);
+      if (response.status === 201) {
+        setPaymentInfo(response.data);
+        setPaymentId(response.data._id);
       }
     } catch (error) {
+      console.error("Error creating payment:", error);
       Toast.show({
         type: 'error',
         text1: 'Lỗi',
-        text2: 'Không thể tạo đơn hàng. Vui lòng thử lại sau'
+        text2: 'Không thể tạo thanh toán'
       });
+    } finally {
+      setUpgrading(false);
     }
   };
 
@@ -106,66 +128,99 @@ export default function PremiumScreen() {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#1E293B" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Nâng cấp Premium</Text>
-        <View style={{ width: 28 }} />
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7a5545" />
+        <Text style={styles.loadingText}>Đang tải gói Premium...</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {packages.length === 0 ? (
-          <Text style={{ textAlign: 'center', color: '#64748B', marginTop: 40 }}>Không có gói nào khả dụng.</Text>
-        ) : (
-          packages.map((pkg, idx) => {
-            const isCurrent = currentPackage && currentPackage.package_id._id === pkg._id;
-            return (
-              <View
-                key={pkg._id}
-                style={[styles.packageCard, idx === 1 && styles.recommendedPackage]}
-              >
-                {idx === 0 && (
-                  <View style={styles.recommendedBadge}>
-                    <Text style={styles.recommendedText}>Khuyến nghị</Text>
-                  </View>
-                )}
-                <View style={styles.packageHeader}>
-                  <MaterialCommunityIcons name={pkg.icon} size={24} color="#FFD700" />
-                  <Text style={styles.packageTitle}>{pkg.name}</Text>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#1E293B" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Premium</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      {/* Current Package Status */}
+      {currentPackage && (
+        <View style={styles.currentPackageCard}>
+          <View style={styles.currentPackageHeader}>
+            <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
+            <Text style={styles.currentPackageTitle}>Gói hiện tại</Text>
+          </View>
+          <Text style={styles.currentPackageName}>{currentPackage.package_id.name}</Text>
+          <Text style={styles.currentPackageExpiry}>
+            Hết hạn: {new Date(currentPackage.end_date).toLocaleDateString('vi-VN')}
+          </Text>
+        </View>
+      )}
+
+      {/* Premium Features */}
+      <View style={styles.featuresSection}>
+        <Text style={styles.sectionTitle}>Tính năng Premium</Text>
+        {PREMIUM_FEATURES.map((feature, index) => (
+          <View key={index} style={styles.featureItem}>
+            <MaterialCommunityIcons 
+              name={feature.icon} 
+              size={24} 
+              color="#7a5545" 
+            />
+            <View style={styles.featureContent}>
+              <Text style={styles.featureTitle}>{feature.title}</Text>
+              <Text style={styles.featureDescription}>{feature.description}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Packages */}
+      <View style={styles.packagesSection}>
+        <Text style={styles.sectionTitle}>Chọn gói Premium</Text>
+        {packages.map((pkg) => (
+          <View key={pkg._id} style={styles.packageCard}>
+            <View style={styles.packageHeader}>
+              <Text style={styles.packageName}>{pkg.name}</Text>
+              <Text style={styles.packagePrice}>
+                {pkg.price.toLocaleString()}đ/{pkg.duration_months} tháng
+              </Text>
+            </View>
+            <Text style={styles.packageDescription}>{pkg.description}</Text>
+            
+            <TouchableOpacity 
+              style={[
+                styles.upgradeButton,
+                (upgrading || checkingStatus) && styles.upgradeButtonDisabled
+              ]}
+              onPress={() => handleUpgrade(pkg._id)}
+              disabled={upgrading || checkingStatus}
+            >
+              {upgrading ? (
+                <View style={styles.buttonLoading}>
+                  <ActivityIndicator size="small" color="white" />
+                  <Text style={styles.upgradeButtonText}>Đang xử lý...</Text>
                 </View>
-                <Text style={styles.packagePrice}>{pkg.price.toLocaleString('vi-VN')}đ</Text>
-                <Text style={styles.packageDuration}>Thời hạn: {pkg.duration} ngày</Text>
-                <View style={styles.packageDescriptionList}>
-                  {pkg.description && pkg.description.map((desc, i) => (
-                    <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 }}>
-                      <Text style={{ color: '#4A90E2', fontWeight: 'bold', marginRight: 6 }}>•</Text>
-                      <Text style={styles.packageDescription}>{desc}</Text>
-                    </View>
-                  ))}
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.upgradeButton,
-                    idx === 1 && styles.recommendedButton,
-                    isCurrent && { opacity: 0.5 }
-                  ]}
-                  onPress={() => !isCurrent && handleUpgrade(pkg._id)}
-                  disabled={isCurrent}
-                >
-                  <Text style={styles.upgradeButtonText}>
-                    {isCurrent ? 'Đang sử dụng' : 'Nâng cấp ngay'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })
-        )}
-      </ScrollView>
+              ) : (
+                <Text style={styles.upgradeButtonText}>Nâng cấp ngay</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Payment Modal */}
       <Modal
         visible={!!paymentInfo}
-        transparent
+        transparent={true}
         animationType="slide"
         onRequestClose={handleCloseModal}
       >
@@ -201,8 +256,9 @@ export default function PremiumScreen() {
           </View>
         </View>
       </Modal>
+
       <Toast />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -325,5 +381,93 @@ const styles = StyleSheet.create({
   modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '90%' },
   disabledButton: {
     opacity: 0.5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#7a5545',
+    fontWeight: '500',
+  },
+  buttonLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  upgradeButtonDisabled: {
+    opacity: 0.7,
+  },
+  currentPackageCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+  },
+  currentPackageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  currentPackageTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  currentPackageName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  currentPackageExpiry: {
+    fontSize: 14,
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  featuresSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  featureContent: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  featureDescription: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  packagesSection: {
+    marginBottom: 24,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
   },
 }); 

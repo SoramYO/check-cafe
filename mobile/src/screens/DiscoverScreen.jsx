@@ -7,6 +7,7 @@ import {
   Image,
   FlatList,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -30,22 +31,31 @@ export default function DiscoverScreen({ navigation }) {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [favoriteShops, setFavoriteShops] = useState([]);
   const [pressedCategory, setPressedCategory] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
 
   useEffect(() => {
     if (!location) return;
     const fetchData = async () => {
-      const [responseTheme, responseShop] = await Promise.all([
-        themeAPI.HandleTheme(),
-        shopAPI.HandleCoffeeShops(
-          "/public?latitude=" +
-            location?.latitude +
-            "&longitude=" +
-            location?.longitude +
-            "&radius=10000"
-        ),
-      ]);
-      setThemes(responseTheme.data.themes);
-      setShops(responseShop.data.shops);
+      try {
+        setLoading(true);
+        const [responseTheme, responseShop] = await Promise.all([
+          themeAPI.HandleTheme(),
+          shopAPI.HandleCoffeeShops(
+            "/public?latitude=" +
+              location?.latitude +
+              "&longitude=" +
+              location?.longitude +
+              "&radius=10000"
+          ),
+        ]);
+        setThemes(responseTheme.data.themes);
+        setShops(responseShop.data.shops);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [location]);
@@ -213,25 +223,43 @@ export default function DiscoverScreen({ navigation }) {
     setActiveFilters(filters);
     if (!location) return;
 
-    let url = `/public?latitude=${location.latitude}&longitude=${location.longitude}`;
+    try {
+      setFilterLoading(true);
+      let url = `/public?latitude=${location.latitude}&longitude=${location.longitude}`;
 
-    if (filters) {
-      if (filters.distance) {
-        url += `&radius=${filters.distance}`;
+      if (filters) {
+        if (filters.distance) {
+          url += `&radius=${filters.distance}`;
+        }
+        if (filters.themeId) {
+          url += `&themes=${filters.themeId}`;
+        }
+        if (filters.sortRating) {
+          url += `&sortBy=rating_avg&sortOrder=${filters.sortRating}`;
+        }
+      } else {
+        url += "&radius=10000";
       }
-      if (filters.themeId) {
-        url += `&themes=${filters.themeId}`;
-      }
-      if (filters.sortRating) {
-        url += `&sortBy=rating_avg&sortOrder=${filters.sortRating}`;
-      }
-    } else {
-      url += "&radius=10000";
+
+      const response = await shopAPI.HandleCoffeeShops(url);
+      setShops(response.data.shops);
+    } catch (error) {
+      console.error("Error applying filters:", error);
+    } finally {
+      setFilterLoading(false);
     }
-
-    const response = await shopAPI.HandleCoffeeShops(url);
-    setShops(response.data.shops);
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7a5545" />
+          <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -274,14 +302,21 @@ export default function DiscoverScreen({ navigation }) {
 
         <View style={styles.featuredContainer}>
           <Text style={styles.sectionTitle}>Quán cà phê hot ở Đà Lạt</Text>
-          <FlatList
-            data={shops}
-            renderItem={renderShopCard}
-            keyExtractor={(item) => item.id || item._id}
-            numColumns={2}
-            columnWrapperStyle={styles.shopRow}
-            scrollEnabled={false}
-          />
+          {filterLoading ? (
+            <View style={styles.filterLoadingContainer}>
+              <ActivityIndicator size="small" color="#7a5545" />
+              <Text style={styles.filterLoadingText}>Đang lọc dữ liệu...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={shops}
+              renderItem={renderShopCard}
+              keyExtractor={(item) => item.id || item._id}
+              numColumns={2}
+              columnWrapperStyle={styles.shopRow}
+              scrollEnabled={false}
+            />
+          )}
         </View>
       </Animated.ScrollView>
     </SafeAreaView>
@@ -499,5 +534,29 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: "600",
     letterSpacing: 0.3,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#7a5545",
+    fontWeight: "500",
+  },
+  filterLoadingContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
+    gap: 8,
+  },
+  filterLoadingText: {
+    fontSize: 14,
+    color: "#7a5545",
+    fontWeight: "500",
   },
 });

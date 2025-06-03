@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -61,14 +61,21 @@ const FEATURED_DETAILS = {
 
 export default function FeaturedDetailScreen({ navigation, route }) {
   const { type, id } = route.params;
-  // const details = FEATURED_DETAILS[type];
   const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDetails = async () => {
-      const response = await advertisementAPI.HandleAdvertisement(`/${id}`);
-      console.log("abc", response.data.advertisement);
-      setDetails(response.data.advertisement);
+      try {
+        setLoading(true);
+        const response = await advertisementAPI.HandleAdvertisement(`/${id}`);
+        console.log("abc", response.data.advertisement);
+        setDetails(response.data.advertisement);
+      } catch (error) {
+        console.error("Error fetching advertisement details:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchDetails();
   }, []);
@@ -85,6 +92,34 @@ export default function FeaturedDetailScreen({ navigation, route }) {
       </View>
     </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7a5545" />
+          <Text style={styles.loadingText}>Đang tải chi tiết...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!details) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons name="alert-circle" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>Không thể tải thông tin</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryButtonText}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -105,8 +140,7 @@ export default function FeaturedDetailScreen({ navigation, route }) {
         </View>
 
         <View style={styles.content}>
-          <View
-          >
+          <View>
             <Text style={styles.title}>{details?.title}</Text>
             <Text style={styles.subtitle}>{details?.subtitle}</Text>
             <Text style={styles.description}>{details?.description}</Text>
@@ -115,7 +149,7 @@ export default function FeaturedDetailScreen({ navigation, route }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Thông tin chi tiết</Text>
             <View style={styles.featuresGrid}>
-              {details?.features.map(renderFeature)}
+              {details?.features?.map(renderFeature)}
             </View>
           </View>
         </View>
@@ -246,5 +280,43 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#7a5545',
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#EF4444',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#7a5545',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

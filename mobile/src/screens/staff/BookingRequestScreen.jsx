@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Image,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -53,6 +54,7 @@ export default function BookingRequestScreen() {
   const [bookings, setBookings] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("Pending");
+  const [loading, setLoading] = useState(true);
   const { updateShopData, shopId } = useShop();
 
   useEffect(() => {
@@ -66,17 +68,23 @@ export default function BookingRequestScreen() {
   }, [shopId]);
 
   const fetchShop = async () => {
-    const response = await shopAPI.HandleCoffeeShops("/staff/list");
-    if (response.status === 200) {
-      updateShopData({
-        shopId: response.data._id,
-        shopName: response.data.name,
-      });
+    try {
+      const response = await shopAPI.HandleCoffeeShops("/staff/list");
+      if (response.status === 200) {
+        updateShopData({
+          shopId: response.data._id,
+          shopName: response.data.name,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching shop data:", error);
+      toast.error("Không thể tải thông tin cửa hàng");
     }
   };
 
   const fetchBookings = async () => {
     try {
+      setLoading(true);
       const response = await reservationAPI.HandleReservation(
         `/staff/${shopId}`
       );
@@ -86,6 +94,8 @@ export default function BookingRequestScreen() {
     } catch (error) {
       console.error("Error fetching bookings:", error);
       toast.error("Không thể tải danh sách đặt chỗ");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -257,6 +267,17 @@ export default function BookingRequestScreen() {
     (booking) => booking.status === selectedStatus
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7a5545" />
+          <Text style={styles.loadingText}>Đang tải danh sách đặt chỗ...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -294,14 +315,14 @@ export default function BookingRequestScreen() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
+          <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
               name="calendar-blank"
-              size={48}
-              color="#BFA58E"
+              size={64}
+              color="#CBD5E1"
             />
-            <Text style={styles.emptyStateText}>
-              Chưa có yêu cầu đặt chỗ nào
+            <Text style={styles.emptyText}>
+              Không có đặt chỗ nào với trạng thái "{getStatusInfo(selectedStatus).label}"
             </Text>
           </View>
         }
@@ -493,9 +514,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  emptyState: {
-    alignItems: "center",
+  emptyContainer: {
+    flex: 1,
     justifyContent: "center",
+    alignItems: "center",
     padding: 32,
     gap: 16,
     backgroundColor: "white",
@@ -507,9 +529,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  emptyStateText: {
+  emptyText: {
     fontSize: 16,
     color: "#6b7280",
     textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#7a5545",
+    fontWeight: "500",
   },
 });

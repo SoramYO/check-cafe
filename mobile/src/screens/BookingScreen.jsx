@@ -22,7 +22,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import reservationAPI from "../services/reservationAPI";
 import { useSelector } from "react-redux";
 import { authSelector } from "../redux/reducers/authReducer";
-import Toast from "react-native-toast-message";
+import { Toast } from "react-native-toast-message/lib/src/Toast";
+
 
 export default function BookingScreen({ navigation, route }) {
   const { user } = useSelector(authSelector);
