@@ -136,6 +136,9 @@ const PACKAGE_MESSAGE = {
   GET_SUCCESS: "Get package successfully",
   UPDATE_SUCCESS: "Update package successfully",
   DELETE_SUCCESS: "Delete package successfully",
+  GET_ALL_SUCCESS: "Get all packages successfully",
+  GET_PAYMENT_STATUS_SUCCESS: "Get payment status successfully",
+  GET_MY_PAYMENT_SUCCESS: "Get my payment successfully",
 };
 
 const DISCOUNT_MESSAGE = {
