@@ -6,20 +6,23 @@ import { addAuth, authSelector } from "../redux/reducers/authReducer";
 import { useSelector, useDispatch } from "react-redux";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 import MainNavigatorStaff from "./staff/MainNavigatorStaff";
+import userAPI from "../services/userAPI";
 
 const AppRouters = () => {
   const auth = useSelector(authSelector);
-  const { getItem: getToken } = useAsyncStorage("token");
-  const { getItem: getUserData } = useAsyncStorage("userData");
+  const { getItem: getToken, setItem: setToken } = useAsyncStorage("token");
+  const { getItem: getUserData, setItem: setUserData } =
+    useAsyncStorage("userData");
   const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     handleGetData();
   }, []);
 
-  const handleGetData = async () => {
-    await checkLogin();
-  };
+  // const handleGetData = async () => {
+  //   await checkLogin();
+  // };
 
   const checkLogin = async () => {
     const token = await getToken();
@@ -28,7 +31,24 @@ const AppRouters = () => {
       userData &&
       dispatch(addAuth({ token, user: JSON.parse(userData) }));
   };
+  const handleGetData = async () => {
+    const token = await getToken();
+    if (token) {
+      try {
+        const response = await userAPI.HandleUser("/profile");
+        if (response.status === 200) {
+          const user = response.data.user;
+          dispatch(addAuth({ token, user }));
+          await setUserData(JSON.stringify(user));
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi /profile để lấy user:", error);
+      }
+    }
+    setIsLoading(false);
+  };
 
+  if (isLoading) return null;
   if (!auth.token) {
     return <AuthNavigator />;
   }

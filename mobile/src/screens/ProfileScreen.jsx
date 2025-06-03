@@ -18,6 +18,7 @@ import { toast } from "sonner-native";
 import { useDispatch, useSelector } from "react-redux";
 import { authSelector, setUser } from "../redux/reducers/authReducer";
 import userAPI from "../services/userAPI";
+import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 
 const getMenuSections = (role) => {
   if (role === "STAFF") {
@@ -108,6 +109,7 @@ export default function ProfileScreen() {
   const { user } = useSelector(authSelector);
   const [userInfo, setUserInfo] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const { setItem: setUserData } = useAsyncStorage("userData");
   const menuSections = getMenuSections(user?.role);
 
   const navigation = useNavigation();
@@ -117,6 +119,7 @@ export default function ProfileScreen() {
     const response = await userAPI.HandleUser("/profile");
     setUserInfo(response.data.user);
     dispatch(setUser(response.data.user));
+    await setUserData(JSON.stringify(response.data.user));
   };
 
   useEffect(() => {
