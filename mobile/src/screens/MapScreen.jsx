@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -134,6 +135,7 @@ export default function MapScreen() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [selectedCafe, setSelectedCafe] = useState(null);
   const [shops, setShops] = useState([]);
+  const [loading, setLoading] = useState(true);
   const mapRef = useRef(null);
   const [routeInfo, setRouteInfo] = useState(null);
 
@@ -141,6 +143,7 @@ export default function MapScreen() {
     if (!location) return;
     const fetchData = async () => {
       try {
+        setLoading(true);
         const response = await shopAPI.HandleCoffeeShops(
           `/public?latitude=${location.latitude}&longitude=${location.longitude}&radius=10000`
         );
@@ -148,6 +151,8 @@ export default function MapScreen() {
       } catch (error) {
         console.error("Error fetching shops:", error);
         setErrorMsg("Không thể tải danh sách quán cà phê");
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -239,14 +244,19 @@ export default function MapScreen() {
 
   if (!location) {
     return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7a5545" />
+        <Text style={styles.loadingText}>Đang lấy vị trí...</Text>
+      </View>
+    );
+  }
+
+  if (loading) {
+    return (
       <SafeAreaView style={styles.container}>
-        <View
-          style={[
-            styles.container,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
-          <Text>Đang xác định vị trí...</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7a5545" />
+          <Text style={styles.loadingText}>Đang tải bản đồ...</Text>
         </View>
       </SafeAreaView>
     );
@@ -254,8 +264,17 @@ export default function MapScreen() {
 
   if (errorMsg) {
     return (
-      <SafeAreaView style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorText}>{errorMsg}</Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons name="alert-circle" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>{errorMsg}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => window.location.reload()}
+          >
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -541,5 +560,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#7a5545",
+    fontWeight: "500",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#EF4444",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#7a5545",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });

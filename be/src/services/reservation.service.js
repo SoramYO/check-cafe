@@ -45,8 +45,20 @@ const createReservation = async (req) => {
 
     // Kiểm tra ngày đặt
     const reservationDate = new Date(reservation_date);
-    if (isNaN(reservationDate.getTime()) || reservationDate < new Date()) {
-      throw new BadRequestError("Invalid reservation date");
+    console.log(reservationDate);
+    
+    // Kiểm tra xem ngày có hợp lệ không
+    if (isNaN(reservationDate.getTime())) {
+      throw new BadRequestError("Ngày đặt không hợp lệ");
+    }
+
+    // So sánh theo ngày (không bao gồm giờ/phút/giây)
+    const today = new Date();
+    const reservationDateOnly = new Date(reservationDate.getFullYear(), reservationDate.getMonth(), reservationDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    if (reservationDateOnly < todayOnly) {
+      throw new BadRequestError("Không thể đặt chỗ cho ngày trong quá khứ");
     }
 
     // Kiểm tra trùng reservation
@@ -130,6 +142,7 @@ const createReservation = async (req) => {
       object: reservation,
     });
   } catch (error) {
+    console.log(error);
     throw error instanceof NotFoundError || error instanceof BadRequestError
       ? error
       : new BadRequestError(error.message || "Failed to create reservation");

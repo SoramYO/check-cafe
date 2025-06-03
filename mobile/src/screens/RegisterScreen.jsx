@@ -13,9 +13,9 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { toast } from "sonner-native";
 import { useAuth } from "../hooks/useAuth";
 import authenticationAPI from "../services/authAPI";
+import { Toast } from "react-native-toast-message/lib/src/Toast";
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
@@ -29,15 +29,77 @@ export default function RegisterScreen({ navigation }) {
   const { login } = useAuth();
 
   const validateForm = () => {
-    if (!name || !email || !phone || !password || !confirmPassword) {
-      toast.error("Vui lòng nhập đầy đủ thông tin");
+    // Kiểm tra các trường bắt buộc
+    if (!name.trim()) {
+      Toast.show({
+        type: "error",
+        text1: "Vui lòng nhập họ và tên",
+      });
       return false;
     }
+    
+    if (!email.trim()) {
+      Toast.show({
+        type: "error",
+        text1: "Vui lòng nhập email",
+      });
+      return false;
+    }
+    
+    if (!phone.trim()) {
+      Toast.show({
+        type: "error",
+        text1: "Vui lòng nhập số điện thoại",
+      });
+      return false;
+    }
+    
+    if (!password) {
+      Toast.show({
+        type: "error",
+        text1: "Vui lòng nhập mật khẩu",
+      });
+      return false;
+    }
+    
+    if (!confirmPassword) {
+      Toast.show({
+        type: "error",
+        text1: "Vui lòng xác nhận mật khẩu",
+      });
+      return false;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Toast.show({
+        type: "error",
+        text1: "Email không hợp lệ",
+      });
+      return false;
+    }
+
+    // Validate phone format (Vietnamese phone numbers)
+    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+    if (!phoneRegex.test(phone)) {
+      Toast.show({
+        type: "error",
+        text1: "Số điện thoại không hợp lệ",
+      });
+      return false;
+    }
+
+
+    // Validate password confirmation
     if (password !== confirmPassword) {
-      toast.error("Mật khẩu không khớp");
+      Toast.show({
+        type: "error",
+        text1: "Mật khẩu xác nhận không khớp",
+      });
       return false;
     }
-    // Có thể thêm các validation khác ở đây
+
     return true;
   };
 
@@ -46,27 +108,54 @@ export default function RegisterScreen({ navigation }) {
 
     try {
       setIsLoading(true);
+      
       const response = await authenticationAPI.HandleAuthentication(
         "/sign-up",
         { full_name: name, email, password, phone },
         "post"
       );
+      
 
-      if (response.code === "201") {
+      // Kiểm tra response structure
+      if (response?.status === 201 || response?.code === "201") {
         // Đăng ký thành công, tự động đăng nhập
-        await login(
-          response.metadata.tokens.accessToken,
-          response.metadata.user
-        );
-
-        toast.success("Đăng ký thành công!");
-        navigation.replace("MainApp");
+        const tokens = response.data?.tokens || response.metadata?.tokens;
+        const user = response.data?.user || response.metadata?.user;
+        
+        if (tokens?.accessToken && user) {
+          await login(tokens.accessToken, user);
+          Toast.show({
+            type: "success",
+            text1: "Đăng ký thành công!",
+          });
+          // Navigation sẽ được xử lý tự động bởi AppRouters
+        } else {
+          Toast.show({
+            type: "error",
+            text1: "Đăng ký thành công nhưng có lỗi đăng nhập",
+          });
+        }
       } else {
-        toast.error(response.message || "Đăng ký thất bại");
+        // Xử lý lỗi từ server
+        const errorMessage = response?.message || response?.error || "Đăng ký thất bại";
+        Toast.show({
+          type: "error",
+          text1: errorMessage,
+        });
       }
     } catch (error) {
-      console.error("Register error:", error);
-      toast.error(error.message || "Có lỗi xảy ra khi đăng ký");
+
+      let errorMessage = "Có lỗi xảy ra khi đăng ký";
+      
+      if (error.response) {
+        const serverError = error.response.data;
+        errorMessage = serverError?.message || serverError?.error || `Lỗi server: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = "Lỗi kết nối mạng. Vui lòng kiểm tra internet";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
     } finally {
       setIsLoading(false);
     }
@@ -102,6 +191,8 @@ export default function RegisterScreen({ navigation }) {
                 placeholderTextColor="#6b4544"
                 value={name}
                 onChangeText={setName}
+                editable={!isLoading}
+                autoCapitalize="words"
               />
             </View>
 
@@ -120,6 +211,8 @@ export default function RegisterScreen({ navigation }) {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={!isLoading}
+                autoCorrect={false}
               />
             </View>
 
@@ -132,11 +225,13 @@ export default function RegisterScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Số điện thoại"
+                placeholder="Số điện thoại (VD: 0901234567)"
                 placeholderTextColor="#6b4544"
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
+                editable={!isLoading}
+                maxLength={10}
               />
             </View>
 
@@ -149,13 +244,19 @@ export default function RegisterScreen({ navigation }) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Mật khẩu"
+                placeholder="Mật khẩu (tối thiểu 6 ký tự)"
                 placeholderTextColor="#6b4544"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                editable={!isLoading}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
                 <MaterialCommunityIcons
                   name={showPassword ? "eye-off" : "eye"}
                   size={24}
@@ -178,9 +279,13 @@ export default function RegisterScreen({ navigation }) {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
+                editable={!isLoading}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <TouchableOpacity
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
               >
                 <MaterialCommunityIcons
                   name={showConfirmPassword ? "eye-off" : "eye"}

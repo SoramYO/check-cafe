@@ -9,6 +9,7 @@ import {
   ScrollView,
   SafeAreaView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
@@ -26,32 +27,45 @@ export default function EditProfileScreen({ navigation }) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [userInfo, setUserInfo] = useState(user);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
-    const response = await userAPI.HandleUser(
-      "/profile",
-      {
-        full_name: userInfo.full_name,
-        phone: userInfo.phone,
-      },
-      "PATCH"
-    );
-    if (response.status === 200) {
-      Toast.show({
-        type: "success",
-        text1: "Thành công",
-        text2: "Cập nhật thông tin thành công",
-      });
-      await updateUser(response.data.user);
-      setUserInfo(response.data.user);
-      await setUserData(JSON.stringify(response.data.user));
-      setIsEditing(false);
-    } else {
+    try {
+      setIsSaving(true);
+      const response = await userAPI.HandleUser(
+        "/profile",
+        {
+          full_name: userInfo.full_name,
+          phone: userInfo.phone,
+        },
+        "PATCH"
+      );
+      if (response.status === 200) {
+        Toast.show({
+          type: "success",
+          text1: "Thành công",
+          text2: "Cập nhật thông tin thành công",
+        });
+        await updateUser(response.data.user);
+        setUserInfo(response.data.user);
+        await setUserData(JSON.stringify(response.data.user));
+        setIsEditing(false);
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Thất bại",
+          text2: "Cập nhật thông tin thất bại",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
       Toast.show({
         type: "error",
-        text1: "Thất bại",
-        text2: "Cập nhật thông tin thất bại",
+        text1: "Lỗi",
+        text2: "Có lỗi xảy ra khi cập nhật thông tin",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -68,11 +82,12 @@ export default function EditProfileScreen({ navigation }) {
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => setIsEditing(!isEditing)}
+          disabled={isSaving}
         >
           <MaterialCommunityIcons
             name={isEditing ? "content-save" : "pencil"}
             size={24}
-            color="#7a5545"
+            color={isSaving ? "#94A3B8" : "#7a5545"}
           />
         </TouchableOpacity>
       </View>
@@ -115,7 +130,7 @@ export default function EditProfileScreen({ navigation }) {
                 onChangeText={(text) =>
                   setUserInfo({ ...userInfo, full_name: text })
                 }
-                editable={isEditing}
+                editable={isEditing && !isSaving}
               />
             </View>
           </View>
@@ -130,7 +145,7 @@ export default function EditProfileScreen({ navigation }) {
                 onChangeText={(text) =>
                   setUserInfo({ ...userInfo, phone: text })
                 }
-                editable={isEditing}
+                editable={isEditing && !isSaving}
                 keyboardType="phone-pad"
               />
             </View>
@@ -138,8 +153,19 @@ export default function EditProfileScreen({ navigation }) {
         </View>
 
         {isEditing && (
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Lưu thay đổi</Text>
+          <TouchableOpacity 
+            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]} 
+            onPress={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <View style={styles.saveButtonLoading}>
+                <ActivityIndicator size="small" color="white" />
+                <Text style={styles.saveButtonText}>Đang lưu...</Text>
+              </View>
+            ) : (
+              <Text style={styles.saveButtonText}>Lưu thay đổi</Text>
+            )}
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -235,5 +261,13 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  saveButtonLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
   },
 });

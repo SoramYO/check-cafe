@@ -9,6 +9,7 @@ import {
   Switch,
   Modal,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -109,6 +110,7 @@ export default function ProfileScreen() {
   const { user } = useSelector(authSelector);
   const [userInfo, setUserInfo] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { setItem: setUserData } = useAsyncStorage("userData");
   const menuSections = getMenuSections(user?.role);
 
@@ -116,10 +118,17 @@ export default function ProfileScreen() {
   const dispatch = useDispatch();
 
   const getUserInfo = async () => {
-    const response = await userAPI.HandleUser("/profile");
-    setUserInfo(response.data.user);
-    dispatch(setUser(response.data.user));
-    await setUserData(JSON.stringify(response.data.user));
+    try {
+      setLoading(true);
+      const response = await userAPI.HandleUser("/profile");
+      setUserInfo(response.data.user);
+      dispatch(setUser(response.data.user));
+      await setUserData(JSON.stringify(response.data.user));
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -177,54 +186,63 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.userInfo}>
-            <Image
-              source={{
-                uri: user?.avatar || "https://via.placeholder.com/60",
-              }}
-              style={styles.avatar}
-            />
-            <View style={styles.userDetails}>
-              <View style={styles.nameContainer}>
-                <Text style={styles.userName}>{user?.full_name}</Text>
-                {user?.role === "STAFF" && (
-                  <View style={styles.staffBadge}>
-                    <MaterialCommunityIcons
-                      name="badge-account"
-                      size={16}
-                      color="#7a5545"
-                    />
-                    <Text style={styles.staffText}>Nhân viên</Text>
-                  </View>
-                )}
-                {user?.role !== "STAFF" && userInfo?.vip_status && (
-                  <View style={styles.premiumBadge}>
-                    <MaterialCommunityIcons
-                      name="crown"
-                      size={16}
-                      color="#FFD700"
-                    />
-                    <Text style={styles.premiumText}>Premium</Text>
-                  </View>
-                )}
+            {loading ? (
+              <View style={styles.profileLoadingContainer}>
+                <ActivityIndicator size="large" color="#7a5545" />
+                <Text style={styles.loadingText}>Đang tải thông tin...</Text>
               </View>
-              <View style={styles.levelBadge}>
-                <MaterialCommunityIcons
-                  name={
-                    user?.role === "STAFF" ? "shield-account" : "shield-star"
-                  }
-                  size={16}
-                  color={user?.role === "STAFF" ? "#7a5545" : "#6366F1"}
+            ) : (
+              <>
+                <Image
+                  source={{
+                    uri: userInfo?.avatar || user?.avatar || "https://via.placeholder.com/60",
+                  }}
+                  style={styles.avatar}
                 />
-                <Text
-                  style={[
-                    styles.levelText,
-                    user?.role === "STAFF" && styles.staffLevelText,
-                  ]}
-                >
-                  {user?.role === "STAFF" ? "Nhân viên" : user?.role}
-                </Text>
-              </View>
-            </View>
+                <View style={styles.userDetails}>
+                  <View style={styles.nameContainer}>
+                    <Text style={styles.userName}>{userInfo?.full_name || user?.full_name}</Text>
+                    {userInfo?.role === "STAFF" && (
+                      <View style={styles.staffBadge}>
+                        <MaterialCommunityIcons
+                          name="badge-account"
+                          size={16}
+                          color="#7a5545"
+                        />
+                        <Text style={styles.staffText}>Nhân viên</Text>
+                      </View>
+                    )}
+                    {userInfo?.role !== "STAFF" && userInfo?.vip_status && (
+                      <View style={styles.premiumBadge}>
+                        <MaterialCommunityIcons
+                          name="crown"
+                          size={16}
+                          color="#FFD700"
+                        />
+                        <Text style={styles.premiumText}>Premium</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.levelBadge}>
+                    <MaterialCommunityIcons
+                      name={
+                        userInfo?.role === "STAFF" ? "shield-account" : "shield-star"
+                      }
+                      size={16}
+                      color={userInfo?.role === "STAFF" ? "#7a5545" : "#6366F1"}
+                    />
+                    <Text
+                      style={[
+                        styles.levelText,
+                        userInfo?.role === "STAFF" && styles.staffLevelText,
+                      ]}
+                    >
+                      {userInfo?.role === "STAFF" ? "Nhân viên" : userInfo?.role}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
           <TouchableOpacity
             style={styles.editButton}
@@ -235,14 +253,20 @@ export default function ProfileScreen() {
         </View>
 
         {/* Menu Sections */}
-        {menuSections.map((section) => (
-          <View key={section.title} style={styles.menuSection}>
-            <Text style={styles.menuTitle}>{section.title}</Text>
-            <View style={styles.menuItems}>
-              {section.items.map(renderMenuItem)}
-            </View>
-          </View>
-        ))}
+        {!loading && (
+          <>
+            {menuSections.map((section, sectionIndex) => (
+              <View key={sectionIndex} style={styles.menuSection}>
+                <Text style={styles.menuTitle}>{section.title}</Text>
+                <View style={styles.menuItems}>
+                  {section.items.map((item, itemIndex) => (
+                    <View key={itemIndex}>{renderMenuItem(item)}</View>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </>
+        )}
 
         <Text style={styles.version}>Phiên bản 1.0.0</Text>
       </ScrollView>
@@ -501,5 +525,15 @@ const styles = StyleSheet.create({
   },
   staffLevelText: {
     color: "#7a5545",
+  },
+  profileLoadingContainer: {
+    alignItems: "center",
+    paddingVertical: 32,
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#7a5545",
+    fontWeight: "500",
   },
 });

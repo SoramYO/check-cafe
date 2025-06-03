@@ -10,6 +10,7 @@ import {
   Image,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -42,20 +43,34 @@ const popularDishes = [
 export default function CafeDetailScreen({ navigation, route }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [shop, setShop] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { shopId } = route.params;
 
   useEffect(() => {
-    const fetchShop = async () => {
-      const response = await shopAPI.HandleCoffeeShops(`/${shopId}`);
-      setShop(response.data.shop);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [shopResponse] = await Promise.all([
+          shopAPI.HandleCoffeeShops(`/${shopId}`),
+          checkButtonStatus(),
+        ]);
+        setShop(shopResponse.data.shop);
+      } catch (error) {
+        console.error("Error fetching shop data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
-    checkButtonStatus();
-    fetchShop();
+    fetchData();
   }, []);
 
   const checkButtonStatus = async () => {
-    const favorites = await getFavoriteShops();
-    setIsFavorite(favorites.some((fav) => fav._id === shopId));
+    try {
+      const favorites = await getFavoriteShops();
+      setIsFavorite(favorites.some((fav) => fav._id === shopId));
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+    }
   };
 
   const toggleFavoriteShop = async () => {
@@ -149,6 +164,32 @@ export default function CafeDetailScreen({ navigation, route }) {
       </ScrollView>
     </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerBar}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={26} color="#7a5545" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.shareButton}>
+            <MaterialCommunityIcons
+              name="share-variant"
+              size={24}
+              color="#7a5545"
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7a5545" />
+          <Text style={styles.loadingText}>Đang tải thông tin quán...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -450,5 +491,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#7a5545",
+    fontWeight: "500",
   },
 });
