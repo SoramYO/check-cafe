@@ -57,7 +57,7 @@ const createReservation = async (req) => {
       seat_id: seatId,
       time_slot_id: timeSlotId,
       reservation_date: { $gte: startOfDay, $lte: endOfDay },
-      status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CHECKED_IN] },
+      status: { $in: [ RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CHECKED_IN] },
     });
     if (existingReservation) {
       throw new BadRequestError("This seat and time slot are already reserved for the selected date");
@@ -68,7 +68,7 @@ const createReservation = async (req) => {
       shop_id: shopId,
       time_slot_id: timeSlotId,
       reservation_date: { $gte: startOfDay, $lte: endOfDay },
-      status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CHECKED_IN] },
+      status: { $in: [ RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.CHECKED_IN] },
       reservation_type,
     });
     const maxReservations =
