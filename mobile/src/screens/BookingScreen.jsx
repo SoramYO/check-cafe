@@ -22,6 +22,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import reservationAPI from "../services/reservationAPI";
 import { useSelector } from "react-redux";
 import { authSelector } from "../redux/reducers/authReducer";
+import Toast from "react-native-toast-message";
 
 export default function BookingScreen({ navigation, route }) {
   const { user } = useSelector(authSelector);
@@ -31,8 +32,8 @@ export default function BookingScreen({ navigation, route }) {
   const [filteredTimeSlots, setFilteredTimeSlots] = useState([]);
 
   // Step 1 states
-  const [name, setName] = useState(user?.full_name);
-  const [phone, setPhone] = useState(user?.phone);
+  const [name, setName] = useState(user.full_name);
+  const [phone, setPhone] = useState(user.phone);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [guests, setGuests] = useState("1");
   const [isPriorityBooking, setIsPriorityBooking] = useState(false);
@@ -100,12 +101,13 @@ export default function BookingScreen({ navigation, route }) {
       setSelectedDate(selectedDate);
       // Reset selected time slot when date changes
       setSelectedTimeSlot(null);
-      
+
       // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
       const dayOfWeek = selectedDate.getDay();
-      
+
       // Filter time slots based on day of week
-      const filtered = shop?.timeSlots?.filter(slot => slot.day_of_week === dayOfWeek) || [];
+      const filtered =
+        shop?.timeSlots?.filter((slot) => slot.day_of_week === dayOfWeek) || [];
       setFilteredTimeSlots(filtered);
     }
   };
@@ -146,26 +148,27 @@ export default function BookingScreen({ navigation, route }) {
       if (response.status !== 200) {
         throw new Error("Failed to create reservation");
       }
-
-      toast.success("Đặt chỗ thành công!", {
-        duration: 2000,
-        onAutoClose: () => {
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: "TabNavigatorCustomer" }],
-            })
-          );
-        },
+      Toast.show({
+        type: "success",
+        text1: "Đặt chỗ thành công!",
+        text2: "Đặt chỗ thành công!",
       });
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "TabNavigatorCustomer" }],
+        })
+      );
     } catch (error) {
-      console.error("Booking error:", error);
-      toast.error("Có lỗi xảy ra. Vui lòng thử lại sau.");
+      Toast.show({
+        type: "error",
+        text1: "Có lỗi xảy ra. Vui lòng thử lại sau.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -285,7 +288,7 @@ export default function BookingScreen({ navigation, route }) {
                   <TouchableOpacity
                     style={[
                       styles.guestButton,
-                      parseInt(guests) <= 1 && styles.guestButtonDisabled
+                      parseInt(guests) <= 1 && styles.guestButtonDisabled,
                     ]}
                     onPress={() =>
                       setGuests((prev) =>
@@ -311,22 +314,31 @@ export default function BookingScreen({ navigation, route }) {
                   <TouchableOpacity
                     style={[
                       styles.guestButton,
-                      (!selectedSeat || parseInt(guests) >= selectedSeat.capacity) && styles.guestButtonDisabled
+                      (!selectedSeat ||
+                        parseInt(guests) >= selectedSeat.capacity) &&
+                        styles.guestButtonDisabled,
                     ]}
                     onPress={() =>
                       setGuests((prev) => {
                         const newValue = parseInt(prev) + 1;
-                        return selectedSeat && newValue <= selectedSeat.capacity 
-                          ? newValue.toString() 
+                        return selectedSeat && newValue <= selectedSeat.capacity
+                          ? newValue.toString()
                           : prev;
                       })
                     }
-                    disabled={!selectedSeat || parseInt(guests) >= selectedSeat.capacity}
+                    disabled={
+                      !selectedSeat || parseInt(guests) >= selectedSeat.capacity
+                    }
                   >
                     <MaterialCommunityIcons
                       name="plus"
                       size={24}
-                      color={(!selectedSeat || parseInt(guests) >= selectedSeat.capacity) ? "#94A3B8" : "#7a5545"}
+                      color={
+                        !selectedSeat ||
+                        parseInt(guests) >= selectedSeat.capacity
+                          ? "#94A3B8"
+                          : "#7a5545"
+                      }
                     />
                   </TouchableOpacity>
                 </View>
@@ -432,7 +444,8 @@ export default function BookingScreen({ navigation, route }) {
                   color="#7a5545"
                 />
                 <Text style={styles.summaryText}>
-                  {selectedTimeSlot?.start} đến {selectedTimeSlot?.end}
+                  {selectedTimeSlot?.start_time} đến{" "}
+                  {selectedTimeSlot?.end_time}
                 </Text>
               </View>
 
@@ -619,18 +632,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   guestsNumberContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   guestsNumber: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#7a5545',
+    fontWeight: "600",
+    color: "#7a5545",
     minWidth: 40,
-    textAlign: 'center',
+    textAlign: "center",
   },
   capacityText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: "#94A3B8",
     marginTop: 4,
   },
   guestButtonDisabled: {

@@ -27,8 +27,18 @@ export const useAuth = () => {
     }
   };
 
+  const updateUser = async (user) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      await AsyncStorage.setItem("userData", JSON.stringify(user));
+      dispatch(addAuth({ token, user }));
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
   return {
     login,
     logout,
+    updateUser,
   };
 };

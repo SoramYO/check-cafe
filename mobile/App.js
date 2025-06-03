@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { LocationProvider } from "./src/context/LocationContext";
 import { ShopProvider } from "./src/context/ShopContext";
 import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 
 export default function App() {
 
@@ -28,6 +29,7 @@ export default function App() {
               </NavigationContainer>
             </LocationProvider>
           </ShopProvider>
+          <Toast />
         </SafeAreaProvider>
       </Provider>
     </GestureHandlerRootView>

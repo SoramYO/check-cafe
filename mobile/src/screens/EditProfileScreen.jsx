@@ -15,10 +15,12 @@ import Toast from "react-native-toast-message";
 import { authSelector } from "../redux/reducers/authReducer";
 import { useSelector, useDispatch } from "react-redux";
 import userAPI from "../services/userAPI";
-import { setUser } from "../redux/reducers/authReducer";
+import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import { updateUser } from "../hooks/useAuth";
 
 export default function EditProfileScreen({ navigation }) {
   const { user } = useSelector(authSelector);
+  const { setItem: setUserData } = useAsyncStorage("userData");
 
   const dispatch = useDispatch();
 
@@ -40,8 +42,9 @@ export default function EditProfileScreen({ navigation }) {
         text1: "Thành công",
         text2: "Cập nhật thông tin thành công",
       });
-      dispatch(setUser(response.data.user));
+      await updateUser(response.data.user);
       setUserInfo(response.data.user);
+      await setUserData(JSON.stringify(response.data.user));
       setIsEditing(false);
     } else {
       Toast.show({
