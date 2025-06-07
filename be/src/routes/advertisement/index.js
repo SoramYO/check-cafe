@@ -8,7 +8,6 @@ const { USER_ROLE } = require("../../constants/enum");
 const uploadCloud = require("../../configs/cloudinary.config");
 
 router.use(checkAuth);
-router.use(checkRole([USER_ROLE.CUSTOMER, USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]));
 
 router.post(
   "/",

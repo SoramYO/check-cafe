@@ -43,6 +43,17 @@ const AppRouters = () => {
         }
       } catch (error) {
         console.error("Lỗi khi gọi /profile để lấy user:", error);
+        // If profile call fails, try to use cached data
+        try {
+          const userData = await getUserData();
+          if (userData) {
+            dispatch(addAuth({ token, user: JSON.parse(userData) }));
+          }
+        } catch (cacheError) {
+          console.error("Failed to load cached user data:", cacheError);
+          // Clear invalid token
+          await setToken(null);
+        }
       }
     }
     setIsLoading(false);

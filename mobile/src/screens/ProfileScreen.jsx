@@ -20,6 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { authSelector, setUser } from "../redux/reducers/authReducer";
 import userAPI from "../services/userAPI";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
+import { useAnalytics } from "../utils/analytics";
 
 const getMenuSections = (role) => {
   if (role === "STAFF") {
@@ -50,6 +51,7 @@ const getMenuSections = (role) => {
         title: "Cài đặt",
         items: [
           { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
+          { icon: "shield-check", label: "Điều khoản & Bảo mật", route: "TermsAndPrivacy" },
           {
             icon: "logout",
             label: "Đăng xuất",
@@ -90,18 +92,19 @@ const getMenuSections = (role) => {
         },
       ],
     },
-    {
-      title: "Cài đặt",
-      items: [
-        { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
-        {
-          icon: "logout",
-          label: "Đăng xuất",
-          route: "Logout",
-          color: "#EF4444",
-        },
-      ],
-    },
+          {
+        title: "Cài đặt",
+        items: [
+          { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
+          { icon: "shield-check", label: "Điều khoản & Bảo mật", route: "TermsAndPrivacy" },
+          {
+            icon: "logout",
+            label: "Đăng xuất",
+            route: "Logout",
+            color: "#EF4444",
+          },
+        ],
+      },
   ];
 };
 
@@ -116,6 +119,7 @@ export default function ProfileScreen() {
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
+  const { trackScreenView, trackTap, trackAppEvent, endSession, isAuthenticated } = useAnalytics();
 
   const getUserInfo = async () => {
     try {
@@ -124,25 +128,70 @@ export default function ProfileScreen() {
       setUserInfo(response.data.user);
       dispatch(setUser(response.data.user));
       await setUserData(JSON.stringify(response.data.user));
+      
+      // Track successful profile load
+      trackAppEvent('profile_loaded', {
+        user_id: response.data.user.id,
+        role: response.data.user.role,
+        has_avatar: !!response.data.user.avatar
+      });
+      
     } catch (error) {
       console.error("Error fetching user profile:", error);
+      // Use current user data as fallback
+      setUserInfo(user);
+      trackAppEvent('profile_load_failed', {
+        error_message: error.message
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    const init = async () => {
+      // Only track if user is authenticated
+      if (await isAuthenticated()) {
+        trackScreenView('Profile', {
+          user_role: user?.role,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    init();
+    
     getUserInfo();
   }, []);
 
   const handleLogout = async () => {
     try {
+      // Track logout attempt
+      trackAppEvent('logout_attempt', {
+        user_id: user?.id,
+        role: user?.role,
+        source: 'profile_screen'
+      });
+      
+      // End analytics session before logout
+      await endSession();
+      
       await logout();
       toast.success("Đăng xuất thành công");
+      
+      // Track successful logout
+      trackAppEvent('logout_success', {
+        user_id: user?.id,
+        source: 'profile_screen'
+      });
+      
       // Navigation will be handled automatically by AppRouters
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Có lỗi xảy ra khi đăng xuất");
+      trackAppEvent('logout_failed', {
+        error_message: error.message,
+        source: 'profile_screen'
+      });
     }
   };
 
@@ -151,6 +200,14 @@ export default function ProfileScreen() {
       key={item.label}
       style={styles.menuItem}
       onPress={() => {
+        // Track menu item click
+        trackTap('profile_menu_item', {
+          item_label: item.label,
+          item_route: item.route,
+          user_role: user?.role,
+          source: 'profile_screen'
+        });
+
         if (item.label === "Đăng xuất") {
           handleLogout();
         } else if (item.label === "Nâng cấp Premium") {
@@ -278,7 +335,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    paddingTop: Platform.OS === "android" ? 40 : 0,
+    paddingTop: Platform.OS === "android" ? 40 : 40,
+
   },
   scrollView: {
     flex: 1,

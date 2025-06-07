@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../hooks/useAuth";
 import authenticationAPI from "../services/authAPI";
 import { Toast } from "react-native-toast-message/lib/src/Toast";
+import { useAnalytics } from "../utils/analytics";
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState("");
@@ -27,6 +28,14 @@ export default function RegisterScreen({ navigation }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { trackScreenView, trackTap, trackAppEvent } = useAnalytics();
+
+  // Track screen view
+  useEffect(() => {
+    trackScreenView('Register', {
+      timestamp: new Date().toISOString()
+    });
+  }, []);
 
   const validateForm = () => {
     // Kiểm tra các trường bắt buộc
@@ -104,10 +113,26 @@ export default function RegisterScreen({ navigation }) {
   };
 
   const handleRegister = async () => {
-    if (!validateForm()) return;
+    // Track registration attempt
+    trackAppEvent('register_attempt', {
+      has_name: !!name,
+      has_email: !!email,
+      has_phone: !!phone,
+      has_password: !!password,
+      has_confirm_password: !!confirmPassword
+    });
+
+    if (!validateForm()) {
+      trackAppEvent('register_validation_failed');
+      return;
+    }
 
     try {
       setIsLoading(true);
+      trackAppEvent('register_api_call_started', {
+        email_domain: email.split('@')[1],
+        phone_prefix: phone.substring(0, 3)
+      });
       
       const response = await authenticationAPI.HandleAuthentication(
         "/sign-up",

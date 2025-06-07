@@ -18,6 +18,7 @@ import { useLocation } from "../context/LocationContext";
 import shopAPI from "../services/shopAPI";
 import CustomMapViewDirections from "../components/CustomMapViewDirections";
 import { formatDurationRoute } from "../utils/formatHelpers";
+import { useAnalytics } from "../utils/analytics";
 
 // Định nghĩa mảng CAFES với các quán cà phê cũ và mới
 const CAFES = [
@@ -138,19 +139,52 @@ export default function MapScreen() {
   const [loading, setLoading] = useState(true);
   const mapRef = useRef(null);
   const [routeInfo, setRouteInfo] = useState(null);
+  const { trackScreenView, trackTap, trackAppEvent, isAuthenticated } = useAnalytics();
 
   useEffect(() => {
+    const init = async () => {
+      // Only track if user is authenticated
+      if (await isAuthenticated()) {
+        trackScreenView('Map', {
+          has_location: !!location,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    init();
+
     if (!location) return;
+    
     const fetchData = async () => {
       try {
         setLoading(true);
+        trackAppEvent('map_shops_loading_started', {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          radius: 10000
+        });
+        
         const response = await shopAPI.HandleCoffeeShops(
           `/public?latitude=${location.latitude}&longitude=${location.longitude}&radius=10000`
         );
+        
         setShops(response.data.shops);
+        
+        trackAppEvent('map_shops_loaded', {
+          shops_count: response.data.shops.length,
+          location: {
+            latitude: location.latitude,
+            longitude: location.longitude
+          }
+        });
+        
       } catch (error) {
         console.error("Error fetching shops:", error);
         setErrorMsg("Không thể tải danh sách quán cà phê");
+        trackAppEvent('map_shops_load_failed', {
+          error_message: error.message,
+          location: location
+        });
       } finally {
         setLoading(false);
       }
@@ -159,6 +193,16 @@ export default function MapScreen() {
   }, [location]);
 
   const handleCafePress = (shop) => {
+    // Track cafe marker click
+    trackTap('map_cafe_marker', {
+      shop_id: shop._id,
+      shop_name: shop.name,
+      is_open: shop.is_open,
+      rating: shop.rating_avg,
+      distance_from_user: shop.distance || 'unknown',
+      source: 'map_screen'
+    });
+
     setRouteInfo(null);
     setSelectedCafe(shop);
     if (mapRef.current) {
@@ -176,11 +220,24 @@ export default function MapScreen() {
 
   const handleInfoPress = () => {
     if (selectedCafe) {
+      trackTap('map_info_button', {
+        shop_id: selectedCafe._id,
+        shop_name: selectedCafe.name,
+        source: 'map_screen'
+      });
       navigation.navigate("CafeDetail", { shopId: selectedCafe._id });
     }
   };
 
   const handleRouteReady = (result) => {
+    // Track route generation
+    trackAppEvent('map_route_generated', {
+      shop_id: selectedCafe?._id,
+      distance: result.distance,
+      duration: result.duration,
+      source: 'map_screen'
+    });
+
     setRouteInfo(result);
 
     // Fit map to show entire route

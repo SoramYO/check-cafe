@@ -11,6 +11,7 @@ import { Provider } from "react-redux";
 import { StatusBar } from "expo-status-bar";
 import { LocationProvider } from "./src/context/LocationContext";
 import { ShopProvider } from "./src/context/ShopContext";
+import { AnalyticsProvider } from "./src/context/AnalyticsProvider";
 import "react-native-reanimated";
 import Toast from "react-native-toast-message";
 
@@ -22,13 +23,15 @@ export default function App() {
       <Provider store={store}>
         <SafeAreaProvider style={styles.container}>
           <Toaster />
-          <ShopProvider>
-            <LocationProvider>
-              <NavigationContainer>
-                <AppRouters />
-              </NavigationContainer>
-            </LocationProvider>
-          </ShopProvider>
+          <AnalyticsProvider>
+            <ShopProvider>
+              <LocationProvider>
+                <NavigationContainer>
+                  <AppRouters />
+                </NavigationContainer>
+              </LocationProvider>
+            </ShopProvider>
+          </AnalyticsProvider>
           <Toast />
         </SafeAreaProvider>
       </Provider>

@@ -14,6 +14,8 @@ import PremiumScreen from "../../screens/PremiumScreen";
 import TabNavigatorCustomer from "./TabNavigatorCustomer";
 import PaymentHistoryScreen from "../../screens/PaymentHistoryScreen";
 import MenuItemDetailScreen from "../../screens/MenuItemDetailScreen";
+import TermsAndPrivacyScreen from "../../screens/TermsAndPrivacyScreen";
+import NotificationScreen from "../../screens/NotificationScreen";
 
 const MainNavigatorCustomer = () => {
   const Stack = createNativeStackNavigator();
@@ -40,6 +42,8 @@ const MainNavigatorCustomer = () => {
       <Stack.Screen name="Premium" component={PremiumScreen} />
       <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
       <Stack.Screen name="MenuItemDetail" component={MenuItemDetailScreen} />
+      <Stack.Screen name="TermsAndPrivacy" component={TermsAndPrivacyScreen} />
+      <Stack.Screen name="Notifications" component={NotificationScreen} />
     </Stack.Navigator>
   );
 };
