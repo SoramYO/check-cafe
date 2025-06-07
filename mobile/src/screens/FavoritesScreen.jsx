@@ -17,6 +17,7 @@ import {
 } from "../utils/favoritesStorage";
 import userAPI from "../services/userAPI";
 import { useFocusEffect } from "@react-navigation/native";
+import { useAnalytics } from "../utils/analytics";
 
 export default function FavoritesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("cafes");
@@ -24,6 +25,20 @@ export default function FavoritesScreen({ navigation }) {
   const [metadata, setMetadata] = useState({});
   const [loading, setLoading] = useState(true);
   const [menuItems, setMenuItems] = useState([]);
+  const { trackScreenView, trackTap, trackFavorite, isAuthenticated } = useAnalytics();
+
+  // Track screen view only if authenticated
+  useEffect(() => {
+    const init = async () => {
+      if (await isAuthenticated()) {
+        trackScreenView('Favorites', {
+          default_tab: activeTab,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    init();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {

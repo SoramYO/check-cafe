@@ -5,6 +5,7 @@ import { store } from "@/lib/store"
 import { Toaster } from "sonner"
 import { useEffect } from "react"
 import { restoreAuth } from "@/lib/store/slices/authSlice"
+import AnalyticsProvider from "@/components/providers/AnalyticsProvider"
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -19,8 +20,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
       <AuthProvider>
-      {children}
-      <Toaster position="top-right" />
+        <AnalyticsProvider>
+          {children}
+          <Toaster position="top-right" />
+        </AnalyticsProvider>
       </AuthProvider>
     </Provider>
   )

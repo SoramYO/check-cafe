@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Bell,
   ShoppingCart,
+  TrendingUp,
 } from "lucide-react"
 import { title } from "process"
 
@@ -68,6 +69,11 @@ const adminNavItems = [
     title: "Báo cáo",
     href: "/admin/reports",
     icon: BarChart,
+  },
+  {
+    title: "Phân tích người dùng",
+    href: "/admin/analytics",
+    icon: TrendingUp,
   },
   {
     title: "Thông báo",

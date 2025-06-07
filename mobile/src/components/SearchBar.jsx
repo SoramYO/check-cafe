@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Pressable, Alert, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAnalytics } from '../utils/analytics';
+import * as Speech from 'expo-speech';
 
 const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
   const [isListening, setIsListening] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
+  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
   const [selectedDistance, setSelectedDistance] = useState(null);
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [selectedSort, setSelectedSort] = useState('desc');
+  const { trackTap, trackSearch, trackFilter } = useAnalytics();
 
   const handleApplyFilter = () => {
+    // Track filter usage
+    trackFilter({
+      distance: selectedDistance,
+      theme_id: selectedTheme,
+      sort_rating: selectedSort,
+      theme_name: themes?.find(t => t._id === selectedTheme)?.name
+    });
+
     onApplyFilters?.({
       distance: selectedDistance,
       themeId: selectedTheme,
@@ -30,6 +42,65 @@ const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
     });
   };
 
+  const handleVoiceSearch = () => {
+    trackTap('voice_search_button', { source: 'search_bar' });
+    
+    if (Platform.OS === 'web') {
+      // For web platform, use Web Speech API
+      handleWebVoiceSearch();
+    } else {
+      // For mobile, show voice modal
+      setVoiceModalVisible(true);
+      Speech.speak('Chức năng tìm kiếm bằng giọng nói sẽ được hỗ trợ trong phiên bản tương lai', {
+        language: 'vi-VN',
+        pitch: 1.0,
+        rate: 0.8
+      });
+    }
+  };
+
+  const handleWebVoiceSearch = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'vi-VN';
+      
+      setIsListening(true);
+      
+      recognition.onstart = () => {
+        Speech.speak('Đang nghe...', { language: 'vi-VN' });
+      };
+      
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        onChangeText(transcript);
+        trackSearch(transcript, { method: 'voice', source: 'search_bar' });
+        Speech.speak(`Đã tìm kiếm: ${transcript}`, { language: 'vi-VN' });
+      };
+      
+      recognition.onerror = (event) => {
+        Alert.alert('Lỗi', 'Không thể nhận dạng giọng nói. Vui lòng thử lại.');
+        setIsListening(false);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognition.start();
+    } else {
+      Alert.alert('Không hỗ trợ', 'Trình duyệt của bạn không hỗ trợ nhận dạng giọng nói.');
+    }
+  };
+
+  const handleVoiceCancel = () => {
+    setVoiceModalVisible(false);
+    Speech.speak('Đã hủy tìm kiếm bằng giọng nói', { language: 'vi-VN' });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -43,6 +114,7 @@ const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
         <TouchableOpacity 
           disabled={isListening}
           style={styles.iconButton}
+          onPress={handleVoiceSearch}
         >
           {isListening ? (
             <ActivityIndicator color="#4A90E2" />
@@ -54,7 +126,13 @@ const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
             />
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setFilterVisible(true)} style={styles.iconButton}>
+        <TouchableOpacity 
+          onPress={() => {
+            trackTap('filter_button', { source: 'search_bar' });
+            setFilterVisible(true);
+          }} 
+          style={styles.iconButton}
+        >
           <MaterialCommunityIcons name="tune-vertical" size={24} color="#666" />
         </TouchableOpacity>
       </View>
@@ -171,6 +249,75 @@ const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
             >
               <Text style={styles.closeButtonText}>Đóng</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Voice Search Modal */}
+      <Modal
+        visible={voiceModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setVoiceModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.voiceModalContent}>
+            <View style={styles.voiceModalHeader}>
+              <MaterialCommunityIcons name="microphone" size={64} color="#4A90E2" />
+              <Text style={styles.voiceModalTitle}>Tìm kiếm bằng giọng nói</Text>
+              <Text style={styles.voiceModalSubtitle}>
+                {Platform.OS === 'web' ? 'Nhấn nút bên dưới để bắt đầu' : 'Tính năng sẽ được hỗ trợ trong phiên bản tương lai'}
+              </Text>
+            </View>
+
+            <View style={styles.voiceMainContainer}>
+              <TouchableOpacity
+                style={styles.voiceMainButton}
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    setVoiceModalVisible(false);
+                    handleWebVoiceSearch();
+                  } else {
+                    Alert.alert(
+                      "Tính năng Voice Search", 
+                      "Chức năng nhận dạng giọng nói đang được phát triển và sẽ có mặt trong các phiên bản tương lai.\n\nHiện tại bạn có thể sử dụng tìm kiếm bằng văn bản.",
+                      [{ text: "Đã hiểu", style: "default" }]
+                    );
+                  }
+                }}
+                disabled={Platform.OS !== 'web'}
+              >
+                <MaterialCommunityIcons 
+                  name="microphone" 
+                  size={40} 
+                  color={Platform.OS === 'web' ? "#FFF9F5" : "#BFA58E"} 
+                />
+                <Text style={[
+                  styles.voiceMainButtonText,
+                  Platform.OS !== 'web' && styles.voiceMainButtonTextDisabled
+                ]}>
+                  {Platform.OS === 'web' ? 'Bắt đầu tìm kiếm' : 'Đang phát triển'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.voiceCloseButton}
+              onPress={handleVoiceCancel}
+            >
+              <MaterialCommunityIcons name="close" size={20} color="#BFA58E" />
+              <Text style={styles.voiceCloseButtonText}>Đóng</Text>
+            </TouchableOpacity>
+
+            <View style={styles.voiceHelpText}>
+              <MaterialCommunityIcons name="information-outline" size={16} color="#BFA58E" />
+              <Text style={styles.voiceHelpTextContent}>
+                {Platform.OS === 'web' 
+                  ? 'Gợi ý: "Quán cà phê gần đây", "Cà phê view đẹp", "Starbucks"'
+                  : 'Tính năng này sẽ cho phép bạn tìm kiếm bằng giọng nói'
+                }
+              </Text>
+            </View>
           </View>
         </View>
       </Modal>
@@ -327,6 +474,107 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  // Voice Modal Styles
+  voiceModalContent: {
+    backgroundColor: '#FFF9F5',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+    minHeight: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  voiceModalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8D3C3',
+  },
+  voiceModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#6B4F3F',
+    marginTop: 12,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  voiceModalSubtitle: {
+    fontSize: 16,
+    color: '#BFA58E',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  voiceMainContainer: {
+    marginBottom: 32,
+    alignItems: 'center',
+  },
+  voiceMainButton: {
+    backgroundColor: '#6B4F3F',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    borderRadius: 25,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+    minWidth: 200,
+  },
+  voiceMainButtonText: {
+    color: '#FFF9F5',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  voiceMainButtonTextDisabled: {
+    color: '#BFA58E',
+  },
+  voiceCloseButton: {
+    backgroundColor: '#F0E6DD',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 20,
+    gap: 8,
+    borderWidth: 2,
+    borderColor: '#E8D3C3',
+    marginBottom: 20,
+  },
+  voiceCloseButtonText: {
+    color: '#BFA58E',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  voiceHelpText: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F0E6DD',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8D3C3',
+  },
+  voiceHelpTextContent: {
+    flex: 1,
+    fontSize: 14,
+    color: '#BFA58E',
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
 });
 
 export default SearchBar;

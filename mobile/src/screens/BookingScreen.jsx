@@ -23,6 +23,7 @@ import reservationAPI from "../services/reservationAPI";
 import { useSelector } from "react-redux";
 import { authSelector } from "../redux/reducers/authReducer";
 import { Toast } from "react-native-toast-message/lib/src/Toast";
+import { useAnalytics } from "../utils/analytics";
 
 
 export default function BookingScreen({ navigation, route }) {
@@ -31,6 +32,7 @@ export default function BookingScreen({ navigation, route }) {
   const [bookingType, setBookingType] = useState("regular");
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [filteredTimeSlots, setFilteredTimeSlots] = useState([]);
+  const { trackScreenView, trackTap, trackBooking, trackAppEvent, isAuthenticated } = useAnalytics();
 
   // Step 1 states
   const [name, setName] = useState(user.full_name);
@@ -49,12 +51,35 @@ export default function BookingScreen({ navigation, route }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
+    const init = async () => {
+      // Only track if user is authenticated
+      if (await isAuthenticated()) {
+        trackScreenView('Booking', {
+          shop_id: shopId,
+          step: currentStep,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    init();
+
     const fetchShop = async () => {
       const response = await shopAPI.HandleCoffeeShops(`/${shopId}`);
       setShop(response.data.shop);
     };
     fetchShop();
   }, []);
+
+  // Track step changes
+  useEffect(() => {
+    if (currentStep > 1) {
+      trackAppEvent('booking_step_changed', {
+        shop_id: shopId,
+        step: currentStep,
+        previous_step: currentStep - 1
+      });
+    }
+  }, [currentStep]);
 
   const handleNextStep = () => {
     if (currentStep === 1) {
@@ -130,6 +155,17 @@ export default function BookingScreen({ navigation, route }) {
     try {
       setIsSubmitting(true);
 
+      // Track booking attempt
+      trackAppEvent('booking_attempt', {
+        shop_id: shopId,
+        seat_id: selectedSeat._id,
+        seat_type: selectedSeat.type,
+        booking_type: bookingType,
+        number_of_people: parseInt(guests),
+        is_priority: isPriorityBooking,
+        has_special_requests: !!specialRequests
+      });
+
       const reservationData = {
         shopId: shopId,
         seatId: selectedSeat._id,
@@ -149,6 +185,18 @@ export default function BookingScreen({ navigation, route }) {
       if (response.status !== 200) {
         throw new Error("Failed to create reservation");
       }
+
+      // Track successful booking
+      trackBooking(response.data.reservation_id || 'unknown', shopId, {
+        seat_id: selectedSeat._id,
+        seat_type: selectedSeat.type,
+        booking_type: bookingType,
+        number_of_people: parseInt(guests),
+        is_priority: isPriorityBooking,
+        reservation_date: selectedDate.toISOString(),
+        time_slot: selectedTimeSlot?.time_range
+      });
+
       Toast.show({
         type: "success",
         text1: "Đặt chỗ thành công!",
@@ -161,6 +209,14 @@ export default function BookingScreen({ navigation, route }) {
         })
       );
     } catch (error) {
+      // Track booking failure
+      trackAppEvent('booking_failed', {
+        shop_id: shopId,
+        error_message: error.message,
+        seat_id: selectedSeat?._id,
+        booking_type: bookingType
+      });
+
       Toast.show({
         type: "error",
         text1: "Có lỗi xảy ra. Vui lòng thử lại sau.",

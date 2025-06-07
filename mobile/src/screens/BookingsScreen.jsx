@@ -14,6 +14,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import reservationAPI from "../services/reservationAPI";
 import { useNavigation } from "@react-navigation/native";
+import { useAnalytics } from "../utils/analytics";
 
 export default function BookingsScreen() {
   const [activeTab, setActiveTab] = useState("Pending");
@@ -22,28 +23,63 @@ export default function BookingsScreen() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const navigation = useNavigation();
+  const { trackScreenView, trackTap, trackAppEvent, isAuthenticated } = useAnalytics();
 
   const filteredBookings = reservations.filter(
     (booking) => booking.status === activeTab
   );
 
   useEffect(() => {
+    const init = async () => {
+      // Only track if user is authenticated
+      if (await isAuthenticated()) {
+        trackScreenView('Bookings', {
+          default_tab: activeTab,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    init();
+    
     fetchReservations();
   }, []);
 
   const fetchReservations = async () => {
     try {
       setLoading(true);
+      trackAppEvent('bookings_loading_started');
+      
       const response = await reservationAPI.HandleReservation("/me");
       setReservations(response.data.reservations);
+      
+      // Track successful reservations load
+      trackAppEvent('bookings_loaded', {
+        total_reservations: response.data.reservations.length,
+        pending: response.data.reservations.filter(r => r.status === 'Pending').length,
+        confirmed: response.data.reservations.filter(r => r.status === 'Confirmed').length,
+        completed: response.data.reservations.filter(r => r.status === 'Completed').length
+      });
+      
     } catch (error) {
       console.error("Error fetching reservations:", error);
+      trackAppEvent('bookings_load_failed', {
+        error_message: error.message
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleShowQR = (booking) => {
+    // Track QR code modal open
+    trackTap('booking_qr_code', {
+      booking_id: booking._id,
+      shop_id: booking.shop_id?._id,
+      shop_name: booking.shop_id?.name,
+      booking_status: booking.status,
+      source: 'bookings_screen'
+    });
+
     setSelectedBooking(booking);
     setShowQRModal(true);
   };
@@ -115,7 +151,16 @@ export default function BookingsScreen() {
   const renderRequestItem = ({ item }) => (
     <TouchableOpacity
       style={styles.requestCard}
-      onPress={() => navigation.navigate("BookingDetail", { booking: item })}
+      onPress={() => {
+        trackTap('booking_card', {
+          booking_id: item._id,
+          shop_id: item.shop_id?._id,
+          shop_name: item.shop_id?.name,
+          booking_status: item.status,
+          source: 'bookings_screen'
+        });
+        navigation.navigate("BookingDetail", { booking: item });
+      }}
     >
       <View style={styles.ticketHeader}>
         <View style={styles.statusIndicator}>
@@ -241,7 +286,14 @@ export default function BookingsScreen() {
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === "Pending" && styles.activeTab]}
-          onPress={() => setActiveTab("Pending")}
+                        onPress={() => {
+                trackTap('booking_tab_switch', {
+                  from_tab: activeTab,
+                  to_tab: 'Pending',
+                  source: 'bookings_screen'
+                });
+                setActiveTab("Pending");
+              }}
         >
           <Text
             style={[
@@ -254,7 +306,14 @@ export default function BookingsScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === "Confirmed" && styles.activeTab]}
-          onPress={() => setActiveTab("Confirmed")}
+                        onPress={() => {
+                trackTap('booking_tab_switch', {
+                  from_tab: activeTab,
+                  to_tab: 'Confirmed',
+                  source: 'bookings_screen'
+                });
+                setActiveTab("Confirmed");
+              }}
         >
           <Text
             style={[
@@ -267,7 +326,14 @@ export default function BookingsScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === "Completed" && styles.activeTab]}
-          onPress={() => setActiveTab("Completed")}
+                        onPress={() => {
+                trackTap('booking_tab_switch', {
+                  from_tab: activeTab,
+                  to_tab: 'Completed',
+                  source: 'bookings_screen'
+                });
+                setActiveTab("Completed");
+              }}
         >
           <Text
             style={[

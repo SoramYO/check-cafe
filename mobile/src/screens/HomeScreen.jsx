@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAnalytics } from '../utils/analytics';
 
 export default function HomeScreen({ navigation }) {
+  const { trackScreenView, trackTap } = useAnalytics();
+
+  // Track screen view
+  useEffect(() => {
+    trackScreenView('Home_Welcome', {
+      is_onboarding: true,
+      timestamp: new Date().toISOString()
+    });
+  }, []);
 
   return (
     <ImageBackground
@@ -24,14 +34,20 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
               style={[styles.button, styles.loginButton]} 
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => {
+                trackTap('home_login_button');
+                navigation.navigate('Login');
+              }}
             >
               <Text style={styles.buttonText}>Đăng nhập</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={[styles.button, styles.registerButton]}
-              onPress={() => navigation.navigate('Register')}
+              onPress={() => {
+                trackTap('home_register_button');
+                navigation.navigate('Register');
+              }}
             >
               <Text style={[styles.buttonText, styles.registerText]}>Đăng ký</Text>
             </TouchableOpacity>

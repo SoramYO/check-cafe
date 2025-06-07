@@ -19,12 +19,14 @@ import { useLocation } from "../context/LocationContext";
 import * as Location from "expo-location";
 import { getFavoriteShops, toggleFavorite } from "../utils/favoritesStorage";
 import { useFocusEffect } from "@react-navigation/native";
+import { useAnalytics } from "../utils/analytics";
 
 export default function DiscoverScreen({ navigation }) {
   const { location } = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [themes, setThemes] = useState([]);
   const [shops, setShops] = useState([]);
+  const [originalShops, setOriginalShops] = useState([]);
   const [currentAddress, setCurrentAddress] = useState("");
   const [activeFilters, setActiveFilters] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -33,6 +35,20 @@ export default function DiscoverScreen({ navigation }) {
   const [pressedCategory, setPressedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
+  const { trackScreenView, trackTap, trackSearch, trackFilter, trackFavorite, isAuthenticated } = useAnalytics();
+
+  // Track screen view only if authenticated
+  useEffect(() => {
+    const init = async () => {
+      if (await isAuthenticated()) {
+        trackScreenView('Discover', {
+          location: location ? 'available' : 'unavailable',
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    init();
+  }, []);
 
   useEffect(() => {
     if (!location) return;
@@ -51,6 +67,7 @@ export default function DiscoverScreen({ navigation }) {
         ]);
         setThemes(responseTheme.data.themes);
         setShops(responseShop.data.shops);
+        setOriginalShops(responseShop.data.shops);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -85,6 +102,15 @@ export default function DiscoverScreen({ navigation }) {
   };
 
   const handleToggleFavorite = async (shop) => {
+    const isFavorited = isShopFavorite(shop._id);
+    
+    // Track favorite action
+    trackFavorite(shop._id, isFavorited ? 'remove' : 'add', {
+      shop_name: shop.name,
+      shop_rating: shop.rating_avg,
+      is_open: shop.is_open
+    });
+
     await toggleFavorite(shop);
     loadFavorites();
   };
@@ -113,6 +139,14 @@ export default function DiscoverScreen({ navigation }) {
   };
 
   const handleCategoryPress = (categoryId) => {
+    // Track category selection
+    const selectedTheme = themes.find(theme => theme._id === categoryId);
+    trackTap('category_filter', {
+      category_id: categoryId,
+      category_name: selectedTheme?.name,
+      previous_category: activeCategory
+    });
+
     setPressedCategory(categoryId);
     setActiveCategory(categoryId);
     handleApplyFilters({ themeId: categoryId });
@@ -156,7 +190,16 @@ export default function DiscoverScreen({ navigation }) {
   const renderShopCard = ({ item }) => (
     <TouchableOpacity
       style={styles.shopCard}
-      onPress={() => navigation.navigate("CafeDetail", { shopId: item._id })}
+      onPress={() => {
+        trackTap('shop_card', {
+          shop_id: item._id,
+          shop_name: item.name,
+          shop_rating: item.rating_avg,
+          is_open: item.is_open,
+          source: 'discover_list'
+        });
+        navigation.navigate("CafeDetail", { shopId: item._id });
+      }}
     >
       <Image source={{ uri: item?.mainImage?.url }} style={styles.shopImage} />
       <View style={styles.shopInfo}>
@@ -243,11 +286,50 @@ export default function DiscoverScreen({ navigation }) {
 
       const response = await shopAPI.HandleCoffeeShops(url);
       setShops(response.data.shops);
+      setOriginalShops(response.data.shops);
+      
+      // Apply search query if exists
+      if (searchQuery.trim()) {
+        const filteredShops = response.data.shops.filter(shop =>
+          shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          shop.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          shop.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setShops(filteredShops);
+      }
     } catch (error) {
       console.error("Error applying filters:", error);
     } finally {
       setFilterLoading(false);
     }
+  };
+
+  // Add function to handle search by name
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    
+    if (query.length > 2) {
+      // Track search
+      trackSearch(query, {
+        source: 'discover_screen',
+        query_length: query.length
+      });
+    }
+    
+    // If query is empty, reset to original shops
+    if (!query.trim()) {
+      handleApplyFilters(activeFilters);
+      return;
+    }
+    
+    // Filter shops by name (client-side filtering)
+    const filteredShops = originalShops.filter(shop =>
+      shop.name.toLowerCase().includes(query.toLowerCase()) ||
+      shop.address?.toLowerCase().includes(query.toLowerCase()) ||
+      shop.description?.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    setShops(filteredShops);
   };
 
   if (loading) {
@@ -264,16 +346,27 @@ export default function DiscoverScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        {/* <View style={styles.locationContainer}>
-          <MaterialCommunityIcons name="map-marker" size={20} color="white" />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {currentAddress || "Đang tải vị trí..."}
-          </Text>
-        </View> */}
+        {/* Header with title and notification */}
+        <View style={styles.topHeader}>
+          <Text style={styles.headerTitle}>Khám phá</Text>
+          
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => {
+              trackTap('notification_icon', { source: 'discover_header' });
+              navigation.navigate('Notifications');
+            }}
+          >
+            <MaterialCommunityIcons name="bell-outline" size={22} color="#7a5545" />
+            <View style={styles.notificationBadge}>
+              <Text style={styles.badgeText}>2</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
         <SearchBar
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearch}
           themes={themes}
           onApplyFilters={handleApplyFilters}
         />
@@ -335,6 +428,51 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+    paddingBottom: 8,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#7a5545',
+    letterSpacing: 0.5,
+  },
+  notificationButton: {
+    position: 'relative',
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0E6DD',
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8D3C3',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#FF4757',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   iconTheme: {
     width: '100%',

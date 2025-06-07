@@ -21,6 +21,7 @@ import ImageCarousel from "../components/cafe/ImageCarousel";
 import BasicInfo from "../components/cafe/BasicInfo";
 import shopAPI from "../services/shopAPI";
 import { getFavoriteShops, toggleFavorite } from "../utils/favoritesStorage";
+import { useAnalytics } from "../utils/analytics";
 const popularDishes = [
   {
     id: "1",
@@ -45,18 +46,47 @@ export default function CafeDetailScreen({ navigation, route }) {
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
   const { shopId } = route.params;
+  const { trackScreenView, trackTap, trackFavorite, trackAppEvent, isAuthenticated } = useAnalytics();
 
   useEffect(() => {
+    const init = async () => {
+      // Only track if user is authenticated
+      if (await isAuthenticated()) {
+        trackScreenView('CafeDetail', {
+          shop_id: shopId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    init();
+
     const fetchData = async () => {
       try {
         setLoading(true);
+        trackAppEvent('cafe_detail_loading_started', { shop_id: shopId });
+        
         const [shopResponse] = await Promise.all([
           shopAPI.HandleCoffeeShops(`/${shopId}`),
           checkButtonStatus(),
         ]);
+        
         setShop(shopResponse.data.shop);
+        
+        // Track successful shop data load
+        trackAppEvent('cafe_detail_loaded', {
+          shop_id: shopId,
+          shop_name: shopResponse.data.shop?.name,
+          is_open: shopResponse.data.shop?.is_open,
+          rating: shopResponse.data.shop?.rating_avg,
+          amenities_count: shopResponse.data.shop?.amenities?.length || 0
+        });
+        
       } catch (error) {
         console.error("Error fetching shop data:", error);
+        trackAppEvent('cafe_detail_load_failed', {
+          shop_id: shopId,
+          error_message: error.message
+        });
       } finally {
         setLoading(false);
       }
@@ -74,11 +104,28 @@ export default function CafeDetailScreen({ navigation, route }) {
   };
 
   const toggleFavoriteShop = async () => {
+    // Track favorite action
+    trackFavorite(shopId, isFavorite ? 'remove' : 'add', {
+      shop_name: shop?.name,
+      shop_rating: shop?.rating_avg,
+      is_open: shop?.is_open,
+      source: 'cafe_detail_screen'
+    });
+
     await toggleFavorite(shop);
     checkButtonStatus();
   };
 
   const handleBooking = () => {
+    // Track booking button click
+    trackTap('booking_button', {
+      shop_id: shop._id,
+      shop_name: shop?.name,
+      is_open: shop?.is_open,
+      source: 'cafe_detail_screen',
+      user_has_favorited: isFavorite
+    });
+
     navigation.navigate("Booking", {
       shopId: shop._id,
     });
@@ -103,7 +150,16 @@ export default function CafeDetailScreen({ navigation, route }) {
     <View style={styles.popularDishesContainer}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Món nổi bật</Text>
-        <TouchableOpacity style={styles.seeAllButton}>
+        <TouchableOpacity 
+          style={styles.seeAllButton}
+          onPress={() => {
+            trackTap('see_all_popular_dishes', {
+              shop_id: shopId,
+              source: 'cafe_detail_screen'
+            });
+            // Add navigation to full menu when implemented
+          }}
+        >
           <Text style={styles.seeAllText}>Xem tất cả</Text>
           <MaterialCommunityIcons
             name="chevron-right"
@@ -118,18 +174,41 @@ export default function CafeDetailScreen({ navigation, route }) {
         contentContainerStyle={styles.popularDishesScroll}
       >
         {popularDishes.map((dish) => (
-          <TouchableOpacity key={dish.id} style={styles.popularDishCard}>
+          <TouchableOpacity 
+            key={dish.id} 
+            style={styles.popularDishCard}
+            onPress={() => {
+              trackTap('popular_dish_card', {
+                dish_id: dish.id,
+                dish_name: dish.name,
+                shop_id: shopId,
+                source: 'cafe_detail_screen'
+              });
+              // Add navigation to dish detail when implemented
+            }}
+          >
             <Image
               source={{ uri: dish.image }}
               style={styles.popularDishImage}
             />
-            <View style={styles.popularDishOverlay}>
+            <TouchableOpacity 
+              style={styles.popularDishOverlay}
+              onPress={() => {
+                trackTap('dish_favorite_button', {
+                  dish_id: dish.id,
+                  dish_name: dish.name,
+                  shop_id: shopId,
+                  source: 'cafe_detail_popular_dishes'
+                });
+                // Add favorite dish logic when implemented
+              }}
+            >
               <MaterialCommunityIcons
                 name="heart-outline"
                 size={24}
                 color="white"
               />
-            </View>
+            </TouchableOpacity>
             <View style={styles.popularDishInfo}>
               <View style={styles.popularDishHeader}>
                 <Text style={styles.popularDishName}>{dish.name}</Text>
@@ -150,7 +229,19 @@ export default function CafeDetailScreen({ navigation, route }) {
                   <Text style={styles.popularDishRatingText}>4.5</Text>
                   <Text style={styles.popularDishRatingCount}>(120)</Text>
                 </View>
-                <TouchableOpacity style={styles.addToCartButton}>
+                <TouchableOpacity 
+                  style={styles.addToCartButton}
+                  onPress={() => {
+                    trackTap('add_to_cart_button', {
+                      dish_id: dish.id,
+                      dish_name: dish.name,
+                      dish_price: dish.price,
+                      shop_id: shopId,
+                      source: 'cafe_detail_popular_dishes'
+                    });
+                    // Add to cart logic when implemented
+                  }}
+                >
                   <MaterialCommunityIcons
                     name="plus"
                     size={20}
@@ -196,14 +287,30 @@ export default function CafeDetailScreen({ navigation, route }) {
       <View style={styles.headerBar}>
         {/* Back Button */}
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            trackTap('back_button', {
+              shop_id: shopId,
+              source: 'cafe_detail_screen'
+            });
+            navigation.goBack();
+          }}
           style={styles.backButton}
         >
           <MaterialCommunityIcons name="arrow-left" size={26} color="#7a5545" />
         </TouchableOpacity>
 
         {/* Share Button */}
-        <TouchableOpacity style={styles.shareButton}>
+        <TouchableOpacity 
+          style={styles.shareButton}
+          onPress={() => {
+            trackTap('share_button', {
+              shop_id: shopId,
+              shop_name: shop?.name,
+              source: 'cafe_detail_screen'
+            });
+            // Add share functionality when implemented
+          }}
+        >
           <MaterialCommunityIcons
             name="share-variant"
             size={24}

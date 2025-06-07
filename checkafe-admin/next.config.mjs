@@ -14,7 +14,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://api.petlove.io.vn/api/:path*',
+        destination: 'http://localhost:3000/api/:path*',
       },
     ]
   }
