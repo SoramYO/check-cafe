@@ -22,10 +22,34 @@ class NotificationController {
     }).send(res);
   });
 
+  markAllNotificationsAsRead = asyncHandler(async (req, res) => {
+    const result = await notificationService.markAllNotificationsAsRead(req);
+    new OK({
+      message: NOTIFICATION_MESSAGE.MARK_ALL_READ_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  getUnreadCount = asyncHandler(async (req, res) => {
+    const result = await notificationService.getUnreadCount(req);
+    new OK({
+      message: NOTIFICATION_MESSAGE.GET_UNREAD_COUNT_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
   deleteNotification = asyncHandler(async (req, res) => {
     const result = await notificationService.deleteNotification(req);
     new OK({
       message: NOTIFICATION_MESSAGE.DELETE_SUCCESS,
+      data: result,
+    }).send(res);
+  });
+
+  createNotification = asyncHandler(async (req, res) => {
+    const result = await notificationService.createNotification(req);
+    new OK({
+      message: NOTIFICATION_MESSAGE.CREATE_SUCCESS,
       data: result,
     }).send(res);
   });

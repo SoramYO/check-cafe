@@ -30,6 +30,16 @@
         "projectId": "ed660efc-7c1f-4d4b-b21c-b1f91c915956"
       }
     },
-    "owner": "phuuthanh2003"
+    "owner": "phuuthanh2003",
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#7a5545",
+          "sounds": ["./assets/notification-sound.wav"]
+        }
+      ]
+    ]
   }
 }

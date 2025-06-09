@@ -19,8 +19,18 @@ const validateNotificationId = (req, res, next) => {
 router.use(checkAuth);
 router.use(checkRole([USER_ROLE.CUSTOMER, USER_ROLE.SHOP_OWNER, USER_ROLE.STAFF, USER_ROLE.ADMIN]));
 
+// GET routes
 router.get("/", notificationController.getUserNotifications);
+router.get("/unread-count", notificationController.getUnreadCount);
+
+// POST routes 
+router.post("/", notificationController.createNotification);
+
+// PATCH routes
 router.patch("/:notificationId/read", validateNotificationId, notificationController.markNotificationAsRead);
+router.patch("/mark-all-read", notificationController.markAllNotificationsAsRead);
+
+// DELETE routes
 router.delete("/:notificationId", validateNotificationId, notificationController.deleteNotification);
 
 module.exports = router;

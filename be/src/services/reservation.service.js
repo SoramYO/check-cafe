@@ -821,28 +821,29 @@ const getAllReservations = async (req) => {
 const getReservationDetail = async (req) => {
   try {
     const { reservationId } = req.params;
-    const { shopId } = req.body;
+    //const { shopId } = req.body;
     const { userId, role } = req.user;
 
-    if (!isValidObjectId(shopId) || !isValidObjectId(reservationId)) {
-      throw new BadRequestError("Invalid shopId or reservationId");
-    }
+    // if (!isValidObjectId(shopId) || !isValidObjectId(reservationId)) {
+    //   throw new BadRequestError("Invalid shopId or reservationId");
+    // }
 
-    const shop = await shopModel.findById(shopId);
-    if (!shop) {
-      throw new NotFoundError("Shop not found");
-    }
+    // const shop = await shopModel.findById(shopId);
+    // if (!shop) {
+    //   throw new NotFoundError("Shop not found");
+    // }
 
-    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
-      throw new ForbiddenError("You are not authorized to view this reservation");
-    }
+    // if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+    //   throw new ForbiddenError("You are not authorized to view this reservation");
+    // }
 
     const reservation = await reservationModel
-      .findOne({ _id: reservationId, shop_id: shopId })
+      .findOne({ _id: reservationId })
       .populate([
         { path: "user_id", select: "_id email username" },
         { path: "seat_id", select: "_id name capacity" },
         { path: "time_slot_id", select: "_id start_time end_time" },
+        {path: "shop_id", select: "_id name address", populate: { path: "shopImages", select: "url" } }
       ])
       .select(
         getSelectData([

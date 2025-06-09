@@ -10,6 +10,16 @@ const { updateAvatar } = require("../../services/user.service");
 
 router.post("/receive-hook", userController.receiveHook);
 
+// Test endpoint (no auth required)
+router.get("/test", (req, res) => {
+  res.json({ 
+    message: "User endpoint is working", 
+    timestamp: new Date().toISOString(),
+    ip: req.ip,
+    url: req.originalUrl 
+  });
+});
+
 router.use(checkAuth);
 
 
@@ -39,7 +49,7 @@ router.patch(
 );
 
 // Save FCM token
-router.post("/save-fcm-token", userController.saveFcmToken); 
+router.post("/save-expo-token", userController.saveExpoToken); 
 
 // add favorite shop and product
 router.post("/favorite-shop", userController.addFavoriteShop);

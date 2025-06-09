@@ -51,11 +51,11 @@ const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
     } else {
       // For mobile, show voice modal
       setVoiceModalVisible(true);
-      Speech.speak('Chức năng tìm kiếm bằng giọng nói sẽ được hỗ trợ trong phiên bản tương lai', {
-        language: 'vi-VN',
-        pitch: 1.0,
-        rate: 0.8
-      });
+      // Speech.speak('Chức năng tìm kiếm bằng giọng nói sẽ được hỗ trợ trong phiên bản tương lai', {
+      //   language: 'vi-VN',
+      //   pitch: 1.0,
+      //   rate: 0.8
+      // });
     }
   };
 
@@ -98,7 +98,7 @@ const SearchBar = ({ value, onChangeText, themes, onApplyFilters }) => {
 
   const handleVoiceCancel = () => {
     setVoiceModalVisible(false);
-    Speech.speak('Đã hủy tìm kiếm bằng giọng nói', { language: 'vi-VN' });
+    //Speech.speak('Đã hủy tìm kiếm bằng giọng nói', { language: 'vi-VN' });
   };
 
   return (

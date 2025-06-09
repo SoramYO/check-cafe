@@ -20,6 +20,7 @@ import * as Location from "expo-location";
 import { getFavoriteShops, toggleFavorite } from "../utils/favoritesStorage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAnalytics } from "../utils/analytics";
+import notificationAPI from "../services/notificationAPI";
 
 export default function DiscoverScreen({ navigation }) {
   const { location } = useLocation();
@@ -35,6 +36,7 @@ export default function DiscoverScreen({ navigation }) {
   const [pressedCategory, setPressedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const { trackScreenView, trackTap, trackSearch, trackFilter, trackFavorite, isAuthenticated } = useAnalytics();
 
   // Track screen view only if authenticated
@@ -65,6 +67,12 @@ export default function DiscoverScreen({ navigation }) {
               "&radius=10000"
           ),
         ]);
+        const responseNotification = await notificationAPI.HandleNotification("/unread-count");
+        if (responseNotification.data && responseNotification.data.unread_count) {
+          setUnreadNotifications(responseNotification.data.unread_count);
+        } else {
+          setUnreadNotifications(0);
+        }
         setThemes(responseTheme.data.themes);
         setShops(responseShop.data.shops);
         setOriginalShops(responseShop.data.shops);
@@ -280,6 +288,9 @@ export default function DiscoverScreen({ navigation }) {
         if (filters.sortRating) {
           url += `&sortBy=rating_avg&sortOrder=${filters.sortRating}`;
         }
+        if(filters.searchQuery) {
+          url += `&search=${encodeURIComponent(filters.searchQuery)}`;
+        }
       } else {
         url += "&radius=10000";
       }
@@ -287,16 +298,6 @@ export default function DiscoverScreen({ navigation }) {
       const response = await shopAPI.HandleCoffeeShops(url);
       setShops(response.data.shops);
       setOriginalShops(response.data.shops);
-      
-      // Apply search query if exists
-      if (searchQuery.trim()) {
-        const filteredShops = response.data.shops.filter(shop =>
-          shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          shop.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          shop.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setShops(filteredShops);
-      }
     } catch (error) {
       console.error("Error applying filters:", error);
     } finally {
@@ -316,20 +317,13 @@ export default function DiscoverScreen({ navigation }) {
       });
     }
     
-    // If query is empty, reset to original shops
-    if (!query.trim()) {
-      handleApplyFilters(activeFilters);
-      return;
-    }
+    // Apply filters with search query included
+    const filtersWithSearch = {
+      ...activeFilters,
+      searchQuery: query.trim()
+    };
     
-    // Filter shops by name (client-side filtering)
-    const filteredShops = originalShops.filter(shop =>
-      shop.name.toLowerCase().includes(query.toLowerCase()) ||
-      shop.address?.toLowerCase().includes(query.toLowerCase()) ||
-      shop.description?.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    setShops(filteredShops);
+    handleApplyFilters(filtersWithSearch);
   };
 
   if (loading) {
@@ -358,9 +352,11 @@ export default function DiscoverScreen({ navigation }) {
             }}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color="#7a5545" />
+            { unreadNotifications > 0 &&
             <View style={styles.notificationBadge}>
-              <Text style={styles.badgeText}>2</Text>
+              <Text style={styles.badgeText}>{unreadNotifications}</Text>
             </View>
+            }
           </TouchableOpacity>
         </View>
 

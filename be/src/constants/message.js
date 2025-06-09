@@ -24,6 +24,7 @@ const USER_MESSAGE = {
   USER_UPDATE_FAILED: "User update failed",
   USER_DELETE_SUCCESS: "User deleted successfully",
   USER_DELETE_FAILED: "User delete failed",
+  USER_SAVE_EXPO_TOKEN_SUCCESS: "Save Expo token successfully",
   USER_GET_PROFILE_SUCCESS: "Get user profile successfully",
   USER_UPDATE_PROFILE_SUCCESS: "Update user profile successfully",
   USER_CHANGE_PASSWORD_SUCCESS: "Change password successfully",
@@ -121,7 +122,10 @@ const RESERVATION_MESSAGE = {
 const NOTIFICATION_MESSAGE = {
   GET_ALL_SUCCESS: "Get all notifications successfully",
   MARK_READ_SUCCESS: "Notification marked as read",
+  MARK_ALL_READ_SUCCESS: "All notifications marked as read",
   DELETE_SUCCESS: "Notification deleted successfully",
+  GET_UNREAD_COUNT_SUCCESS: "Get unread count successfully",
+  CREATE_SUCCESS: "Notification created successfully",
 };
 
 const VERIFICATION_MESSAGE = {

@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -13,6 +12,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAnalytics } from '../utils/analytics';
+import * as Notifications from 'expo-notifications';
+import {
+  getUnreadCount,
+} from '../utils/notifications';
+import {
+  getNotificationIcon,
+  getNotificationColor,
+  formatTimestamp,
+  showErrorAlert,
+  handleNotificationNavigation,
+  transformNotification
+} from '../utils/notificationHelpers';
+import notificationAPI from '../services/notificationAPI';
 
 export default function NotificationScreen() {
   const navigation = useNavigation();
@@ -20,6 +32,28 @@ export default function NotificationScreen() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState(null);
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
+  const markAsRead = async (notificationId) => {
+    try {
+      await notificationAPI.HandleNotification(`/${notificationId}/read`, {}, 'patch');
+      // Update UI after marking as read
+      setNotifications(prev =>
+        prev.map(item =>
+          item._id === notificationId
+            ? { ...item, is_read: true }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -30,71 +64,102 @@ export default function NotificationScreen() {
       }
     };
     init();
-    loadNotifications();
+
+    // Load initial notifications
+    loadNotifications(1);
+
+    // Listen for incoming notifications
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      // Add new notification to the list
+      const notificationData = notification.request.content.data;
+      const newNotification = {
+        id: notificationData.notification_id || notification.request.identifier,
+        type: notificationData.type || 'system',
+        title: notification.request.content.title,
+        message: notification.request.content.body,
+        timestamp: new Date(notificationData.timestamp || Date.now()),
+        isRead: false,
+        icon: getNotificationIcon(notificationData.type || 'system'),
+        color: getNotificationColor(notificationData.type || 'system'),
+        reference_id: notificationData.reference_id,
+        reference_type: notificationData.reference_type
+      };
+
+      setNotifications(prev => [newNotification, ...prev]);
+    });
+
+    // Listen for notification responses
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const notificationData = response.notification.request.content.data;
+      const content = response.notification.request.content;
+      handleNotificationPress({
+        id: notificationData.notification_id || response.notification.request.identifier,
+        type: notificationData.type || 'system',
+        title: content.title,
+        message: content.body,
+        timestamp: new Date(notificationData.timestamp || Date.now()),
+        isRead: false,
+        icon: getNotificationIcon(notificationData.type || 'system'),
+        color: getNotificationColor(notificationData.type || 'system'),
+        reference_id: notificationData.reference_id,
+        reference_type: notificationData.reference_type
+      });
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
   }, []);
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (pageNum = 1) => {
     try {
-      setLoading(true);
-      // Simulate API call with mock data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (pageNum === 1) {
+        setLoading(true);
+      }
+
+      const response = await notificationAPI.HandleNotification(`?page=${pageNum}&limit=20`);
+
+      if (!response || !response.data) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Process received data - handle different response structures
+      let newNotifications = [];
       
-      const mockNotifications = [
-        {
-          id: '1',
-          type: 'promotion',
-          title: 'Khuyến mãi đặc biệt 50%',
-          message: 'Giảm 50% cho tất cả đồ uống tại Highlands Coffee từ 15h-17h hôm nay!',
-          timestamp: new Date(Date.now() - 30 * 60 * 1000),
-          isRead: false,
-          icon: 'tag',
-          color: '#FF6B6B'
-        },
-        {
-          id: '2',
-          type: 'booking',
-          title: 'Đặt chỗ thành công',
-          message: 'Bạn đã đặt chỗ thành công tại The Coffee House - 2 người, 19:30 hôm nay',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          isRead: false,
-          icon: 'calendar-check',
-          color: '#4ECDC4'
-        },
-        {
-          id: '3',
-          type: 'reminder',
-          title: 'Nhắc nhở đặt chỗ',
-          message: 'Còn 30 phút nữa tới giờ hẹn của bạn tại Starbucks Đà Lạt',
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-          isRead: true,
-          icon: 'clock-alert',
-          color: '#FFD93D'
-        },
-        {
-          id: '4',
-          type: 'update',
-          title: 'Cập nhật ứng dụng',
-          message: 'Phiên bản mới của Checkafe đã có sẵn với nhiều tính năng thú vị!',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          isRead: true,
-          icon: 'update',
-          color: '#6BCF7F'
-        },
-        {
-          id: '5',
-          type: 'review',
-          title: 'Đánh giá trải nghiệm',
-          message: 'Hãy chia sẻ trải nghiệm của bạn tại Trung Nguyên Coffee để nhận voucher 20%',
-          timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          isRead: true,
-          icon: 'star',
-          color: '#A8E6CF'
-        }
-      ];
-      
-      setNotifications(mockNotifications);
+      if (response.data.data) {
+        // Direct data array
+        newNotifications = response.data.data.map(transformNotification);
+      } else if (response.data.notifications) {
+        // Wrapped in notifications property
+        newNotifications = response.data.notifications.map(transformNotification);
+      } else if (Array.isArray(response.data)) {
+        // Data is directly an array
+        newNotifications = response.data.map(transformNotification);
+      }
+
+      if (pageNum === 1) {
+        setNotifications(newNotifications);
+      } else {
+        setNotifications(prev => [...prev, ...newNotifications]);
+      }
+
+      // Update hasMore based on response
+      if (response.data.metadata) {
+        setHasMore(response.data.metadata.currentPage < response.data.metadata.totalPages);
+      } else {
+        setHasMore(newNotifications.length === 20); // Assume more if we got full page
+      }
+
+      return response;
     } catch (error) {
       console.error('Error loading notifications:', error);
+      setError(error.message);
+      showErrorAlert('Lỗi', 'Không thể tải thông báo. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -102,108 +167,141 @@ export default function NotificationScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadNotifications();
+    setPage(1);
+    await loadNotifications(1);
     setRefreshing(false);
   };
 
-  const handleNotificationPress = (notification) => {
-    trackTap('notification_item', {
-      notification_id: notification.id,
-      notification_type: notification.type,
-      is_read: notification.isRead
-    });
-
-    // Mark as read
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notification.id ? { ...n, isRead: true } : n
-      )
-    );
-
-    // Navigate based on type
-    switch (notification.type) {
-      case 'booking':
-        // navigation.navigate('BookingDetail', { bookingId: notification.bookingId });
-        break;
-      case 'promotion':
-        // navigation.navigate('Promotions');
-        break;
-      default:
-        break;
+  const loadUnreadCount = async () => {
+    try {
+      const response = await getUnreadCount();
+      if (response.data && response.data.unread_count !== undefined) {
+        // Update badge count if needed
+        console.log('Unread count:', response.data.unread_count);
+      }
+    } catch (error) {
+      console.error('Error loading unread count:', error);
     }
   };
 
-  const markAllAsRead = () => {
-    trackTap('mark_all_read', { total_notifications: notifications.length });
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadNotifications(nextPage);
+    }
+  };
+
+  const handleRefresh = () => {
+    setPage(1);
+    loadNotifications(1);
+  };
+
+  const handleNotificationPress = async (notification) => {
+    try {
+      const notificationId = notification._id || notification.id;
+
+      trackTap('notification_item', {
+        notification_id: notificationId,
+        notification_type: notification.type,
+        is_read: notification.isRead
+      });
+
+      // Mark as read using the proper API call
+      await notificationAPI.HandleNotification(
+        `/${notificationId}/read`,
+        {},
+        'patch'
+      );
+
+      setNotifications(prev =>
+        prev.map(n =>
+          (n.id === notificationId || n._id === notificationId)
+            ? { ...n, isRead: true, is_read: true } // Ensure both fields are updated
+            : n
+        )
+      );
+
+      handleNotificationNavigation(notification, navigation);
+    } catch (error) {
+      console.error('Error handling notification:', error);
+      showErrorAlert('Lỗi', 'Không thể xử lý thông báo');
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (markingAllRead) return; // Prevent double calls
+
+    try {
+      setMarkingAllRead(true);
+      trackTap('mark_all_read', { total_notifications: notifications.length });
+
+      // Call API to mark all as read
+      await notificationAPI.HandleNotification('/mark-all-read', {}, 'patch');
+
+      // Update local state
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, isRead: true, is_read: true }))
+      );
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      showErrorAlert('Lỗi', 'Không thể đánh dấu tất cả thông báo đã đọc');
+    } finally {
+      setMarkingAllRead(false);
+    }
+  };
+
+  const renderNotificationItem = (notification) => {
+    const isRead = notification.isRead || notification.is_read;
     
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, isRead: true }))
+    return (
+      <TouchableOpacity
+        key={notification.id || notification._id}
+        style={[
+          styles.notificationItem,
+          !isRead && styles.unreadNotification
+        ]}
+        onPress={() => handleNotificationPress(notification)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: notification.color + '20' }]}>
+          <MaterialCommunityIcons
+            name={notification.icon}
+            size={24}
+            color={notification.color}
+          />
+        </View>
+
+        <View style={styles.contentContainer}>
+          <View style={styles.headerRow}>
+            <Text style={[
+              styles.title,
+              !isRead && styles.unreadTitle
+            ]}>
+              {notification.title}
+            </Text>
+            {!isRead && <View style={styles.unreadDot} />}
+          </View>
+
+          <Text style={styles.message} numberOfLines={2}>
+            {notification.message || notification.content}
+          </Text>
+
+          <Text style={styles.timestamp}>
+            {formatTimestamp(notification.timestamp)}
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={20}
+          color="#BFA58E"
+        />
+      </TouchableOpacity>
     );
   };
 
-  const formatTimestamp = (timestamp) => {
-    const now = new Date();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) {
-      return `${minutes} phút trước`;
-    } else if (hours < 24) {
-      return `${hours} giờ trước`;
-    } else {
-      return `${days} ngày trước`;
-    }
-  };
-
-  const renderNotificationItem = (notification) => (
-    <TouchableOpacity
-      key={notification.id}
-      style={[
-        styles.notificationItem,
-        !notification.isRead && styles.unreadNotification
-      ]}
-      onPress={() => handleNotificationPress(notification)}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.iconContainer, { backgroundColor: notification.color + '20' }]}>
-        <MaterialCommunityIcons 
-          name={notification.icon} 
-          size={24} 
-          color={notification.color} 
-        />
-      </View>
-      
-      <View style={styles.contentContainer}>
-        <View style={styles.headerRow}>
-          <Text style={[
-            styles.title,
-            !notification.isRead && styles.unreadTitle
-          ]}>
-            {notification.title}
-          </Text>
-          {!notification.isRead && <View style={styles.unreadDot} />}
-        </View>
-        
-        <Text style={styles.message} numberOfLines={2}>
-          {notification.message}
-        </Text>
-        
-        <Text style={styles.timestamp}>
-          {formatTimestamp(notification.timestamp)}
-        </Text>
-      </View>
-      
-      <MaterialCommunityIcons 
-        name="chevron-right" 
-        size={20} 
-        color="#BFA58E" 
-      />
-    </TouchableOpacity>
-  );
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !(n.isRead || n.is_read)).length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -218,21 +316,26 @@ export default function NotificationScreen() {
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color="#7a5545" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Thông báo</Text>
-        
+
         {unreadCount > 0 && (
           <TouchableOpacity
-            style={styles.markAllButton}
+            style={[styles.markAllButton, markingAllRead && styles.markAllButtonDisabled]}
             onPress={markAllAsRead}
+            disabled={markingAllRead}
           >
-            <Text style={styles.markAllText}>Đọc tất cả</Text>
+            {markingAllRead ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.markAllText}>Đọc tất cả</Text>
+            )}
           </TouchableOpacity>
         )}
       </View>
 
       {/* Content */}
-      {loading ? (
+      {loading && page === 1 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#7a5545" />
           <Text style={styles.loadingText}>Đang tải thông báo...</Text>
@@ -248,6 +351,15 @@ export default function NotificationScreen() {
               tintColor="#7a5545"
             />
           }
+          onScroll={({ nativeEvent }) => {
+            const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+            const paddingToBottom = 20;
+            if (layoutMeasurement.height + contentOffset.y >=
+              contentSize.height - paddingToBottom) {
+              loadMore();
+            }
+          }}
+          scrollEventThrottle={400}
         >
           {notifications.length > 0 ? (
             <>
@@ -259,10 +371,16 @@ export default function NotificationScreen() {
                   </Text>
                 </View>
               )}
-              
+
               <View style={styles.notificationsContainer}>
                 {notifications.map(renderNotificationItem)}
               </View>
+
+              {loading && page > 1 && (
+                <View style={styles.loadingMoreContainer}>
+                  <ActivityIndicator size="small" color="#7a5545" />
+                </View>
+              )}
             </>
           ) : (
             <View style={styles.emptyContainer}>
@@ -322,6 +440,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  markAllButtonDisabled: {
+    opacity: 0.6,
   },
   loadingContainer: {
     flex: 1,
@@ -438,5 +559,11 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  loadingMoreContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
 }); 

@@ -269,15 +269,34 @@ class userService {
     }
   };
 
-  saveFcmToken = async (req) => {
-    const foundUser = await userModel.findById(req.user.userId);
+  saveExpoToken = async (req) => {
+    const { expo_token } = req.body;
+    const { userId } = req.user;
+    
+    if (!expo_token) {
+      throw new BadRequestError("Expo token is required");
+    }
+    
+    const foundUser = await userModel.findById(userId);
     if (!foundUser) {
       throw new BadRequestError("User not found");
     }
-    foundUser.fcm_token = req.body.fcm_token;
+    
+    // Check if the token is already saved for this user
+    if (foundUser.expo_token === expo_token) {
+      return {
+        message: "Expo token is already up to date",
+        token_updated: false,
+      };
+    }
+    
+    // Update token
+    foundUser.expo_token = expo_token;
     await foundUser.save();
+    
     return {
-      message: "FCM token saved successfully",
+      message: "Expo token saved successfully",
+      token_updated: true,
     };
   };
 

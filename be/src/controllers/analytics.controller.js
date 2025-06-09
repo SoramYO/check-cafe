@@ -10,7 +10,6 @@ class AnalyticsController {
     try {
       // Support both authenticated and anonymous users
       const userId = req.user?.userId || null;
-      console.log('🔍 Debug - User ID:', req.user);
       const { deviceInfo, locationInfo, referrerInfo } = req.body;
       
       const session = await UserAnalyticsService.createSession(

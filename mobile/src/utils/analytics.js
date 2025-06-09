@@ -21,18 +21,18 @@ class MobileAnalyticsTracker {
     try {
       const token = await AsyncStorage.getItem('token');
       const user = await AsyncStorage.getItem('userData');
-      
+
       if (!token || !user || token === 'null' || user === 'null') {
         return false;
       }
 
       try {
         const userData = JSON.parse(user);
-        
+
         if (!userData) {
           return false;
         }
-        
+
         if (!userData._id && !userData.id) {
           return false;
         }
@@ -52,22 +52,22 @@ class MobileAnalyticsTracker {
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
-    
+
     this.initializationPromise = (async () => {
       try {
-    if (this.isInitialized) {
-      console.log('Analytics session already initialized');
-      return;
-    }
+        if (this.isInitialized) {
+          console.log('Analytics session already initialized');
+          return;
+        }
 
-    const isAuth = await this.isUserAuthenticated();
-    
-    if (!forceInit && !isAuth) {
-      console.log('User not authenticated, skipping analytics session initialization');
-      return;
-    }
-    
-    try {
+        const isAuth = await this.isUserAuthenticated();
+
+        if (!forceInit && !isAuth) {
+          console.log('User not authenticated, skipping analytics session initialization');
+          return;
+        }
+
+        try {
           // Check network connectivity first
           const netInfo = await NetInfo.fetch();
           if (!netInfo.isConnected) {
@@ -76,32 +76,29 @@ class MobileAnalyticsTracker {
             return;
           }
 
-      console.log('Initializing mobile analytics session...');
-      const deviceInfo = await this.getDeviceInfo();
-      const locationInfo = await this.getLocationInfo();
-      const referrerInfo = this.getReferrerInfo();
+          const deviceInfo = await this.getDeviceInfo();
+          const locationInfo = await this.getLocationInfo();
+          const referrerInfo = this.getReferrerInfo();
 
           try {
             const response = await analyticsAPI.HandleAnalytics("/session/create", {
-        deviceInfo,
-        locationInfo,
-        referrerInfo
+              deviceInfo,
+              locationInfo,
+              referrerInfo
             }, "post");
 
-            console.log('🔍 Analytics Response SUCCESS:', response);
 
             // Response đã được processed bởi axios interceptor
             if (response && (response.status === 201 || response.sessionId)) {
               // Lưu đúng cấu trúc session data
               this.sessionData = response.data || response;
               this.isInitialized = true;
-              
+
               // Save session to AsyncStorage
               await AsyncStorage.setItem('analytics_session', JSON.stringify(this.sessionData));
               await AsyncStorage.removeItem('analytics_pending_init');
-              
-              console.log('🔍 Saved session data:', this.sessionData);
-              
+
+
               // Track initial app open
               this.trackActivity({
                 action_type: 'page_view',
@@ -111,50 +108,45 @@ class MobileAnalyticsTracker {
                   app_version: Application.nativeApplicationVersion || '1.0.0'
                 }
               });
-              
-              console.log('🔍 Analytics session initialized successfully');
+
             }
           } catch (apiError) {
             // Axios interceptor có thể throw error cho status 201
-            console.log('🔍 API Error (checking for 201 status):', apiError.message);
-            
+
             // Kiểm tra nếu server actually trả về 201 nhưng interceptor throw error
             if (apiError.response && apiError.response.status === 201) {
-              console.log('🔍 Status 201 detected, processing as success');
               const successData = apiError.response.data;
-              
+
               // Lưu đúng cấu trúc session data
               this.sessionData = successData.data || successData;
-        this.isInitialized = true;
-        
-        // Save session to AsyncStorage
-        await AsyncStorage.setItem('analytics_session', JSON.stringify(this.sessionData));
+              this.isInitialized = true;
+
+              // Save session to AsyncStorage
+              await AsyncStorage.setItem('analytics_session', JSON.stringify(this.sessionData));
               await AsyncStorage.removeItem('analytics_pending_init');
-              
-              console.log('🔍 Saved session data (from 201):', this.sessionData);
-        
-        // Track initial app open
-        this.trackActivity({
-          action_type: 'page_view',
-          page_url: 'app_open',
-          metadata: {
-            timestamp: new Date().toISOString(),
-            app_version: Application.nativeApplicationVersion || '1.0.0'
-          }
-        });
-              
-              console.log('🔍 Analytics session initialized successfully (from 201)');
+
+
+              // Track initial app open
+              this.trackActivity({
+                action_type: 'page_view',
+                page_url: 'app_open',
+                metadata: {
+                  timestamp: new Date().toISOString(),
+                  app_version: Application.nativeApplicationVersion || '1.0.0'
+                }
+              });
+
             } else {
               throw apiError; // Re-throw if it's a real error
             }
-      }
-    } catch (error) {
-      console.error('Failed to initialize analytics session:', error);
+          }
+        } catch (error) {
+          console.error('Failed to initialize analytics session:', error);
           await AsyncStorage.setItem('analytics_pending_init', 'true');
         }
       } finally {
         this.initializationPromise = null;
-    }
+      }
     })();
 
     return this.initializationPromise;
@@ -165,7 +157,7 @@ class MobileAnalyticsTracker {
     try {
       const { width, height } = Dimensions.get('window');
       const platform = Platform.OS;
-      
+
       // Get device info using Expo modules
       const deviceType = Device.deviceType === Device.DeviceType.TABLET ? 'tablet' : 'mobile';
       const deviceName = Device.deviceName || 'Unknown Device';
@@ -173,7 +165,7 @@ class MobileAnalyticsTracker {
       const brand = Device.brand || 'Unknown Brand';
       const osName = Device.osName || Platform.OS;
       const osVersion = Device.osVersion || 'Unknown';
-      
+
       // Get app info
       const appVersion = Application.nativeApplicationVersion || '1.0.0';
       const buildVersion = Application.nativeBuildVersion || '1';
@@ -220,13 +212,13 @@ class MobileAnalyticsTracker {
     try {
       // Try to get stored device ID first
       let deviceId = await AsyncStorage.getItem('device_id');
-      
+
       if (!deviceId) {
         // Generate new device ID if not exists
         deviceId = Crypto.randomUUID();
         await AsyncStorage.setItem('device_id', deviceId);
       }
-      
+
       return deviceId;
     } catch (error) {
       console.error('Error getting device ID:', error);
@@ -239,16 +231,16 @@ class MobileAnalyticsTracker {
     try {
       // Get network info
       const netInfo = await NetInfo.fetch();
-      
+
       // Try to get GPS location (with permission)
       const location = await this.getCurrentPosition();
-      
+
       // Try to get IP-based location as fallback
       let ipLocation = {};
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
+
         const response = await fetch('https://ipleak.net/json/', {
           signal: controller.signal,
           headers: {
@@ -256,9 +248,9 @@ class MobileAnalyticsTracker {
             'User-Agent': 'CheckAfe-Mobile/1.0'
           }
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (response.ok) {
           ipLocation = await response.json();
         }
@@ -292,7 +284,7 @@ class MobileAnalyticsTracker {
     try {
       // Check permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         console.log('Location permission not granted');
         return null;
@@ -329,42 +321,32 @@ class MobileAnalyticsTracker {
 
   // Track activity
   async trackActivity(activityData) {
-    console.log('🔍 trackActivity called with:', activityData);
-    
+
     // Kiểm tra user đã authenticate hay chưa trước
     const isAuth = await this.isUserAuthenticated();
     if (!isAuth) {
-      console.log('🔍 User not authenticated, skipping activity tracking');
       return;
     }
 
-    console.log('🔍 User authenticated, checking session...');
-    console.log('🔍 isInitialized:', this.isInitialized);
-    console.log('🔍 sessionData:', this.sessionData);
+
 
     // Kiểm tra sessionId từ đúng vị trí
     const sessionId = this.sessionData?.sessionId || this.sessionData?.data?.sessionId;
-    console.log('🔍 Extracted sessionId:', sessionId);
 
     if (!this.isInitialized || !this.sessionData || !sessionId) {
-      console.log('🔍 Session not ready, trying to restore or initialize...');
-      
+
       // Try to restore session from AsyncStorage
       try {
         const savedSession = await AsyncStorage.getItem('analytics_session');
-        console.log('🔍 Saved session:', savedSession);
-        
+
         if (savedSession && savedSession !== 'undefined') {
           try {
             this.sessionData = JSON.parse(savedSession);
             this.isInitialized = true;
-            console.log('🔍 Session restored from storage:', this.sessionData);
           } catch (parseError) {
-            console.log('🔍 Failed to parse saved session, initializing new session');
             await this.initializeSession(true);
           }
         } else {
-          console.log('🔍 No saved session, initializing new session');
           await this.initializeSession(true);
         }
       } catch (error) {
@@ -376,21 +358,18 @@ class MobileAnalyticsTracker {
     // Kiểm tra lại có sessionId hay không
     const finalSessionId = this.sessionData?.sessionId || this.sessionData?.data?.sessionId;
     if (!finalSessionId) {
-      console.log('🔍 No valid session ID after restore/init, skipping activity tracking');
       return;
     }
 
-    console.log('🔍 Tracking activity with sessionId:', finalSessionId);
 
     try {
       await analyticsAPI.HandleAnalytics("/activity/record", {
         sessionId: finalSessionId,
         activityData
       }, "post");
-      
-      console.log('🔍 Activity tracked successfully');
+
     } catch (error) {
-      console.error('🔍 Failed to track activity:', error);
+      console.error('Failed to track activity:', error);
     }
   }
 
@@ -503,7 +482,7 @@ class MobileAnalyticsTracker {
       await analyticsAPI.HandleAnalytics("/session/end", {
         sessionId: sessionId
       }, "post");
-      
+
       // Cleanup
       await AsyncStorage.removeItem('analytics_session');
       this.sessionData = {};

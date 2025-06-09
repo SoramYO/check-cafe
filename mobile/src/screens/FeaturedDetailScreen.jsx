@@ -69,7 +69,6 @@ export default function FeaturedDetailScreen({ navigation, route }) {
       try {
         setLoading(true);
         const response = await advertisementAPI.HandleAdvertisement(`/${id}`);
-        console.log("abc", response.data.advertisement);
         setDetails(response.data.advertisement);
       } catch (error) {
         console.error("Error fetching advertisement details:", error);
