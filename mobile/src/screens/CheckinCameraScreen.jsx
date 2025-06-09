@@ -306,7 +306,7 @@ export default function CheckinCameraScreen({ route }) {
             </View>
 
             <View style={styles.previewInfo}>
-              <MaterialCommunityIcons name="image-check" size={48} color="white" />
+              <MaterialCommunityIcons name="image" size={48} color="white" />
               <Text style={styles.previewText}>Ảnh đẹp đấy!</Text>
               <Text style={styles.previewSubtext}>
                 Bạn có muốn sử dụng ảnh này để check-in không?

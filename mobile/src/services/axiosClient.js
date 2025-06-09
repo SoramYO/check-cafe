@@ -4,6 +4,7 @@ import queryString from "query-string";
 
 // Thay đổi IP này thành IP của máy chủ của bạn
 export const BASE_URL = "http://192.168.100.207:3000/api/v1"; // Thay x bằng số thích hợp
+
 const getAccessToken = async () => {
   const res = await AsyncStorage.getItem("token");
   return res ? res : "";
@@ -11,6 +12,7 @@ const getAccessToken = async () => {
 
 const axiosClient = axios.create({
   baseURL: BASE_URL,
+  timeout: 10000, // 10 seconds timeout
   paramsSerializer: (params) => queryString.stringify(params),
   headers: {
     "Content-Type": "application/json",

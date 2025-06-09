@@ -38,9 +38,9 @@ class UserController {
     }).send(res);
   });
 
-  saveFcmToken = asyncHandler(async (req, res) => {
-    const result = await userService.saveFcmToken(req);
-    new OK({ message: USER_MESSAGE.USER_SAVE_FCM_TOKEN_SUCCESS, data: result }).send(res);
+  saveExpoToken = asyncHandler(async (req, res) => {
+    const result = await userService.saveExpoToken(req);
+    new OK({ message: USER_MESSAGE.USER_SAVE_EXPO_TOKEN_SUCCESS, data: result }).send(res);
   });
 
   addFavoriteShop = asyncHandler(async (req, res) => {

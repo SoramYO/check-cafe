@@ -93,6 +93,7 @@ const getUserNotifications = async (req) => {
     };
 
     const result = await getPaginatedData(paginateOptions);
+    console.log('🔍 Debug - Get notifications result:', result);
 
     return {
       notifications: result.data,
@@ -176,9 +177,102 @@ const deleteNotification = async (req) => {
   }
 };
 
+const markAllNotificationsAsRead = async (req) => {
+  try {
+    const { userId } = req.user;
+
+    const result = await notificationModel.updateMany(
+      { user_id: userId, is_read: false },
+      { is_read: true }
+    );
+
+    return {
+      message: `${result.modifiedCount} notifications marked as read`,
+      modifiedCount: result.modifiedCount,
+    };
+  } catch (error) {
+    throw error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to mark all notifications as read");
+  }
+};
+
+const getUnreadCount = async (req) => {
+  try {
+    const { userId } = req.user;
+
+    const count = await notificationModel.countDocuments({
+      user_id: userId,
+      is_read: false,
+    });
+
+    return { unread_count: count };
+  } catch (error) {
+    throw error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to get unread count");
+  }
+};
+
+// Utility functions for creating specific notification types
+const createBookingNotification = async ({ user_id, booking_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Cập nhật đặt chỗ",
+    content: `Đặt chỗ của bạn tại ${booking_data.shop_name} đã được ${booking_data.status_text}`,
+    type: NOTIFICATION_TYPE.BOOKING,
+    reference_id: booking_data.reservation_id,
+    reference_type: "Reservation",
+    emitNotification,
+  });
+};
+
+const createPromotionNotification = async ({ user_id, promotion_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Khuyến mãi mới",
+    content: promotion_data.message,
+    type: NOTIFICATION_TYPE.PROMOTION,
+    reference_id: promotion_data.promotion_id,
+    reference_type: "Promotion",
+    emitNotification,
+  });
+};
+
+const createSystemNotification = async ({ user_id, system_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: system_data.title,
+    content: system_data.content,
+    type: NOTIFICATION_TYPE.SYSTEM,
+    reference_id: system_data.reference_id,
+    reference_type: system_data.reference_type || "System",
+    emitNotification,
+  });
+};
+
+const createReminderNotification = async ({ user_id, reminder_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Nhắc nhở",
+    content: reminder_data.content,
+    type: NOTIFICATION_TYPE.REMINDER,
+    reference_id: reminder_data.reference_id,
+    reference_type: reminder_data.reference_type || "Reminder",
+    emitNotification,
+  });
+};
+
 module.exports = {
   createNotification,
   getUserNotifications,
   markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getUnreadCount,
   deleteNotification,
+  // Utility functions
+  createBookingNotification,
+  createPromotionNotification,
+  createSystemNotification,
+  createReminderNotification,
 };

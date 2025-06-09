@@ -12,10 +12,8 @@ export const AnalyticsProvider = ({ children }) => {
   useEffect(() => {
     // Initialize analytics session chỉ khi user đã đăng nhập
     if (isAuthenticated && user) {
-      console.log('🔍 User authenticated, initializing analytics session');
       mobileAnalyticsTracker.initializeAfterLogin();
     } else {
-      console.log('🔍 User not authenticated, skipping analytics init');
       // Clear session nếu user logout
       if (mobileAnalyticsTracker.isTrackingInitialized()) {
         mobileAnalyticsTracker.clearSession();
@@ -41,7 +39,6 @@ export const AnalyticsProvider = ({ children }) => {
           });
         } else if (isAuthenticated && user) {
           // Re-initialize if session was lost và user đã authenticated
-          console.log('🔍 Re-initializing analytics session on app resume');
           mobileAnalyticsTracker.initializeAfterLogin();
         }
       }

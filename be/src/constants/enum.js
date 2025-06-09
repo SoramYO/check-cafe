@@ -33,6 +33,13 @@ const NOTIFICATION_TYPE = {
   RESERVATION_CANCELLED: "RESERVATION_CANCELLED",
   RESERVATION_COMPLETED: "RESERVATION_COMPLETED",
   CHECK_IN: "CHECK_IN",
+  // Thêm các loại thông báo khác theo NotificationScreen.jsx
+  BOOKING: "booking",
+  PROMOTION: "promotion", 
+  REMINDER: "reminder",
+  UPDATE: "update",
+  REVIEW: "review",
+  SYSTEM: "system",
 };
 
 module.exports = {
