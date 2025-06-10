@@ -1,0 +1,5 @@
+mongorestore --drop --uri="{new-database}" ./dump_checkafe/checkafe
+mongodump --uri="{old-database}" --out=./dump_checkafe
+
+
+docker-composeup -d --build

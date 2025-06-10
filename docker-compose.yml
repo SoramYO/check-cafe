@@ -1,4 +1,26 @@
 services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: checkafe-mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=adminPassword123
+      - MONGO_INITDB_DATABASE=checkafe
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - checkafe-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ismaster')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   # Backend API
   backend:
     build:
@@ -9,7 +31,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DB_URL=${DB_URL}
+      - DB_URL=mongodb://admin:adminPassword123@mongodb:27017/checkafe?authSource=admin
       - JWT_SECRET=${JWT_SECRET}
       - ACCESS_TOKEN_SECRET_SIGNATURE=${ACCESS_TOKEN_SECRET_SIGNATURE}
       - REFRESH_TOKEN_SECRET_SIGNATURE=${REFRESH_TOKEN_SECRET_SIGNATURE}
@@ -23,6 +45,9 @@ services:
       - "3000:3000"
     volumes:
       - ./be/uploads:/app/uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
     networks:
       - checkafe-network
 
@@ -69,3 +94,7 @@ services:
 networks:
   checkafe-network:
     driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
