@@ -68,6 +68,32 @@ export const login = createAsyncThunk(
   }
 )
 
+export const register = createAsyncThunk(
+  'owners/register',
+  async (registerData: {
+    shop_name: string;
+    owner_name: string;
+    email: string;
+    password: string;
+    phone: string;
+    address: string;
+    city: string;
+    city_code: string;
+    district?: string;
+    district_code?: string;
+    ward?: string;
+    description?: string;
+    category: string;
+  }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post('/v1/owners/register', registerData)
+      return response.data
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Đăng ký thất bại')
+    }
+  }
+)
+
 export const logoutAsync = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
@@ -143,6 +169,18 @@ const authSlice = createSlice({
         state.token = action.payload.tokens.accessToken
       })
       .addCase(login.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
+      .addCase(register.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(register.fulfilled, (state) => {
+        state.loading = false
+        state.error = null
+      })
+      .addCase(register.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload as string
       })

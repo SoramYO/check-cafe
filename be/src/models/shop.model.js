@@ -23,11 +23,9 @@ const shopSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: true,
     },
     website: {
       type: String,
-      required: true,
     },
     location: {
       type: {
@@ -43,6 +41,31 @@ const shopSchema = new mongoose.Schema(
     owner_id: {
       type: Types.ObjectId,
       ref: "User",
+      required: true,
+    },
+    category_id: {
+      type: Types.ObjectId,
+      ref: "ShopCategory",
+      required: true,
+    },
+    city: {
+      type: String,
+      required: true,
+    },
+    city_code: {
+      type: String,
+      required: true,
+    },
+    district: {
+      type: String,
+      required: true,
+    },
+    district_code: {
+      type: String,
+      required: true,
+    },
+    ward: {
+      type: String,
       required: true,
     },
     staff_ids: [
