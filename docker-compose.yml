@@ -1,0 +1,71 @@
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: checkafe-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_URL=${DB_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - ACCESS_TOKEN_SECRET_SIGNATURE=${ACCESS_TOKEN_SECRET_SIGNATURE}
+      - REFRESH_TOKEN_SECRET_SIGNATURE=${REFRESH_TOKEN_SECRET_SIGNATURE}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID}
+      - PAYOS_API_KEY=${PAYOS_API_KEY}
+      - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./be/uploads:/app/uploads
+    networks:
+      - checkafe-network
+
+  # Admin Dashboard
+  admin:
+    build:
+      context: ./checkafe-admin
+      dockerfile: Dockerfile
+      args:
+        # Build-time variables
+        - NEXT_PUBLIC_API_URL=http://localhost:3000/api/
+        - NODE_ENV=production
+        - PORT=3002
+    container_name: checkafe-admin
+    restart: unless-stopped
+    environment:
+      # Runtime variables
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/
+      - PORT=3002
+    ports:
+      - "3002:3002"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - checkafe-network
+
+  # Cloudflare Tunnel (optional)
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: checkafe-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - backend
+      - admin
+    network_mode: host
+    profiles:
+      - tunnel
+
+networks:
+  checkafe-network:
+    driver: bridge
