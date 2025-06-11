@@ -3,6 +3,16 @@
 const express = require("express");
 const router = express.Router();
 
+// Health check endpoint
+router.get("/health", (req, res) => {
+  res.status(200).json({ 
+    status: "ok", 
+    timestamp: new Date().toISOString(),
+    service: "CheckCafe Backend",
+    version: "1.0.0"
+  });
+});
+
 router.use("/access", require("./access"));
 router.use("/user", require("./user"));
 router.use("/admin", require("./admin"));
@@ -21,4 +31,5 @@ router.use("/user-packages", require("./userPackage"));
 router.use("/discounts", require("./discount"));
 router.use("/payments", require("./payment"));
 router.use("/analytics", require("./analytics"));
+
 module.exports = router;

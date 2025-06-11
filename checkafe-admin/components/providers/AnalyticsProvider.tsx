@@ -1,45 +1,27 @@
 'use client'
 
 import { useEffect } from 'react'
-import { usePathname } from 'next/navigation'
-import { useSelector } from 'react-redux'
-import { RootState } from '@/lib/store'
 import { analyticsTracker } from '@/lib/analytics'
 
 interface AnalyticsProviderProps {
   children: React.ReactNode
 }
 
+/**
+ * AnalyticsProvider cho Admin Dashboard
+ * 
+ * Analytics tracking được disable hoàn toàn cho admin dashboard
+ * vì nó chỉ dành cho end-users (customers) trên customer app.
+ * 
+ * Provider này đảm bảo rằng không có analytics session nào 
+ * được tạo trong admin dashboard.
+ */
 export default function AnalyticsProvider({ children }: AnalyticsProviderProps) {
-  const pathname = usePathname()
-  const { user, token } = useSelector((state: RootState) => state.auth)
-  const isAuthenticated = !!(user && token)
-
-  // Khởi tạo analytics tracking khi user đã đăng nhập
   useEffect(() => {
-    if (isAuthenticated && user) {
-      analyticsTracker.initializeAfterLogin()
-    } else {
-      // Clear session khi user logout
-      analyticsTracker.clearSession()
-    }
-  }, [isAuthenticated, user])
-
-  // Track page view khi route thay đổi
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      analyticsTracker.trackPageView(pathname)
-    }
-  }, [pathname, isAuthenticated, user])
-
-  // Cleanup khi component unmount
-  useEffect(() => {
-    return () => {
-      if (isAuthenticated) {
-        analyticsTracker.endSession()
-      }
-    }
-  }, [isAuthenticated])
+    // Ensure no analytics session exists for admin dashboard
+    analyticsTracker.forceClearAll()
+    console.log('🚫 Analytics tracking disabled for admin dashboard')
+  }, [])
 
   return <>{children}</>
 } 

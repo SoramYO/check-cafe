@@ -1,0 +1,57 @@
+# ===== HƯỚNG DẪN DATABASE MANAGEMENT =====
+
+# ===== BACKUP/EXPORT DATABASE =====
+
+# Cách 1: Backup toàn bộ database (Binary format - NHANH)
+# Windows:
+backup-database.bat
+
+# Linux/Mac:
+chmod +x backup-database.sh
+./backup-database.sh
+
+# Cách 2: Export collections thành JSON (Human readable)
+# Linux/Mac:
+chmod +x export-collections.sh
+./export-collections.sh
+
+# ===== RESTORE DATABASE =====
+
+# Cách 1: Sử dụng script tự động (KHUYẾN NGHỊ)
+# Windows:
+restore-database.bat
+
+# Linux/Mac:
+chmod +x restore-database.sh
+./restore-database.sh
+
+# ===== MANUAL COMMANDS =====
+
+# 1. Backup database từ server cũ:
+mongodump --uri="{old-database}" --out=./dump_checkafe
+
+# 2. Backup database từ Docker container:
+docker-compose exec mongodb mongodump --uri="mongodb://admin:adminPassword123@localhost:27017/checkafe?authSource=admin" --out="/backup_temp"
+docker cp checkafe-mongodb:/backup_temp/checkafe ./backup_checkafe/
+
+# 3. Restore vào Docker container:
+# Bước 1: Start MongoDB container
+docker-compose up -d mongodb
+
+# Bước 2: Đợi MongoDB ready (10-15 giây)
+# Bước 3: Copy dump vào container
+docker cp dump_checkafe checkafe-mongodb:/
+
+# Bước 4: Restore database
+docker-compose exec mongodb mongorestore --drop --uri="mongodb://admin:adminPassword123@localhost:27017/checkafe?authSource=admin" /dump_checkafe/checkafe
+
+# 4. Start tất cả services:
+docker-compose up -d --build
+
+# ===== LƯU Ý QUAN TRỌNG =====
+# - Luôn backup trước khi restore
+# - Binary backup (mongodump) nhanh hơn JSON export
+# - JSON export dễ đọc và edit hơn
+# - Check log nếu có lỗi: docker-compose logs mongodb
+# - Volume data sẽ persist sau khi restart container
+# - Backup tự động tạo thư mục với timestamp

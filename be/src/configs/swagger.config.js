@@ -1,11 +1,52 @@
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const path = require("path");
+const fs = require("fs");
 
-// const swaggerDocument = YAML.load(path.join(__dirname, '../../docs/swagger.yaml'));
-const swaggerDocument = YAML.load(
-  path.join(__dirname, "../../docs/openapi.yaml")
-);
+// Check if openapi.yaml exists, if not create a basic one
+const yamlPath = path.join(__dirname, "../../docs/openapi.yaml");
+let swaggerDocument;
+
+try {
+  if (fs.existsSync(yamlPath)) {
+    swaggerDocument = YAML.load(yamlPath);
+  } else {
+    // Basic swagger document if file doesn't exist
+    swaggerDocument = {
+      openapi: "3.0.0",
+      info: {
+        title: "CheckCafe API",
+        version: "1.0.0",
+        description: "API documentation for CheckCafe application"
+      },
+      servers: [],
+      paths: {
+        "/health": {
+          get: {
+            summary: "Health check",
+            responses: {
+              "200": {
+                description: "API is healthy"
+              }
+            }
+          }
+        }
+      }
+    };
+  }
+} catch (error) {
+  console.log("Warning: Could not load swagger documentation:", error.message);
+  swaggerDocument = {
+    openapi: "3.0.0",
+    info: {
+      title: "CheckCafe API",
+      version: "1.0.0",
+      description: "API documentation for CheckCafe application"
+    },
+    servers: [],
+    paths: {}
+  };
+}
 
 const addServers = (req) => {
   const doc = { ...swaggerDocument };

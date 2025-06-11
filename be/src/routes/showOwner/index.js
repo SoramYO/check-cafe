@@ -4,17 +4,20 @@ const express = require("express");
 const { checkAuth, checkRole, checkShopOwnership } = require("../../auth/checkAuth");
 const router = express.Router();
 const reservationController = require("../../controllers/reservation.controller");
+const shopOwnerController = require("../../controllers/shopOwner.controller");
 const { USER_ROLE } = require("../../constants/enum");
 const shopController = require("../../controllers/shop.controller");
+const { validateShopOwnerRegistration } = require("../../middlewares/validation");
 
+// Public routes (no authentication required)
+router.post("/register", validateShopOwnerRegistration, shopOwnerController.registerShopOwner);
 
-
-
+// Authenticated routes
 router.use(checkAuth);
 
 router.get("/shops", shopController.getAllShops);
 
-
+// Shop owner specific routes
 router.use(checkRole([USER_ROLE.SHOP_OWNER]));
 
 

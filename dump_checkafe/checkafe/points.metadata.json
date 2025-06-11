@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"user_id":{"$numberInt":"1"},"reservation_id":{"$numberInt":"1"}},"name":"user_id_1_reservation_id_1","background":true}],"uuid":"33dd5e5200094b20a1183a2213b61642","collectionName":"points","type":"collection"}

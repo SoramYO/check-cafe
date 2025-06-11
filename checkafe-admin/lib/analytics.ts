@@ -46,8 +46,9 @@ export interface ActivityData {
 class AnalyticsTracker {
   private sessionData: SessionData = {}
   private isInitialized = false
+  private isInitializing = false
 
-  // Kiểm tra xem user có đăng nhập không
+  // Kiểm tra xem user có đăng nhập không và không phải admin
   private isUserAuthenticated(): boolean {
     try {
       // Check if there's a valid auth token in localStorage
@@ -65,6 +66,12 @@ class AnalyticsTracker {
         const userData = JSON.parse(user)
         if (!userData || !userData.id) {
           console.log('Authentication check failed: invalid user data')
+          return false
+        }
+        
+        // Skip analytics tracking for admin users
+        if (userData.role === 'ADMIN') {
+          console.log('Authentication check: admin user detected, skipping analytics')
           return false
         }
       } catch (parseError) {
@@ -89,6 +96,11 @@ class AnalyticsTracker {
       return
     }
 
+    if (this.isInitializing) {
+      console.log('Session initialization already in progress, skipping...')
+      return
+    }
+
     // Chỉ init khi user đã đăng nhập hoặc force init
     const isAuth = this.isUserAuthenticated()
     console.log('🔍 Authentication status:', isAuth)
@@ -97,6 +109,8 @@ class AnalyticsTracker {
       console.log('User not authenticated, skipping analytics session initialization')
       return
     }
+
+    this.isInitializing = true
     
     try {
       console.log('Initializing analytics session...')
@@ -125,11 +139,13 @@ class AnalyticsTracker {
           // Lưu session vào localStorage để persistent
           localStorage.setItem('analytics_session', JSON.stringify(this.sessionData))
           
-          // Track page view đầu tiên
-          this.trackPageView(window.location.pathname)
-          
           // Lắng nghe sự kiện beforeunload để kết thúc session
           window.addEventListener('beforeunload', () => this.endSession())
+          
+          // Track page view đầu tiên sau khi session đã được thiết lập hoàn toàn
+          setTimeout(() => {
+            this.trackPageView(window.location.pathname)
+          }, 100)
         } else {
           console.error('No sessionId in response data:', response.data.data)
         }
@@ -139,6 +155,8 @@ class AnalyticsTracker {
     } catch (error) {
       console.error('Failed to initialize analytics session:', error)
       // Không throw error để không break app
+    } finally {
+      this.isInitializing = false
     }
   }
 
@@ -265,33 +283,39 @@ class AnalyticsTracker {
     }
   }
 
-  // Track hoạt động
+  // Track hoạt động  
   async trackActivity(activityData: ActivityData): Promise<void> {
+    // Analytics bị disable cho admin dashboard - return early
+    if (!this.isUserAuthenticated()) {
+      // console.log('Analytics disabled or user not authenticated for tracking')
+      return
+    }
+
     if (!this.isInitialized || !this.sessionData.sessionId) {
       // Thử khôi phục session từ localStorage
       const savedSession = localStorage.getItem('analytics_session')
       if (savedSession && savedSession !== 'undefined') {
         try {
           this.sessionData = JSON.parse(savedSession)
-          this.isInitialized = true
-        } catch (parseError) {
-          console.error('Failed to parse saved session:', parseError)
-          // Chỉ init nếu user đã authenticated
-          if (this.isUserAuthenticated()) {
+          // Validate session data
+          if (this.sessionData.sessionId) {
+            this.isInitialized = true
+          } else {
+            console.warn('Invalid session data in localStorage, initializing new session')
             await this.initializeSession()
           }
-        }
-      } else {
-        // Chỉ init nếu user đã authenticated
-        if (this.isUserAuthenticated()) {
+        } catch (parseError) {
+          console.error('Failed to parse saved session:', parseError)
           await this.initializeSession()
         }
+      } else {
+        await this.initializeSession()
       }
     }
 
     // Kiểm tra lại sessionId sau khi khôi phục hoặc khởi tạo
     if (!this.sessionData.sessionId) {
-      console.error('Session ID is still undefined, cannot track activity')
+      console.warn('Session ID is still undefined after initialization, cannot track activity')
       return
     }
 
@@ -300,8 +324,14 @@ class AnalyticsTracker {
         sessionId: this.sessionData.sessionId,
         activityData
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to track activity:', error)
+      // Nếu session expired hoặc invalid, clear và thử tạo lại
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        console.log('Session expired, clearing and reinitializing...')
+        this.clearSession()
+        // Không thử lại ngay để tránh infinite loop
+      }
     }
   }
 
@@ -384,6 +414,7 @@ class AnalyticsTracker {
       localStorage.removeItem('analytics_session')
       this.sessionData = {}
       this.isInitialized = false
+      this.isInitializing = false
       return
     }
 
@@ -396,12 +427,14 @@ class AnalyticsTracker {
       localStorage.removeItem('analytics_session')
       this.sessionData = {}
       this.isInitialized = false
+      this.isInitializing = false
     } catch (error) {
       console.error('Failed to end session:', error)
       // Cleanup anyway even if API call fails
       localStorage.removeItem('analytics_session')
       this.sessionData = {}
       this.isInitialized = false
+      this.isInitializing = false
     }
   }
 
@@ -426,6 +459,7 @@ class AnalyticsTracker {
   clearSession(): void {
     this.sessionData = {}
     this.isInitialized = false
+    this.isInitializing = false
     localStorage.removeItem('analytics_session')
     console.log('Analytics session cleared')
   }
@@ -434,6 +468,7 @@ class AnalyticsTracker {
   forceClearAll(): void {
     this.sessionData = {}
     this.isInitialized = false
+    this.isInitializing = false
     localStorage.removeItem('analytics_session')
     localStorage.removeItem('access_token')
     localStorage.removeItem('user')

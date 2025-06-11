@@ -6,8 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
+    "start:dev": "nodemon index.js",
     "seed": "node src/seeds/runSeed.js",
     "seed:dev": "MONGODB_URI=mongodb://localhost:27017/checkafe-dev node src/seeds/runSeed.js",
+    "seed:shop-categories": "node seed-shop-categories.js",
     "seed:test": "node src/seeds/testSeed.js"
   },
   "author": "RiseUp",
@@ -32,9 +34,7 @@
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0",
-    "yamljs": "^0.3.0"
-  },
-  "devDependencies": {
+    "yamljs": "^0.3.0",
     "compression": "^1.8.0",
     "helmet": "^8.1.0",
     "morgan": "^1.10.0"

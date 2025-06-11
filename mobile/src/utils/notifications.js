@@ -85,10 +85,10 @@ export async function registerAndSaveTokenForLogin() {
       return newToken;
     }
 
-    // Save new token to backend
+    // Save new token to backend - using correct field name 'expo_token'
     await userAPI.HandleUser(
       '/save-expo-token',
-      { expoPushToken: newToken },
+      { expo_token: newToken },
       "post"
     );
     
@@ -135,5 +135,5 @@ export const deleteNotification = async (notificationId) => {
 };
 
 export const saveExpoToken = async (token) => {
-  return await userAPI.HandleUser('/save-expo-token', { expoPushToken: token }, 'post');
+  return await userAPI.HandleUser('/save-expo-token', { expo_token: token }, 'post');
 };

@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"d486dea182b446ca85a61e98ab3a1b14","collectionName":"ShopTimeSlots","type":"collection"}

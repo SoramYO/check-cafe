@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TimePickerDemo } from "@/components/dashboard/time-picker"
-import { Upload, Clock, MapPin, Phone, Mail, Globe, FileText, CheckCircle, AlertCircle, Info, Plus, Edit, FileCheck, Eye } from "lucide-react"
+import { Upload, Clock, MapPin, Phone, Mail, Globe, FileText, CheckCircle, AlertCircle, Info, Plus, Edit, FileCheck, Eye, X } from "lucide-react"
 import Image from "next/image"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import authorizedAxiosInstance from "@/lib/axios"
@@ -118,6 +118,13 @@ export default function ShopProfilePage() {
   const [verificationModalOpen, setVerificationModalOpen] = useState(false)
   const [isEditingHours, setIsEditingHours] = useState(false)
   const [editingOpeningHours, setEditingOpeningHours] = useState<any[]>([])
+  
+  // File upload states
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [uploadError, setUploadError] = useState("")
+  const [documentType, setDocumentType] = useState("business_license")
+  const [verificationNote, setVerificationNote] = useState("")
 
   // Form data
   const [formData, setFormData] = useState({
@@ -261,16 +268,120 @@ export default function ShopProfilePage() {
     }
   }
 
+  // File upload handlers
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return
+    
+    setUploadError("")
+    
+    const validFiles = Array.from(files).filter(file => {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+      if (!validTypes.includes(file.type)) {
+        setUploadError(`File ${file.name} không được hỗ trợ. Chỉ hỗ trợ JPG, PNG, PDF.`)
+        return false
+      }
+      
+      // Validate file size (5MB)
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        setUploadError(`File ${file.name} quá lớn (tối đa 5MB)`)
+        return false
+      }
+      
+      return true
+    })
+
+    // Check total files (max 5)
+    if (selectedFiles.length + validFiles.length > 5) {
+      setUploadError('Chỉ được upload tối đa 5 file')
+      return
+    }
+
+    if (validFiles.length === 0) {
+      if (!uploadError) {
+        setUploadError('Không có file hợp lệ nào được chọn')
+      }
+      return
+    }
+
+    setSelectedFiles(prev => [...prev, ...validFiles])
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileSelect(e.target.files)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    handleFileSelect(e.dataTransfer.files)
+  }
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
   const handleSubmitVerification = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Vui lòng chọn ít nhất 1 file')
+      return
+    }
+
+    if (!shopData?._id) {
+      toast.error('Không tìm thấy thông tin shop')
+      return
+    }
+
     try {
       setIsSubmitting(true)
-      // Implement verification submission logic here
-      toast.success('Gửi xác minh thành công')
-      setVerificationModalOpen(false)
-      fetchShopData()
-    } catch (error) {
-      console.error('Error submitting verification:', error)
-      toast.error('Không thể gửi xác minh')
+      
+      // Create FormData for file upload
+      const formDataUpload = new FormData()
+      formDataUpload.append('document_type', documentType)
+      formDataUpload.append('reason', verificationNote)
+      
+      selectedFiles.forEach((file) => {
+        formDataUpload.append('documents', file)
+      })
+
+      // API call để gửi verification với shopId trong URL
+      const response = await authorizedAxiosInstance.post(`/v1/shops/${shopData._id}/verifications`, formDataUpload, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      if (response.data.status === 200 || response.data.status === 201) {
+        toast.success('Gửi yêu cầu xác minh thành công!')
+        setVerificationModalOpen(false)
+        setDocumentUploaded(true)
+        setVerificationStatus("pending")
+        setSelectedFiles([])
+        setVerificationNote("")
+        fetchShopData()
+      }
+    } catch (error: any) {
+      console.error('Verification error:', error)
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi gửi yêu cầu xác minh')
     } finally {
       setIsSubmitting(false)
     }
@@ -1014,7 +1125,19 @@ export default function ShopProfilePage() {
           )}
 
           {/* Verification Modal */}
-          <Dialog open={verificationModalOpen} onOpenChange={setVerificationModalOpen}>
+          <Dialog 
+            open={verificationModalOpen} 
+            onOpenChange={(open) => {
+              setVerificationModalOpen(open)
+              if (!open) {
+                // Reset khi đóng modal
+                setSelectedFiles([])
+                setUploadError("")
+                setVerificationNote("")
+                setIsDragOver(false)
+              }
+            }}
+          >
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Xác minh quán cà phê</DialogTitle>
@@ -1025,7 +1148,10 @@ export default function ShopProfilePage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Loại tài liệu</Label>
-                  <Select defaultValue="business_license">
+                  <Select 
+                    value={documentType} 
+                    onValueChange={setDocumentType}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -1039,7 +1165,16 @@ export default function ShopProfilePage() {
 
                 <div className="space-y-2">
                   <Label>Tài liệu (1-5 file)</Label>
-                  <div className="border border-dashed rounded-md p-6 text-center">
+                  <div 
+                    className={`border border-dashed rounded-md p-6 text-center transition-colors ${
+                      isDragOver 
+                        ? 'border-amber-300 bg-amber-50' 
+                        : 'border-gray-300'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     <div className="flex flex-col items-center gap-2">
                       <Upload className="h-8 w-8 text-gray-400" />
                       <p className="font-medium">Kéo thả hoặc nhấp để tải lên</p>
@@ -1050,6 +1185,7 @@ export default function ShopProfilePage() {
                         multiple
                         className="hidden"
                         id="verification-upload"
+                        onChange={handleFileChange}
                       />
                       <Label htmlFor="verification-upload" className="cursor-pointer">
                         <Button type="button" variant="outline" size="sm" asChild>
@@ -1058,14 +1194,52 @@ export default function ShopProfilePage() {
                       </Label>
                     </div>
                   </div>
+
+                  {/* Hiển thị file đã chọn */}
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2 mt-4">
+                      <Label className="text-sm font-medium">Tệp đã chọn:</Label>
+                      <div className="space-y-2">
+                        {selectedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              <div>
+                                <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
+                                <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hiển thị lỗi */}
+                  {uploadError && (
+                    <div className="text-red-500 text-sm mt-2">
+                      {uploadError}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reason">Ghi chú (tùy chọn)</Label>
+                  <Label htmlFor="reason">Lý do xác minh (tùy chọn)</Label>
                   <Textarea
                     id="reason"
-                    placeholder="Thêm ghi chú về tài liệu..."
+                    placeholder="Mô tả lý do cần xác minh hoặc thông tin bổ sung..."
                     rows={3}
+                    value={verificationNote}
+                    onChange={(e) => setVerificationNote(e.target.value)}
                   />
                 </div>
 

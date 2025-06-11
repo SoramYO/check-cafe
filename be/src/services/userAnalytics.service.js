@@ -394,7 +394,6 @@ class UserAnalyticsService {
         { $sort: { sessions: -1 } }
       ]);
       
-      console.log('Platform analytics result:', platforms);
       return platforms;
     } catch (error) {
       console.error('Error in getPlatformAnalytics:', error);
