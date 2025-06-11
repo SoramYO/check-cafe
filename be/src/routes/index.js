@@ -31,5 +31,7 @@ router.use("/user-packages", require("./userPackage"));
 router.use("/discounts", require("./discount"));
 router.use("/payments", require("./payment"));
 router.use("/analytics", require("./analytics"));
+router.use("/checkins", require("./checkin"));
+router.use("/friends", require("./friend"));
 
 module.exports = router;

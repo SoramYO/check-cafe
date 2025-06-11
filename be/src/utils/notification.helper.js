@@ -1,7 +1,7 @@
 "use strict";
 
 const notificationService = require("../services/notification.service");
-const { initSocket } = require("../socket/socket");
+const { getSocketInstance } = require("../socket/socket");
 const ExpoNotificationMiddleware = require("../middlewares/expo-notification.middleware");
 
 class NotificationHelper {
@@ -15,8 +15,8 @@ class NotificationHelper {
    */
   static async sendReservationNotification({ user_id, reservation, status, shop_name }) {
     try {
-      const socket = initSocket();
-      const emitNotification = socket?.emitNotification;
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
 
       const statusMessages = {
         Confirmed: "xác nhận",
@@ -55,8 +55,8 @@ class NotificationHelper {
    */
   static async sendPromotionNotification({ user_ids = [], promotion }) {
     try {
-      const socket = initSocket();
-      const emitNotification = socket?.emitNotification;
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
 
       const promotion_data = {
         promotion_id: promotion._id,
@@ -98,8 +98,8 @@ class NotificationHelper {
    */
   static async sendSystemNotification({ user_id, title, content, reference_id, reference_type }) {
     try {
-      const socket = initSocket();
-      const emitNotification = socket?.emitNotification;
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
 
       const system_data = {
         title,
@@ -134,8 +134,8 @@ class NotificationHelper {
    */
   static async sendReminderNotification({ user_id, content, reference_id, reference_type }) {
     try {
-      const socket = initSocket();
-      const emitNotification = socket?.emitNotification;
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
 
       const reminder_data = {
         content,
@@ -166,8 +166,8 @@ class NotificationHelper {
    */
   static async sendBulkNotifications({ user_ids = [], title, content, type, reference_id, reference_type }) {
     try {
-      const socket = initSocket();
-      const emitNotification = socket?.emitNotification;
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
 
       const notifications = [];
       for (const user_id of user_ids) {
@@ -191,6 +191,115 @@ class NotificationHelper {
   }
 
   /**
+   * Send friend request notification
+   * @param {Object} params
+   * @param {String} params.recipient_id - User ID to send notification to
+   * @param {String} params.requester_name - Name of the person sending request
+   * @param {String} params.request_id - Friend request ID
+   */
+  static async sendFriendRequestNotification({ recipient_id, requester_name, request_id }) {
+    try {
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
+
+      const friend_data = {
+        requester_name,
+        request_id,
+      };
+
+      const notification = await notificationService.createFriendRequestNotification({
+        user_id: recipient_id,
+        friend_data,
+        emitNotification,
+      });
+
+      // Send push notification
+      await ExpoNotificationMiddleware.sendPushNotification(recipient_id, notification);
+
+      return notification;
+    } catch (error) {
+      console.error("Error sending friend request notification:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send friend accepted notification
+   * @param {Object} params
+   * @param {String} params.requester_id - User ID of person who sent the request
+   * @param {String} params.accepter_name - Name of the person accepting request
+   * @param {String} params.request_id - Friend request ID
+   */
+  static async sendFriendAcceptedNotification({ requester_id, accepter_name, request_id }) {
+    try {
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
+
+      const friend_data = {
+        accepter_name,
+        request_id,
+      };
+
+      const notification = await notificationService.createFriendAcceptedNotification({
+        user_id: requester_id,
+        friend_data,
+        emitNotification,
+      });
+
+      // Send push notification
+      await ExpoNotificationMiddleware.sendPushNotification(requester_id, notification);
+
+      return notification;
+    } catch (error) {
+      console.error("Error sending friend accepted notification:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send checkin notification to friends
+   * @param {Object} params
+   * @param {Array} params.friend_ids - Array of friend user IDs
+   * @param {String} params.friend_name - Name of the person checking in
+   * @param {String} params.location_name - Name of the checkin location
+   * @param {String} params.checkin_id - Checkin ID
+   */
+  static async sendFriendCheckinNotification({ friend_ids = [], friend_name, location_name, checkin_id }) {
+    try {
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
+
+      const checkin_data = {
+        friend_name,
+        location_name,
+        checkin_id,
+      };
+
+      const notifications = [];
+      for (const friend_id of friend_ids) {
+        const notification = await notificationService.createFriendCheckinNotification({
+          user_id: friend_id,
+          checkin_data,
+          emitNotification,
+        });
+        notifications.push(notification);
+      }
+
+      // Send bulk push notifications
+      await ExpoNotificationMiddleware.sendBulkPushNotifications(friend_ids, {
+        title: "Bạn bè check-in",
+        content: `${friend_name} đã check-in tại ${location_name || 'một địa điểm'}`,
+        type: "friend_checkin",
+      });
+
+      return notifications;
+    } catch (error) {
+      console.error("Error sending friend checkin notifications:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get notification icon based on type (for mobile app)
    * @param {String} type - Notification type
    * @returns {String} Icon name
@@ -208,6 +317,9 @@ class NotificationHelper {
       RESERVATION_CANCELLED: "calendar-remove",
       RESERVATION_COMPLETED: "check-circle",
       CHECK_IN: "location-enter",
+      FRIEND_REQUEST: "account-plus",
+      FRIEND_ACCEPTED: "account-check",
+      FRIEND_CHECKIN: "map-marker-check",
     };
 
     return iconMap[type] || "bell";
@@ -231,6 +343,9 @@ class NotificationHelper {
       RESERVATION_CANCELLED: "#E74C3C",
       RESERVATION_COMPLETED: "#27AE60",
       CHECK_IN: "#F39C12",
+      FRIEND_REQUEST: "#9B59B6",
+      FRIEND_ACCEPTED: "#2ECC71",
+      FRIEND_CHECKIN: "#3498DB",
     };
 
     return colorMap[type] || "#7a5545";

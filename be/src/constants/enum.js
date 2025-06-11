@@ -40,6 +40,11 @@ const NOTIFICATION_TYPE = {
   UPDATE: "update",
   REVIEW: "review",
   SYSTEM: "system",
+  // Friend notifications
+  FRIEND_REQUEST: "FRIEND_REQUEST",
+  FRIEND_ACCEPTED: "FRIEND_ACCEPTED",
+  // Checkin notifications
+  FRIEND_CHECKIN: "FRIEND_CHECKIN",
 };
 
 module.exports = {

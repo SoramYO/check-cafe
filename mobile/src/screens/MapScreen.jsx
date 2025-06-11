@@ -441,6 +441,7 @@ export default function MapScreen() {
             },
             default: () => <WebMap />,
           })()}
+          {/* Location Button */}
           <TouchableOpacity
             style={styles.locationButton}
             onPress={() => {
@@ -460,6 +461,24 @@ export default function MapScreen() {
             <MaterialCommunityIcons
               name="crosshairs-gps"
               size={24}
+              color="#fff"
+            />
+          </TouchableOpacity>
+          
+          {/* Check-in FAB */}
+          <TouchableOpacity
+            style={styles.checkinFab}
+            onPress={async () => {
+              await trackTap('map_checkin_fab');
+              navigation.navigate('CheckinCamera', {
+                latitude: location?.latitude,
+                longitude: location?.longitude,
+              });
+            }}
+          >
+            <MaterialCommunityIcons
+              name="camera"
+              size={28}
               color="#fff"
             />
           </TouchableOpacity>
@@ -495,6 +514,25 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 1000,
     flexDirection: "row",
+    alignItems: "center",
+  },
+  checkinFab: {
+    position: "absolute",
+    right: 20,
+    bottom: 110,
+    backgroundColor: "#e74c3c",
+    padding: 16,
+    borderRadius: 56,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 1000,
+    justifyContent: "center",
     alignItems: "center",
   },
   markerContainer: {

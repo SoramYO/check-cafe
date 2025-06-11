@@ -20,6 +20,9 @@ export const getNotificationIcon = (type) => {
     [NOTIFICATION_TYPES.RESERVATION_CANCELLED]: 'calendar-remove',
     [NOTIFICATION_TYPES.RESERVATION_COMPLETED]: 'check-circle',
     [NOTIFICATION_TYPES.CHECK_IN]: 'location-enter',
+    [NOTIFICATION_TYPES.FRIEND_REQUEST]: 'account-plus',
+    [NOTIFICATION_TYPES.FRIEND_ACCEPTED]: 'account-check',
+    [NOTIFICATION_TYPES.FRIEND_CHECKIN]: 'camera-account',
   };
 
   return iconMap[type] || 'bell';
@@ -131,6 +134,25 @@ export const handleNotificationNavigation = (notification, navigation) => {
         }
         break;
 
+      case 'FRIEND_REQUEST':
+        // Navigate to Friends screen on Requests tab
+        navigation.navigate('Friends', { initialTab: 'requests' });
+        break;
+
+      case 'FRIEND_ACCEPTED':
+        // Navigate to Friends screen on Friends tab
+        navigation.navigate('Friends', { initialTab: 'friends' });
+        break;
+
+      case 'FRIEND_CHECKIN':
+        // Navigate to specific checkin if reference_id exists, otherwise to CheckinList
+        if (reference_id) {
+          navigation.navigate('CheckinDetail', { checkinId: reference_id });
+        } else {
+          navigation.navigate('CheckinList');
+        }
+        break;
+
       case 'SHOP_REVIEW':
         // Navigate to shop detail if reference_id exists
         if (reference_id) {
@@ -208,6 +230,9 @@ export const getNotificationTypeText = (type) => {
     [NOTIFICATION_TYPES.RESERVATION_CANCELLED]: 'Hủy đặt chỗ',
     [NOTIFICATION_TYPES.RESERVATION_COMPLETED]: 'Hoàn thành',
     [NOTIFICATION_TYPES.CHECK_IN]: 'Check-in',
+    [NOTIFICATION_TYPES.FRIEND_REQUEST]: 'Lời mời kết bạn',
+    [NOTIFICATION_TYPES.FRIEND_ACCEPTED]: 'Kết bạn thành công',
+    [NOTIFICATION_TYPES.FRIEND_CHECKIN]: 'Check-in bạn bè',
   };
 
   return typeMap[type] || 'Thông báo';
