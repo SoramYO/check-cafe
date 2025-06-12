@@ -378,13 +378,6 @@ export default function CheckinCameraScreen({ route }) {
         formData.append('tags', JSON.stringify(checkinData.tags));
       }
 
-      console.log('FormData being sent:', {
-        hasImage: !!checkinData.image,
-        title: checkinData.title,
-        location: checkinData.location,
-        visibility: checkinData.visibility,
-        imageUri: checkinData.image?.uri
-      });
 
       // Sử dụng fetch API trực tiếp thay vì axios
       const token = await AsyncStorage.getItem('token');
@@ -398,7 +391,6 @@ export default function CheckinCameraScreen({ route }) {
       });
 
       const response = await apiResponse.json();
-      console.log('Upload response:', response);
       
       if (response.data) {
         toast.success('Check-in thành công!');

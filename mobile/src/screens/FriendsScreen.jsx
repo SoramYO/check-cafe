@@ -27,7 +27,7 @@ const TABS = [
 export default function FriendsScreen({ route }) {
   const navigation = useNavigation();
   const { trackScreenView, trackTap, isAuthenticated } = useAnalytics();
-  
+
   // Get initial tab from route params (for navigation from notifications)
   const initialTab = route?.params?.initialTab || 'friends';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -84,10 +84,10 @@ export default function FriendsScreen({ route }) {
   const loadFriendRequests = async () => {
     try {
       const response = await friendAPI.HandleFriend('/requests?type=received');
-      console.log('Friend requests response:', response);
+
       if (response.data) {
         const requests = response.data.requests || response.data || [];
-        console.log('Friend requests data:', requests);
+
         setFriendRequests(requests);
       }
     } catch (error) {
@@ -102,7 +102,6 @@ export default function FriendsScreen({ route }) {
       console.log('Suggestions response:', response);
       if (response.data) {
         const suggestions = response.data.suggestions || response.data || [];
-        console.log('Suggestions data:', suggestions);
         setSuggestions(suggestions);
       }
     } catch (error) {
@@ -337,12 +336,6 @@ export default function FriendsScreen({ route }) {
     const requestSent = user.friendshipStatus === 'request_sent';
     const isFriend = user.friendshipStatus === 'friends';
 
-    console.log('Rendering search item:', {
-      id: user._id,
-      name: user.full_name || user.fullName || user.username,
-      avatar: user.avatar || user.profileImage,
-      friendshipStatus: user.friendshipStatus
-    });
 
     return (
       <View style={styles.searchCard}>

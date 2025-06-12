@@ -24,6 +24,9 @@ router.get("/user/:userId", checkinController.getUserCheckins);
 // Like/Unlike checkin
 router.post("/:checkinId/like", checkinController.likeCheckin);
 
+// Get Comments of a checkin
+router.get("/:checkinId/comments", checkinController.getCheckinComments);
+
 // Comment on checkin
 router.post("/:checkinId/comment", checkinController.commentCheckin);
 

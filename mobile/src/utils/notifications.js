@@ -173,6 +173,43 @@ export const sendFriendAcceptedNotification = async (recipientUserId, accepterUs
   }
 };
 
+// Checkin interaction notification helper functions
+export const sendCheckinLikeNotification = async (checkinOwnerId, likerUserName, checkinId, checkinTitle) => {
+  try {
+    const notificationData = {
+      type: 'CHECKIN_LIKE',
+      title: 'Có người thích check-in của bạn',
+      content: `${likerUserName} đã thích check-in "${checkinTitle}" của bạn`,
+      recipient_id: checkinOwnerId,
+      reference_id: checkinId,
+      reference_type: 'checkin',
+    };
+    
+    return await notificationAPI.HandleNotification('/send', notificationData, 'post');
+  } catch (error) {
+    console.error('Error sending checkin like notification:', error);
+    throw error;
+  }
+};
+
+export const sendCheckinCommentNotification = async (checkinOwnerId, commenterUserName, checkinId, checkinTitle, commentText) => {
+  try {
+    const notificationData = {
+      type: 'CHECKIN_COMMENT',
+      title: 'Có người bình luận check-in của bạn',
+      content: `${commenterUserName} đã bình luận "${commentText}" trên check-in "${checkinTitle}" của bạn`,
+      recipient_id: checkinOwnerId,
+      reference_id: checkinId,
+      reference_type: 'checkin',
+    };
+    
+    return await notificationAPI.HandleNotification('/send', notificationData, 'post');
+  } catch (error) {
+    console.error('Error sending checkin comment notification:', error);
+    throw error;
+  }
+};
+
 export const sendFriendCheckinNotification = async (friendUserIds, checkerUserName, checkinId, locationName) => {
   try {
     const notificationData = {

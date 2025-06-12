@@ -464,24 +464,6 @@ export default function MapScreen() {
               color="#fff"
             />
           </TouchableOpacity>
-          
-          {/* Check-in FAB */}
-          <TouchableOpacity
-            style={styles.checkinFab}
-            onPress={async () => {
-              await trackTap('map_checkin_fab');
-              navigation.navigate('CheckinCamera', {
-                latitude: location?.latitude,
-                longitude: location?.longitude,
-              });
-            }}
-          >
-            <MaterialCommunityIcons
-              name="camera"
-              size={28}
-              color="#fff"
-            />
-          </TouchableOpacity>
         </LinearGradient>
       </View>
     </SafeAreaView>
