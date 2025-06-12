@@ -1,0 +1,20 @@
+{
+  "name": "checkafe-landing",
+  "version": "1.0.0",
+  "description": "CheckCafe Landing Page - Café management and social check-in platform",
+  "main": "index.html",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js", 
+    "serve": "live-server --port=3001",
+    "build": "npm run optimize",
+    "optimize": "echo 'Optimizing assets...'",
+    "deploy": "echo 'Deploying to production...'"
+  },
+  "keywords": ["cafe", "checkin", "social", "mobile", "restaurant"],
+  "author": "CheckCafe Team",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+} 

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheckCafe - Social Café Check-in Platform</title>
+    <meta name="description" content="Discover, check-in, and connect at your favorite cafés. Join the CheckCafe community today!">
+    <meta name="keywords" content="cafe, coffee, checkin, social, mobile app, restaurant, discovery">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="CheckCafe - Social Café Check-in Platform">
+    <meta property="og:description" content="Discover, check-in, and connect at your favorite cafés">
+    <meta property="og:image" content="./assets/og-image.jpg">
+    <meta property="og:url" content="https://checkafe.online">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="./styles/main.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="./assets/logo.png" alt="CheckCafe Logo" class="logo-img">
+                <span>CheckCafe</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#download">Download</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li><a href="https://admin.checkafe.online" class="nav-cta">Admin Portal</a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    Discover & Connect at 
+                    <span class="gradient-text">Amazing Cafés</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Join the social café experience. Check-in, share moments, and discover new favorite spots with friends in the CheckCafe community.
+                </p>
+                <div class="hero-actions">
+                    <a href="#download" class="btn btn-primary">
+                        <i class="fas fa-download"></i>
+                        Download App
+                    </a>
+                    <a href="https://api.checkafe.online/api-docs" class="btn btn-secondary">
+                        <i class="fas fa-code"></i>
+                        API Docs
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">1000+</span>
+                        <span class="stat-label">Cafés</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">5000+</span>
+                        <span class="stat-label">Check-ins</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">2000+</span>
+                        <span class="stat-label">Users</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="phone-mockup">
+                    <!-- Phone Frame -->
+                    <div class="phone-frame">
+                        <!-- Phone Notch -->
+                        <div class="phone-notch"></div>
+                        
+                        <!-- Phone Screen -->
+                        <div class="phone-screen">
+                            <!-- Interactive App Simulation will be rendered here by JavaScript -->
+                            <div class="app-loading">
+                                <div class="loading-spinner"></div>
+                                <p>Đang tải ứng dụng...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Phone Home Indicator -->
+                        <div class="phone-home-indicator"></div>
+                    </div>
+                </div>
+                
+                <!-- Interactive Instruction -->
+                <div class="swipe-instruction">
+                    <i class="fas fa-hand-pointer"></i>
+                    <span id="current-screen-text">Đang tải ứng dụng...</span>
+                </div>
+                
+                <!-- Screen Indicators -->
+                <div class="screen-indicators">
+                    <div class="indicator active" data-screen="discover" title="Khám phá"></div>
+                    <div class="indicator" data-screen="map" title="Bản đồ"></div>
+                    <div class="indicator" data-screen="checkin" title="Check-in"></div>
+                    <div class="indicator" data-screen="bookings" title="Đặt chỗ"></div>
+                    <div class="indicator" data-screen="profile" title="Tài khoản"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Everything You Need</h2>
+                <p>Comprehensive café management and social features</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3>Discover Cafés</h3>
+                    <p>Find amazing cafés near you with advanced search and filtering options.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Social Check-ins</h3>
+                    <p>Share your café experiences and see where your friends are hanging out.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h3>Reviews & Ratings</h3>
+                    <p>Rate and review cafés to help others discover great spots.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h3>Real-time Notifications</h3>
+                    <p>Get notified when friends check-in or interact with your posts.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <h3>QR Code Check-ins</h3>
+                    <p>Quick and easy check-ins using QR codes at participating cafés.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Business Analytics</h3>
+                    <p>Café owners get detailed insights and analytics about their customers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Screenshots -->
+    <section class="screenshots">
+        <div class="container">
+            <div class="section-header">
+                <h2>Beautiful & Intuitive</h2>
+                <p>Designed for the best user experience</p>
+            </div>
+            <div class="screenshot-gallery">
+                <div class="screenshot-item">
+                    <div class="screenshot-phone">
+                        <div class="screenshot-content discover">
+                            <h4>Discover</h4>
+                            <p>Find cafés near you</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="screenshot-item">
+                    <div class="screenshot-phone">
+                        <div class="screenshot-content checkin">
+                            <h4>Check-in</h4>
+                            <p>Share your moments</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="screenshot-item">
+                    <div class="screenshot-phone">
+                        <div class="screenshot-content social">
+                            <h4>Social</h4>
+                            <p>Connect with friends</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container">
+            <div class="download-content">
+                <h2>Get CheckCafe Today</h2>
+                <p>Available on Android with iOS coming soon</p>
+                <div class="download-buttons">
+                    <a href="./download/app-release.apk" class="download-btn" download="CheckCafe.apk">
+                        <i class="fab fa-android"></i>
+                        <div>
+                            <span>Download for</span>
+                            <strong>Android</strong>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn disabled">
+                        <i class="fab fa-apple"></i>
+                        <div>
+                            <span>Coming to</span>
+                            <strong>iOS</strong>
+                        </div>
+                    </a>
+                </div>
+                <!-- <div class="platform-info">
+                    <div class="platform-item">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>React Native</span>
+                    </div>
+                    <div class="platform-item">
+                        <i class="fas fa-globe"></i>
+                        <span>Web Admin</span>
+                    </div>
+                    <div class="platform-item">
+                        <i class="fas fa-server"></i>
+                        <span>REST API</span>
+                    </div>
+                </div> -->
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-grid">
+                <div class="about-content">
+                    <h2>About CheckCafe</h2>
+                    <p>CheckCafe is a comprehensive platform that bridges the gap between café owners and coffee lovers. Our mission is to create a vibrant community where people can discover, experience, and share their café journeys.</p>
+                    
+                    <div class="tech-stack">
+                        <h3>Built with Modern Technology</h3>
+                        <div class="tech-icons">
+                            <div class="tech-item">
+                                <i class="fab fa-react"></i>
+                                <span>React Native</span>
+                            </div>
+                            <div class="tech-item">
+                                <i class="fab fa-node-js"></i>
+                                <span>Node.js</span>
+                            </div>
+                            <div class="tech-item">
+                                <i class="fas fa-database"></i>
+                                <span>MongoDB</span>
+                            </div>
+                            <div class="tech-item">
+                                <i class="fab fa-docker"></i>
+                                <span>Docker</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h2>Get in Touch</h2>
+                    <p>Ready to join the CheckCafe community or have questions about our platform?</p>
+                    
+                    <div class="contact-methods">
+                        <div class="contact-method">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <strong>Email</strong>
+                                <span>teamcheckafe@gmail.com</span>
+                            </div>
+                        </div>
+                        <div class="contact-method">
+                            <i class="fab fa-github"></i>
+                            <div>
+                                <strong>GitHub</strong>
+                                <span>github.com/SoramYO/check-cafe</span>
+                            </div>
+                        </div>
+                        <div class="contact-method">
+                            <i class="fas fa-globe"></i>
+                            <div>
+                                <strong>API</strong>
+                                <span>api.checkafe.online</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-form">
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <input type="text" id="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="message" placeholder="Your Message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                                    <div class="footer-logo">
+                    <img src="./assets/logo.png" alt="CheckCafe Logo" class="logo-img">
+                    <span>CheckCafe</span>
+                </div>
+                    <p>Building the future of café social experiences</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/profile.php?id=61576602626156"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="https://github.com/SoramYO/check-cafe"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#download">Mobile App</a></li>
+                        <li><a href="https://admin.checkafe.online">Admin Portal</a></li>
+                        <li><a href="https://api.checkafe.online/api-docs">API Docs</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Developers</h4>
+                    <ul>
+                        <li><a href="https://api.checkafe.online/api-docs">API Documentation</a></li>
+                        <li><a href="https://github.com/SoramYO/check-cafe">GitHub Repository</a></li>
+                        <li><a href="#">SDK Downloads</a></li>
+                        <li><a href="#">Developer Portal</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 CheckCafe Team. All rights reserved.</p>
+                <p>Made with ❤️ for the café community</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Swiper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
+    <!-- Scripts -->
+    <script src="./scripts/main.js"></script>
+</body>
+</html> 
