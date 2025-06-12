@@ -263,6 +263,42 @@ const createReminderNotification = async ({ user_id, reminder_data, emitNotifica
   });
 };
 
+const createFriendRequestNotification = async ({ user_id, friend_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Yêu cầu kết bạn",
+    content: `${friend_data.requester_name} muốn kết bạn với bạn`,
+    type: NOTIFICATION_TYPE.FRIEND_REQUEST,
+    reference_id: friend_data.request_id,
+    reference_type: "FriendRequest",
+    emitNotification,
+  });
+};
+
+const createFriendAcceptedNotification = async ({ user_id, friend_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Kết bạn thành công",
+    content: `${friend_data.accepter_name} đã chấp nhận lời mời kết bạn của bạn`,
+    type: NOTIFICATION_TYPE.FRIEND_ACCEPTED,
+    reference_id: friend_data.request_id,
+    reference_type: "FriendRequest",
+    emitNotification,
+  });
+};
+
+const createFriendCheckinNotification = async ({ user_id, checkin_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Bạn bè check-in",
+    content: `${checkin_data.friend_name} đã check-in tại ${checkin_data.location_name || 'một địa điểm'}`,
+    type: NOTIFICATION_TYPE.FRIEND_CHECKIN,
+    reference_id: checkin_data.checkin_id,
+    reference_type: "Checkin",
+    emitNotification,
+  });
+};
+
 module.exports = {
   createNotification,
   getUserNotifications,
@@ -275,4 +311,7 @@ module.exports = {
   createPromotionNotification,
   createSystemNotification,
   createReminderNotification,
+  createFriendRequestNotification,
+  createFriendAcceptedNotification,
+  createFriendCheckinNotification,
 };

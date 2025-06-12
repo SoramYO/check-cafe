@@ -73,6 +73,7 @@ const getMenuSections = (role) => {
           route: "EditProfile",
         },
         { icon: "ticket-percent", label: "Voucher của tôi", route: "Vouchers" },
+        { icon: "account-group", label: "Bạn bè", route: "Friends", color: "#7a5545" },
         { icon: "heart-outline", label: "Yêu thích", route: "Favorites" },
         {
           icon: "history",

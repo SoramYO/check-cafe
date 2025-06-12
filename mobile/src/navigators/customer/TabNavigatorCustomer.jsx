@@ -5,6 +5,7 @@ import MapScreen from "../../screens/MapScreen";
 import BookingsScreen from "../../screens/BookingsScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ProfileScreen from "../../screens/ProfileScreen";
+import CheckinListScreen from "../../screens/CheckinListScreen";
 
 const TabNavigatorCustomer = () => {
   const Tab = createBottomTabNavigator();
@@ -21,6 +22,8 @@ const TabNavigatorCustomer = () => {
             iconName = focused ? "coffee" : "coffee-outline";
           } else if (route.name === "Map") {
             iconName = focused ? "map" : "map-outline";
+          } else if (route.name === "Checkin") {
+            iconName = focused ? "camera" : "camera-outline";
           } else if (route.name === "Bookings") {
             iconName = focused ? "calendar-check" : "calendar-check-outline";
           } else if (route.name === "Profile") {
@@ -49,6 +52,7 @@ const TabNavigatorCustomer = () => {
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} />
       <Tab.Screen name="Map" component={MapScreen} />
+      <Tab.Screen name="Checkin" component={CheckinListScreen} />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

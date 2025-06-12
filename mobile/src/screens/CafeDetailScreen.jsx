@@ -355,6 +355,25 @@ export default function CafeDetailScreen({ navigation, route }) {
           />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.checkinButton}
+          onPress={async () => {
+            await trackTap('checkin_button', {
+              shop_id: shop._id,
+              shop_name: shop?.name,
+              source: 'cafe_detail_screen'
+            });
+            navigation.navigate('CheckinCamera', {
+              spotId: shop._id,
+              spotName: shop.name,
+              cafeId: shop._id,
+            });
+          }}
+        >
+          <MaterialCommunityIcons name="camera" size={20} color="white" />
+          <Text style={styles.checkinButtonText}>Check-in</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.bookingButton} onPress={handleBooking}>
           <Text style={styles.bookingButtonText}>Đặt chỗ ngay</Text>
           <MaterialCommunityIcons name="arrow-right" size={24} color="white" />
@@ -549,6 +568,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E8D3C3",
+  },
+  checkinButton: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#e74c3c",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+  },
+  checkinButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
   },
   bookingButton: {
     flex: 1,

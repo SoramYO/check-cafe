@@ -10,7 +10,7 @@ const cors = require("cors");
 const os = require("os");
 const router = require("./routes/index");
 const { swaggerUi, swaggerSetup } = require("./configs/swagger.config");
-const initSocket = require("./socket/socket");
+const { initSocket } = require("./socket/socket");
 
 // process.env.UV_THREADPOOL_SIZE = os.cpus().length;
 

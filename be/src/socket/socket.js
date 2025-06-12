@@ -3,6 +3,8 @@
 const jwt = require("jsonwebtoken");
 const socketIo = require("socket.io");
 
+let socketInstance = null;
+
 const initSocket = (server) => {
   const io = socketIo(server, {
     cors: {
@@ -54,7 +56,15 @@ const initSocket = (server) => {
     }
   };
 
-  return { io, emitNotification };
+  // Lưu instance để có thể truy cập từ bất kỳ đâu
+  socketInstance = { io, emitNotification };
+
+  return socketInstance;
 };
 
-module.exports = initSocket;
+// Function để lấy socket instance hiện tại
+const getSocketInstance = () => {
+  return socketInstance;
+};
+
+module.exports = { initSocket, getSocketInstance };

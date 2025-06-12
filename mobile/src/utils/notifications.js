@@ -115,7 +115,7 @@ export async function clearPushToken() {
 
 // API wrapper functions using the unified HandleNotification method
 export const getNotifications = async (page = 1, limit = 20) => {
-  return await notificationAPI.HandleNotification(`?page=${page}&limit=${limit}`, null, 'get');
+  return await notificationAPI.HandleNotification(`?page=${page}&limit=${limit}`);
 };
 
 export const markNotificationAsRead = async (notificationId) => {
@@ -127,13 +127,66 @@ export const markAllNotificationsAsRead = async () => {
 };
 
 export const getUnreadCount = async () => {
-  return await notificationAPI.HandleNotification('/unread-count', null, 'get');
+  return await notificationAPI.HandleNotification('/unread-count');
 };
 
 export const deleteNotification = async (notificationId) => {
-  return await notificationAPI.HandleNotification(`/${notificationId}`, null, 'delete');
+  return await notificationAPI.HandleNotification(`/${notificationId}`, {}, 'delete');
 };
 
 export const saveExpoToken = async (token) => {
   return await userAPI.HandleUser('/save-expo-token', { expo_token: token }, 'post');
+};
+
+// Friend notification helper functions
+export const sendFriendRequestNotification = async (recipientUserId, senderUserName) => {
+  try {
+    const notificationData = {
+      type: 'FRIEND_REQUEST',
+      title: 'Lời mời kết bạn mới',
+      content: `${senderUserName} đã gửi lời mời kết bạn cho bạn`,
+      recipient_id: recipientUserId,
+      reference_type: 'friend_request',
+    };
+    
+    return await notificationAPI.HandleNotification('/send', notificationData, 'post');
+  } catch (error) {
+    console.error('Error sending friend request notification:', error);
+    throw error;
+  }
+};
+
+export const sendFriendAcceptedNotification = async (recipientUserId, accepterUserName) => {
+  try {
+    const notificationData = {
+      type: 'FRIEND_ACCEPTED',
+      title: 'Kết bạn thành công',
+      content: `${accepterUserName} đã chấp nhận lời mời kết bạn của bạn`,
+      recipient_id: recipientUserId,
+      reference_type: 'friend_accepted',
+    };
+    
+    return await notificationAPI.HandleNotification('/send', notificationData, 'post');
+  } catch (error) {
+    console.error('Error sending friend accepted notification:', error);
+    throw error;
+  }
+};
+
+export const sendFriendCheckinNotification = async (friendUserIds, checkerUserName, checkinId, locationName) => {
+  try {
+    const notificationData = {
+      type: 'FRIEND_CHECKIN',
+      title: 'Bạn bè vừa check-in',
+      content: `${checkerUserName} vừa check-in tại ${locationName}`,
+      recipient_ids: friendUserIds, // Array of friend user IDs
+      reference_id: checkinId,
+      reference_type: 'checkin',
+    };
+    
+    return await notificationAPI.HandleNotification('/send-bulk', notificationData, 'post');
+  } catch (error) {
+    console.error('Error sending friend checkin notification:', error);
+    throw error;
+  }
 };

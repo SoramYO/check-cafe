@@ -16,6 +16,11 @@ import PaymentHistoryScreen from "../../screens/PaymentHistoryScreen";
 import MenuItemDetailScreen from "../../screens/MenuItemDetailScreen";
 import TermsAndPrivacyScreen from "../../screens/TermsAndPrivacyScreen";
 import NotificationScreen from "../../screens/NotificationScreen";
+// Checkin related screens
+import CheckinListScreen from "../../screens/CheckinListScreen";
+import CheckinMapScreen from "../../screens/CheckinMapScreen";
+import FriendsScreen from "../../screens/FriendsScreen";
+import ImageViewerScreen from "../../screens/ImageViewerScreen";
 
 const MainNavigatorCustomer = () => {
   const Stack = createNativeStackNavigator();
@@ -44,6 +49,18 @@ const MainNavigatorCustomer = () => {
       <Stack.Screen name="MenuItemDetail" component={MenuItemDetailScreen} />
       <Stack.Screen name="TermsAndPrivacy" component={TermsAndPrivacyScreen} />
       <Stack.Screen name="Notifications" component={NotificationScreen} />
+      {/* Checkin related screens */}
+      <Stack.Screen name="CheckinList" component={CheckinListScreen} />
+      <Stack.Screen name="CheckinMap" component={CheckinMapScreen} />
+      <Stack.Screen name="Friends" component={FriendsScreen} />
+      <Stack.Screen 
+        name="ImageViewer" 
+        component={ImageViewerScreen}
+        options={{ 
+          presentation: 'modal',
+          animation: 'fade'
+        }}
+      />
     </Stack.Navigator>
   );
 };

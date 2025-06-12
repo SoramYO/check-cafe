@@ -1,12 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Dimensions, Alert } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Image, 
+  Platform, 
+  Dimensions, 
+  Alert, 
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Modal 
+} from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { toast } from 'sonner-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import * as MediaLibrary from 'expo-media-library';
+import * as Location from 'expo-location';
+import checkinAPI from '../services/checkinAPI';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from '../services/axiosClient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -14,6 +31,12 @@ const CAMERA_GUIDES = [
   { icon: 'image-filter-center-focus', text: 'Đặt điểm check-in vào giữa khung hình' },
   { icon: 'white-balance-sunny', text: 'Đảm bảo ánh sáng tốt' },
   { icon: 'image', text: 'Chụp ảnh ngang để có góc nhìn đẹp hơn' },
+];
+
+const VISIBILITY_OPTIONS = [
+  { key: 'friends', label: 'Chỉ bạn bè', icon: 'account-group' },
+  { key: 'public', label: 'Công khai', icon: 'earth' },
+  { key: 'private', label: 'Chỉ mình tôi', icon: 'lock' },
 ];
 
 export default function CheckinCameraScreen({ route }) {
@@ -24,98 +47,287 @@ export default function CheckinCameraScreen({ route }) {
   const [photo, setPhoto] = useState(null);
   const [showGuide, setShowGuide] = useState(true);
   const [flash, setFlash] = useState('off');
-  const [isCameraActive, setIsCameraActive] = useState(true);
+  const [isCameraActive, setIsCameraActive] = useState(false); // Đổi từ true thành false
+  
+  // New states for check-in functionality
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationName, setLocationName] = useState('');
+  const [title, setTitle] = useState('');
+  const [visibility, setVisibility] = useState('friends');
+  const [isUploading, setIsUploading] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [isCameraLoading, setIsCameraLoading] = useState(true);
   
   const cameraRef = useRef(null);
+  const isMountedRef = useRef(true); // Thêm ref để track mounting state
   const { spotId, spotName, cafeId } = route.params || {};
 
-  useEffect(() => {
-    let isMounted = true;
-    const setupCamera = async () => {
-      try {
-        await requestPermission();
-        // Request media library permission
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Cần quyền truy cập',
-            'Ứng dụng cần quyền truy cập thư viện ảnh để lưu ảnh check-in.',
-            [{ text: 'OK' }]
-          );
+  // Sử dụng useFocusEffect thay vì useEffect để quản lý camera lifecycle
+  useFocusEffect(
+    useCallback(() => {
+      isMountedRef.current = true; // Thêm dòng này
+      let isMounted = true;
+      let guideTimer = null;
+      
+      const setupCamera = async () => {
+        try {
+          console.log('Setting up camera...');
+          
+          // Reset all states first
+          setIsCameraActive(false);
+          setCameraReady(false);
+          setPhoto(null);
+          setShowGuide(true);
+          setShowEditForm(false);
+          setIsUploading(false);
+          setIsCameraLoading(true);
+          
+          if (!isMounted) return;
+          
+          // Request camera permission first - this is most critical
+          const cameraPermission = await requestPermission();
+          if (!cameraPermission?.granted) {
+            console.log('Camera permission denied');
+            return;
+          }
+          
+          // Activate camera immediately after permission granted
+          if (isMounted) {
+            setIsCameraActive(true);
+            setIsCameraLoading(false); // Camera ready to show
+            console.log('Camera activated');
+          }
+          
+          // Request other permissions in parallel (không block camera)
+          Promise.all([
+            // Location permission and getting location
+            (async () => {
+              try {
+                const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
+                if (locationStatus === 'granted' && isMounted) {
+                  // Get location in background, không block camera
+                  getCurrentLocation().catch(console.error);
+                }
+              } catch (error) {
+                console.error('Location permission error:', error);
+              }
+            })(),
+            
+            // Media library permission
+            (async () => {
+              try {
+                const { status } = await MediaLibrary.requestPermissionsAsync();
+                if (status !== 'granted') {
+                  // Show alert không block camera
+                  setTimeout(() => {
+                    Alert.alert(
+                      'Cần quyền truy cập',
+                      'Ứng dụng cần quyền truy cập thư viện ảnh để lưu ảnh check-in.',
+                      [{ text: 'OK' }]
+                    );
+                  }, 1000);
+                }
+              } catch (error) {
+                console.error('Media library permission error:', error);
+              }
+            })()
+          ]);
+          
+          // Setup guide timer
+          if (isMounted) {
+            guideTimer = setTimeout(() => {
+              if (isMounted) {
+                setShowGuide(false);
+              }
+            }, 3000);
+          }
+          
+          console.log('Camera setup completed');
+        } catch (error) {
+          console.error('Camera setup error:', error);
+          if (isMounted) {
+            Alert.alert(
+              'Lỗi Camera',
+              'Không thể khởi tạo camera. Vui lòng thử lại.',
+              [{ text: 'OK', onPress: () => navigation.goBack() }]
+            );
+          }
         }
-        if (isMounted) {
-          const timer = setTimeout(() => setShowGuide(false), 3000);
-          return () => {
-            clearTimeout(timer);
-            cleanupCamera();
-          };
+      };
+
+      setupCamera();
+
+      return () => {
+        console.log('Cleaning up camera...');
+        isMountedRef.current = false; // Thêm dòng này
+        isMounted = false;
+        if (guideTimer) {
+          clearTimeout(guideTimer);
         }
-      } catch (error) {
-        console.error('Camera setup error:', error);
-        Alert.alert(
-          'Lỗi Camera',
-          'Không thể khởi tạo camera. Vui lòng thử lại.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
-      }
-    };
+        cleanupCamera();
+      };
+    }, [])
+  );
 
-    setupCamera();
-
-    return () => {
-      isMounted = false;
-      cleanupCamera();
-    };
-  }, []);
-
-  const cleanupCamera = () => {
+  const getCurrentLocation = async () => {
     try {
-      if (cameraRef.current) {
-        cameraRef.current = null;
-      }
-      setIsCameraActive(false);
+      if (!isMountedRef.current) return;
+      
+      console.log('Getting location...');
+      
+      // Sử dụng accuracy thấp hơn và timeout để nhanh hơn
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced, // Thay đổi từ High sang Balanced
+        maximumAge: 60000, // Cache trong 1 phút
+        timeout: 10000, // Timeout 10 giây
+      });
+      
+      if (!isMountedRef.current) return;
+      
+      setCurrentLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+      });
+      
+      console.log('Location obtained');
+
+      // Reverse geocoding chạy trong background, không block UI
+      setTimeout(async () => {
+        try {
+          if (!isMountedRef.current) return;
+          
+          const address = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+
+          if (address.length > 0 && isMountedRef.current) {
+            const addr = address[0];
+            const locationStr = `${addr.street || ''} ${addr.district || ''} ${addr.city || ''}`.trim();
+            setLocationName(locationStr || 'Vị trí hiện tại');
+            console.log('Address resolved:', locationStr);
+          }
+        } catch (error) {
+          console.error('Reverse geocoding error:', error);
+          if (isMountedRef.current) {
+            setLocationName('Vị trí hiện tại');
+          }
+        }
+      }, 0);
+      
     } catch (error) {
-      console.error('Camera cleanup error:', error);
+      console.error('Location error:', error);
+      if (isMountedRef.current) {
+        setLocationName('Không thể lấy vị trí');
+      }
     }
   };
 
-  const handleClose = () => {
+  const cleanupCamera = useCallback(() => {
     try {
+      console.log('Cleaning up camera states...');
+      
+      // Chỉ cleanup nếu component vẫn mounted
+      if (isMountedRef.current) {
+        setIsCameraActive(false);
+        setCameraReady(false);
+        setPhoto(null);
+        setShowGuide(true);
+        setShowEditForm(false);
+        setIsUploading(false);
+        setFlash('off');
+        setCameraType('back');
+        setIsCameraLoading(true);
+      }
+      
+      // Reset camera ref với timeout dài hơn
+      setTimeout(() => {
+        if (cameraRef.current) {
+          cameraRef.current = null;
+        }
+      }, 200); // Tăng từ 50ms lên 200ms
+      
+      console.log('Camera cleanup completed');
+    } catch (error) {
+      console.error('Camera cleanup error:', error);
+    }
+  }, []); // Thêm dependency array rỗng
+
+  const handleClose = useCallback(() => {
+    try {
+      console.log('Closing camera screen...');
+      isMountedRef.current = false; // Thêm dòng này
       cleanupCamera();
-      navigation.goBack();
+      // Tăng delay để đảm bảo cleanup hoàn tất
+      setTimeout(() => {
+        navigation.goBack();
+      }, 300); // Tăng từ 150ms lên 300ms
     } catch (error) {
       console.error('Close error:', error);
       navigation.goBack();
     }
-  };
+  }, [cleanupCamera, navigation]);
 
-  const handleCameraReady = () => {
+  const handleCameraReady = useCallback(() => {
     try {
-      setCameraReady(true);
+      if (isCameraActive) {
+        console.log('Camera is ready');
+        setCameraReady(true);
+      }
     } catch (error) {
       console.error('Camera ready error:', error);
     }
-  };
+  }, [isCameraActive]);
 
   const takePicture = async () => {
-    if (!cameraRef.current || !isCameraReady || !isCameraActive) return;
+    if (!cameraRef.current || !isCameraReady || !isCameraActive || !isMountedRef.current) {
+      console.log('Camera not ready:', { 
+        hasRef: !!cameraRef.current, 
+        isReady: isCameraReady, 
+        isActive: isCameraActive,
+        isMounted: isMountedRef.current // Thêm check này
+      });
+      return;
+    }
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
-        base64: true,
-        exif: true,
-        skipProcessing: true
+        base64: false,
+        exif: false,
+        skipProcessing: false
       });
-      setPhoto(photo);
+      
+      if (photo && photo.uri && isMountedRef.current) { // Thêm check isMountedRef
+        setPhoto(photo);
+      } else {
+        throw new Error('Không thể lấy ảnh');
+      }
     } catch (error) {
       console.error('Camera error:', error);
-      toast.error('Không thể chụp ảnh. Vui lòng thử lại.');
+      if (isMountedRef.current) { // Chỉ show toast nếu component vẫn mounted
+        toast.error('Không thể chụp ảnh. Vui lòng thử lại.');
+      }
     }
   };
 
   const handleSave = async () => {
+    if (!photo) return;
+    
+    // Show edit form to input title and visibility
+    setShowEditForm(true);
+  };
+
+  const handleUploadCheckin = async () => {
+    if (!title.trim()) {
+      toast.error('Vui lòng nhập tiêu đề cho check-in');
+      return;
+    }
+
     try {
+      setIsUploading(true);
+      setShowEditForm(false);
       cleanupCamera();
       
       // Save to media library
@@ -123,25 +335,84 @@ export default function CheckinCameraScreen({ route }) {
       if (status === 'granted') {
         const asset = await MediaLibrary.createAssetAsync(photo.uri);
         await MediaLibrary.createAlbumAsync('CheckCafe', asset, false);
-        toast.success('Đã lưu ảnh vào thư viện');
-      } else {
-        toast.error('Không có quyền lưu ảnh');
       }
 
-      // Simulate upload
-      // toast.promise(
-      //   new Promise((resolve) => setTimeout(resolve, 1500)),
-      //   {
-      //     loading: 'Đang lưu ảnh...',
-      //     success: 'Check-in thành công!',
-      //     error: 'Không thể lưu ảnh. Vui lòng thử lại.',
-      //   }
-      // );
-      // setTimeout(() => navigation.goBack(), 2000);
+      // Prepare check-in data
+      const checkinData = {
+        title: title.trim(),
+        image: photo,
+        location: currentLocation,
+        locationName: locationName,
+        visibility: visibility,
+        cafeId: cafeId,
+        spotId: spotId,
+        spotName: spotName,
+      };
+
+      // Upload check-in bằng fetch API trực tiếp
+      const formData = new FormData();
+      
+      // Thêm file ảnh thực tế vào FormData
+      if (checkinData.image) {
+        formData.append('image', {
+          uri: checkinData.image.uri,
+          type: 'image/jpeg',
+          name: `checkin_${Date.now()}.jpg`,
+        });
+      }
+      
+      // Thêm dữ liệu khác
+      formData.append('title', checkinData.title);
+      if (checkinData.location) {
+        formData.append('location', JSON.stringify({
+          latitude: checkinData.location.latitude,
+          longitude: checkinData.location.longitude,
+          address: locationName
+        }));
+      }
+      formData.append('visibility', checkinData.visibility || 'friends');
+      if (checkinData.cafeId) {
+        formData.append('cafeId', checkinData.cafeId);
+      }
+      if (checkinData.tags && checkinData.tags.length > 0) {
+        formData.append('tags', JSON.stringify(checkinData.tags));
+      }
+
+      console.log('FormData being sent:', {
+        hasImage: !!checkinData.image,
+        title: checkinData.title,
+        location: checkinData.location,
+        visibility: checkinData.visibility,
+        imageUri: checkinData.image?.uri
+      });
+
+      // Sử dụng fetch API trực tiếp thay vì axios
+      const token = await AsyncStorage.getItem('token');
+      const apiResponse = await fetch(`${BASE_URL}/checkins`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          // Không set Content-Type để browser tự động set cho FormData
+        },
+        body: formData,
+      });
+
+      const response = await apiResponse.json();
+      console.log('Upload response:', response);
+      
+      if (response.data) {
+        toast.success('Check-in thành công!');
+        setTimeout(() => {
+          navigation.navigate('CheckinList', { refresh: true });
+        }, 1000);
+      } else {
+        throw new Error(response.message || `HTTP ${apiResponse.status}: Upload failed`);
+      }
+      
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Không thể lưu ảnh. Vui lòng thử lại.');
-      navigation.goBack();
+      toast.error('Không thể lưu check-in. Vui lòng thử lại.');
+      setIsUploading(false);
     }
   };
 
@@ -198,9 +469,14 @@ export default function CheckinCameraScreen({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {!photo ? (
+      {isCameraLoading ? (
+        <View style={styles.loadingContainer}>
+          <MaterialCommunityIcons name="camera" size={64} color="#7a5545" />
+          <Text style={styles.loadingText}>Đang khởi tạo camera...</Text>
+        </View>
+      ) : !photo ? (
         <View style={styles.cameraContainer}>
-          {isCameraActive && (
+          {isCameraActive && permission?.granted && (
             <CameraView
               ref={cameraRef}
               style={styles.camera}
@@ -333,6 +609,115 @@ export default function CheckinCameraScreen({ route }) {
           </LinearGradient>
         </View>
       )}
+
+      {/* Edit Form Modal */}
+      <Modal
+        visible={showEditForm}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEditForm(false)}
+      >
+        <KeyboardAvoidingView 
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity 
+                onPress={() => setShowEditForm(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Thông tin check-in</Text>
+              <TouchableOpacity 
+                onPress={handleUploadCheckin}
+                style={[styles.modalSaveButton, isUploading && styles.modalSaveButtonDisabled]}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <Text style={styles.modalSaveButtonText}>Đang lưu...</Text>
+                ) : (
+                  <Text style={styles.modalSaveButtonText}>Đăng</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Preview Image */}
+              <View style={styles.previewImageContainer}>
+                <Image source={{ uri: photo?.uri }} style={styles.previewImage} />
+              </View>
+
+              {/* Title Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Tiêu đề *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Chia sẻ cảm nghĩ về check-in này..."
+                  placeholderTextColor="#999"
+                  multiline
+                  maxLength={200}
+                />
+                <Text style={styles.characterCount}>{title.length}/200</Text>
+              </View>
+
+              {/* Location Info */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Vị trí</Text>
+                <View style={styles.locationContainer}>
+                  <MaterialCommunityIcons name="map-marker" size={20} color="#7a5545" />
+                  <Text style={styles.locationText}>
+                    {locationName || 'Đang lấy vị trí...'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Visibility Options */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Ai có thể xem</Text>
+                <View style={styles.visibilityContainer}>
+                  {VISIBILITY_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                      key={option.key}
+                      style={[
+                        styles.visibilityOption,
+                        visibility === option.key && styles.visibilityOptionSelected
+                      ]}
+                      onPress={() => setVisibility(option.key)}
+                    >
+                      <MaterialCommunityIcons 
+                        name={option.icon} 
+                        size={20} 
+                        color={visibility === option.key ? '#fff' : '#7a5545'} 
+                      />
+                      <Text style={[
+                        styles.visibilityOptionText,
+                        visibility === option.key && styles.visibilityOptionTextSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Cafe Info if available */}
+              {spotName && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Địa điểm</Text>
+                  <View style={styles.cafeInfoContainer}>
+                    <MaterialCommunityIcons name="coffee" size={20} color="#7a5545" />
+                    <Text style={styles.cafeInfoText}>{spotName}</Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -487,6 +872,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'black',
+  },
+  loadingText: {
+    color: '#7a5545',
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+  },
   errorText: {
     color: 'white',
     fontSize: 18,
@@ -512,5 +909,139 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    minHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  modalSaveButton: {
+    backgroundColor: '#7a5545',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  modalSaveButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  modalSaveButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalBody: {
+    flex: 1,
+    padding: 20,
+  },
+  previewImageContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  previewImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#333',
+    maxHeight: 100,
+    textAlignVertical: 'top',
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  locationText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#666',
+  },
+  visibilityContainer: {
+    gap: 8,
+  },
+  visibilityOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    gap: 8,
+  },
+  visibilityOptionSelected: {
+    backgroundColor: '#7a5545',
+    borderColor: '#7a5545',
+  },
+  visibilityOptionText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  visibilityOptionTextSelected: {
+    color: 'white',
+  },
+  cafeInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  cafeInfoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
 });

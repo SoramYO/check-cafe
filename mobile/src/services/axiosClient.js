@@ -3,7 +3,7 @@ import axios from "axios";
 import queryString from "query-string";
 
 // Thay đổi IP này thành IP của máy chủ của bạn
-export const BASE_URL = "https://api.checkafe.online/api/v1"; // Thay x bằng số thích hợp
+export const BASE_URL = "http://192.168.100.207:3000/api/v1"; // Thay x bằng số thích hợp
 
 const getAccessToken = async () => {
   const res = await AsyncStorage.getItem("token");
@@ -22,7 +22,6 @@ const axiosClient = axios.create({
   timeout: 10000, // 10 seconds timeout
   paramsSerializer: (params) => queryString.stringify(params),
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
   },
 });
@@ -30,10 +29,22 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(async (config) => {
   try {
     const accessToken = await getAccessToken();
-    config.headers = {
-      ...config.headers,
-      Authorization: accessToken ? `Bearer ${accessToken}` : "",
-    };
+    
+    // Nếu data là FormData, không set Content-Type để axios tự động xử lý
+    if (config.data instanceof FormData) {
+      config.headers = {
+        ...config.headers,
+        Authorization: accessToken ? `Bearer ${accessToken}` : "",
+        // Xóa Content-Type để axios tự set cho FormData
+      };
+      delete config.headers['Content-Type'];
+    } else {
+      config.headers = {
+        ...config.headers,
+        Authorization: accessToken ? `Bearer ${accessToken}` : "",
+        "Content-Type": "application/json",
+      };
+    }
 
     return config;
   } catch (error) {

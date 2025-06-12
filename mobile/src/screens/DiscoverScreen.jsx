@@ -366,6 +366,61 @@ export default function DiscoverScreen({ navigation }) {
           themes={themes}
           onApplyFilters={handleApplyFilters}
         />
+        
+        {/* Quick Actions */}
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            onPress={async () => {
+              await trackTap('quick_action_checkin', { source: 'discover_header' });
+              navigation.navigate('CheckinCamera');
+            }}
+          >
+            <View style={styles.quickActionIcon}>
+              <MaterialCommunityIcons name="camera" size={20} color="#e74c3c" />
+            </View>
+            <Text style={styles.quickActionText}>Check-in</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            onPress={async () => {
+              await trackTap('quick_action_checkin_map', { source: 'discover_header' });
+              navigation.navigate('CheckinMap');
+            }}
+          >
+            <View style={styles.quickActionIcon}>
+              <MaterialCommunityIcons name="map-marker" size={20} color="#27ae60" />
+            </View>
+            <Text style={styles.quickActionText}>Bản đồ</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            onPress={async () => {
+              await trackTap('quick_action_friends', { source: 'discover_header' });
+              navigation.navigate('Friends');
+            }}
+          >
+            <View style={styles.quickActionIcon}>
+              <MaterialCommunityIcons name="account-group" size={20} color="#7a5545" />
+            </View>
+            <Text style={styles.quickActionText}>Bạn bè</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            onPress={async () => {
+              await trackTap('quick_action_checkin_list', { source: 'discover_header' });
+              navigation.navigate('CheckinList');
+            }}
+          >
+            <View style={styles.quickActionIcon}>
+              <MaterialCommunityIcons name="format-list-bulleted" size={20} color="#3498db" />
+            </View>
+            <Text style={styles.quickActionText}>Danh sách</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Animated.ScrollView
@@ -469,6 +524,44 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700',
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#f8f9fa',
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  quickActionItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  quickActionText: {
+    fontSize: 11,
+    color: '#6c757d',
+    fontWeight: '500',
   },
   iconTheme: {
     width: '100%',
