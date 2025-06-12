@@ -61,10 +61,10 @@ export default function DiscoverScreen({ navigation }) {
           themeAPI.HandleTheme(),
           shopAPI.HandleCoffeeShops(
             "/public?latitude=" +
-              location?.latitude +
-              "&longitude=" +
-              location?.longitude +
-              "&radius=10000"
+            location?.latitude +
+            "&longitude=" +
+            location?.longitude +
+            "&radius=10000"
           ),
         ]);
         const responseNotification = await notificationAPI.HandleNotification("/unread-count");
@@ -111,7 +111,7 @@ export default function DiscoverScreen({ navigation }) {
 
   const handleToggleFavorite = async (shop) => {
     const isFavorited = isShopFavorite(shop._id);
-    
+
     // Track favorite action
     trackFavorite(shop._id, isFavorited ? 'remove' : 'add', {
       shop_name: shop.name,
@@ -212,20 +212,20 @@ export default function DiscoverScreen({ navigation }) {
       <Image source={{ uri: item?.mainImage?.url }} style={styles.shopImage} />
       <View style={styles.shopInfo}>
         <Text style={styles.shopName} numberOfLines={1}>{item?.name}</Text>
-        
+
         <View style={styles.ratingRow}>
-            <View style={styles.ratingContainer}>
+          <View style={styles.ratingContainer}>
             <MaterialCommunityIcons name="star" size={14} color="#FFD700" />
-              <Text style={styles.rating}>{item?.rating_avg}</Text>
+            <Text style={styles.rating}>{item?.rating_avg}</Text>
             <Text style={styles.reviews}>({item?.rating_count})</Text>
           </View>
 
           <View style={styles.statusContainer}>
-          <View
-            style={[
+            <View
+              style={[
                 styles.statusIndicator,
-              { backgroundColor: item?.is_open ? "#4CAF50" : "#FF9800" },
-            ]}
+                { backgroundColor: item?.is_open ? "#4CAF50" : "#FF9800" },
+              ]}
             />
             <Text style={[
               styles.statusText,
@@ -236,7 +236,7 @@ export default function DiscoverScreen({ navigation }) {
           </View>
         </View>
 
-          <View style={styles.detailRow}>
+        <View style={styles.detailRow}>
           <MaterialCommunityIcons name="map-marker" size={14} color="#666" />
           <Text style={styles.shopAddress} numberOfLines={1}>{item.address}</Text>
         </View>
@@ -288,7 +288,7 @@ export default function DiscoverScreen({ navigation }) {
         if (filters.sortRating) {
           url += `&sortBy=rating_avg&sortOrder=${filters.sortRating}`;
         }
-        if(filters.searchQuery) {
+        if (filters.searchQuery) {
           url += `&search=${encodeURIComponent(filters.searchQuery)}`;
         }
       } else {
@@ -308,7 +308,7 @@ export default function DiscoverScreen({ navigation }) {
   // Add function to handle search by name
   const handleSearch = (query) => {
     setSearchQuery(query);
-    
+
     if (query.length > 2) {
       // Track search
       trackSearch(query, {
@@ -316,13 +316,13 @@ export default function DiscoverScreen({ navigation }) {
         query_length: query.length
       });
     }
-    
+
     // Apply filters with search query included
     const filtersWithSearch = {
       ...activeFilters,
       searchQuery: query.trim()
     };
-    
+
     handleApplyFilters(filtersWithSearch);
   };
 
@@ -343,7 +343,7 @@ export default function DiscoverScreen({ navigation }) {
         {/* Header with title and notification */}
         <View style={styles.topHeader}>
           <Text style={styles.headerTitle}>Khám phá</Text>
-          
+
           <TouchableOpacity
             style={styles.notificationButton}
             onPress={() => {
@@ -352,10 +352,10 @@ export default function DiscoverScreen({ navigation }) {
             }}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color="#7a5545" />
-            { unreadNotifications > 0 &&
-            <View style={styles.notificationBadge}>
-              <Text style={styles.badgeText}>{unreadNotifications}</Text>
-            </View>
+            {unreadNotifications > 0 &&
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>{unreadNotifications}</Text>
+              </View>
             }
           </TouchableOpacity>
         </View>
@@ -366,61 +366,6 @@ export default function DiscoverScreen({ navigation }) {
           themes={themes}
           onApplyFilters={handleApplyFilters}
         />
-        
-        {/* Quick Actions */}
-        <View style={styles.quickActionsContainer}>
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            onPress={async () => {
-              await trackTap('quick_action_checkin', { source: 'discover_header' });
-              navigation.navigate('CheckinCamera');
-            }}
-          >
-            <View style={styles.quickActionIcon}>
-              <MaterialCommunityIcons name="camera" size={20} color="#e74c3c" />
-            </View>
-            <Text style={styles.quickActionText}>Check-in</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            onPress={async () => {
-              await trackTap('quick_action_checkin_map', { source: 'discover_header' });
-              navigation.navigate('CheckinMap');
-            }}
-          >
-            <View style={styles.quickActionIcon}>
-              <MaterialCommunityIcons name="map-marker" size={20} color="#27ae60" />
-            </View>
-            <Text style={styles.quickActionText}>Bản đồ</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            onPress={async () => {
-              await trackTap('quick_action_friends', { source: 'discover_header' });
-              navigation.navigate('Friends');
-            }}
-          >
-            <View style={styles.quickActionIcon}>
-              <MaterialCommunityIcons name="account-group" size={20} color="#7a5545" />
-            </View>
-            <Text style={styles.quickActionText}>Bạn bè</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.quickActionItem}
-            onPress={async () => {
-              await trackTap('quick_action_checkin_list', { source: 'discover_header' });
-              navigation.navigate('CheckinList');
-            }}
-          >
-            <View style={styles.quickActionIcon}>
-              <MaterialCommunityIcons name="format-list-bulleted" size={20} color="#3498db" />
-            </View>
-            <Text style={styles.quickActionText}>Danh sách</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       <Animated.ScrollView

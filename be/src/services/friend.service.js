@@ -64,7 +64,7 @@ class FriendService {
         await NotificationHelper.sendFriendRequestNotification({
           recipient_id: recipientId,
           requester_name: requester.full_name,
-          request_id: friendRequest._id.toString(),
+          request_id: friendRequest._id,
         });
       } catch (notificationError) {
         console.error("Error sending friend request notification:", notificationError);
@@ -117,7 +117,7 @@ class FriendService {
         await NotificationHelper.sendFriendAcceptedNotification({
           requester_id: friendRequest.requester_id.toString(),
           accepter_name: accepter.full_name,
-          request_id: friendRequest._id.toString(),
+          request_id: friendRequest._id,
         });
       } catch (notificationError) {
         console.error("Error sending friend accepted notification:", notificationError);

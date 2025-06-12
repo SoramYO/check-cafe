@@ -99,7 +99,7 @@ class CheckinService {
               friend_ids: friendIds,
               friend_name: populatedCheckin.user_id.full_name,
               location_name: locationName,
-              checkin_id: populatedCheckin._id.toString(),
+              checkin_id: populatedCheckin._id,
             });
           }
         } catch (notificationError) {
@@ -435,6 +435,23 @@ class CheckinService {
           { session }
         );
         isLiked = true;
+
+        // Gửi thông báo cho chủ checkin khi có người like (không gửi cho chính mình)
+        if (checkin.user_id.toString() !== userId.toString()) {
+          try {
+            // Lấy thông tin người like
+            const liker = await userModel.findById(userId).select('full_name');
+            
+            await NotificationHelper.sendCheckinLikeNotification({
+              checkin_owner_id: checkin.user_id.toString(),
+              liker_name: liker.full_name,
+              checkin_id: checkinId,
+            });
+          } catch (notificationError) {
+            console.error("Error sending checkin like notification:", notificationError);
+            // Không throw error để không ảnh hưởng đến flow chính
+          }
+        }
       }
 
       await session.commitTransaction();
@@ -446,6 +463,69 @@ class CheckinService {
       throw error;
     } finally {
       session.endSession();
+    }
+  };
+
+  // Lấy bình luận của một checkin
+  getCheckinComments = async (req) => {
+    try {
+      // Extract parameters from req
+      const { checkinId } = req.params;
+      const { page = 1, limit = 20 } = req.query;
+
+      // Validate pagination
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 20;
+
+      if (pageNum < 1) {
+        throw new BadRequestError("Page must be greater than 0");
+      }
+
+      if (limitNum < 1 || limitNum > 100) {
+        throw new BadRequestError("Limit must be between 1 and 100");
+      }
+
+      // Validation
+      if (!mongoose.isValidObjectId(checkinId)) {
+        throw new BadRequestError("Invalid checkin ID");
+      }
+
+      // Kiểm tra checkin tồn tại
+      const checkin = await checkinModel.findById(checkinId);
+      if (!checkin) {
+        throw new NotFoundError("Checkin not found");
+      }
+
+      if (!checkin.is_active) {
+        throw new BadRequestError("Checkin is not active");
+      }
+
+      const skip = (pageNum - 1) * limitNum;
+
+      const comments = await checkinCommentModel
+        .find({ checkin_id: checkinId })
+        .populate('user_id', 'full_name avatar')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum);
+
+      const total = await checkinCommentModel.countDocuments({ checkin_id: checkinId });
+
+      return {
+        comments: comments.map(comment => getInfoData({
+          fields: ["_id", "comment", "createdAt", "user_id"],
+          object: comment,
+        })),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum),
+        }
+      };
+
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -500,6 +580,29 @@ class CheckinService {
       const populatedComment = await checkinCommentModel
         .findById(newComment._id)
         .populate('user_id', 'full_name avatar');
+
+      // Gửi thông báo cho chủ checkin khi có người comment (không gửi cho chính mình)
+      if (checkin.user_id.toString() !== userId.toString()) {
+        try {
+          // Lấy thông tin người comment
+          const commenter = await userModel.findById(userId).select('full_name');
+          
+          // Tạo preview của comment (tối đa 50 ký tự)
+          const commentPreview = comment.trim().length > 50 
+            ? comment.trim().substring(0, 50) + "..."
+            : comment.trim();
+
+          await NotificationHelper.sendCheckinCommentNotification({
+            checkin_owner_id: checkin.user_id.toString(),
+            commenter_name: commenter.full_name,
+            comment_preview: commentPreview,
+            checkin_id: checkinId,
+          });
+        } catch (notificationError) {
+          console.error("Error sending checkin comment notification:", notificationError);
+          // Không throw error để không ảnh hưởng đến flow chính
+        }
+      }
 
       return getInfoData({
         fields: ["_id", "comment", "createdAt", "user_id"],

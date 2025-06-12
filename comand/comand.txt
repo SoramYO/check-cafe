@@ -55,3 +55,19 @@ docker-compose up -d --build
 # - Check log nếu có lỗi: docker-compose logs mongodb
 # - Volume data sẽ persist sau khi restart container
 # - Backup tự động tạo thư mục với timestamp
+
+
+# Xem status tất cả services
+docker-compose ps
+
+# Xem logs realtime  
+docker-compose logs -f
+
+# Restart specific service
+docker-compose restart [service_name]
+
+# Stop all
+docker-compose down
+
+# Start all
+docker-compose up -d

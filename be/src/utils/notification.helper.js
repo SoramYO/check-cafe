@@ -300,6 +300,74 @@ class NotificationHelper {
   }
 
   /**
+   * Send checkin like notification
+   * @param {Object} params
+   * @param {String} params.checkin_owner_id - User ID of checkin owner
+   * @param {String} params.liker_name - Name of the person who liked
+   * @param {String} params.checkin_id - Checkin ID
+   */
+  static async sendCheckinLikeNotification({ checkin_owner_id, liker_name, checkin_id }) {
+    try {
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
+
+      const like_data = {
+        liker_name,
+        checkin_id,
+      };
+
+      const notification = await notificationService.createCheckinLikeNotification({
+        user_id: checkin_owner_id,
+        like_data,
+        emitNotification,
+      });
+
+      // Send push notification
+      await ExpoNotificationMiddleware.sendPushNotification(checkin_owner_id, notification);
+
+      return notification;
+    } catch (error) {
+      console.error("Error sending checkin like notification:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send checkin comment notification
+   * @param {Object} params
+   * @param {String} params.checkin_owner_id - User ID of checkin owner
+   * @param {String} params.commenter_name - Name of the person who commented
+   * @param {String} params.comment_preview - Preview of the comment (truncated)
+   * @param {String} params.checkin_id - Checkin ID
+   */
+  static async sendCheckinCommentNotification({ checkin_owner_id, commenter_name, comment_preview, checkin_id }) {
+    try {
+      const socketInstance = getSocketInstance();
+      const emitNotification = socketInstance?.emitNotification;
+
+      const comment_data = {
+        commenter_name,
+        comment_preview,
+        checkin_id,
+      };
+
+      const notification = await notificationService.createCheckinCommentNotification({
+        user_id: checkin_owner_id,
+        comment_data,
+        emitNotification,
+      });
+
+      // Send push notification
+      await ExpoNotificationMiddleware.sendPushNotification(checkin_owner_id, notification);
+
+      return notification;
+    } catch (error) {
+      console.error("Error sending checkin comment notification:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get notification icon based on type (for mobile app)
    * @param {String} type - Notification type
    * @returns {String} Icon name
@@ -320,6 +388,8 @@ class NotificationHelper {
       FRIEND_REQUEST: "account-plus",
       FRIEND_ACCEPTED: "account-check",
       FRIEND_CHECKIN: "map-marker-check",
+      CHECKIN_LIKE: "heart",
+      CHECKIN_COMMENT: "comment",
     };
 
     return iconMap[type] || "bell";
@@ -346,6 +416,8 @@ class NotificationHelper {
       FRIEND_REQUEST: "#9B59B6",
       FRIEND_ACCEPTED: "#2ECC71",
       FRIEND_CHECKIN: "#3498DB",
+      CHECKIN_LIKE: "#E91E63",
+      CHECKIN_COMMENT: "#FF9800",
     };
 
     return colorMap[type] || "#7a5545";

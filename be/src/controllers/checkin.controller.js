@@ -55,6 +55,16 @@ class CheckinController {
     }).send(res);
   });
 
+  // Get Comments of a checkin
+  getCheckinComments = asyncHandler(async (req, res, next) => {
+    const result = await checkinService.getCheckinComments(req);
+    
+    new OK({
+      message: "Checkin comments retrieved successfully",
+      data: result,
+    }).send(res);
+  });
+
   // Comment on checkin
   commentCheckin = asyncHandler(async (req, res, next) => {
     const result = await checkinService.commentCheckin(req);

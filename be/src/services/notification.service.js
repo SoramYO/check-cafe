@@ -16,8 +16,11 @@ const createNotification = async ({
   emitNotification,
 }) => {
   try {
-    if (!isValidObjectId(user_id) || !isValidObjectId(reference_id)) {
-      throw new BadRequestError("Invalid user_id or reference_id");
+    if (!isValidObjectId(user_id)) {
+      throw new BadRequestError("Invalid user_id");
+    }
+    if (reference_id && !isValidObjectId(reference_id)) {
+      throw new BadRequestError("Invalid reference_id");
     }
     if (!Object.values(NOTIFICATION_TYPE).includes(type)) {
       throw new BadRequestError("Invalid notification type");
@@ -93,7 +96,6 @@ const getUserNotifications = async (req) => {
     };
 
     const result = await getPaginatedData(paginateOptions);
-    console.log('🔍 Debug - Get notifications result:', result);
 
     return {
       notifications: result.data,
@@ -299,6 +301,30 @@ const createFriendCheckinNotification = async ({ user_id, checkin_data, emitNoti
   });
 };
 
+const createCheckinLikeNotification = async ({ user_id, like_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Ai đó đã thích bài viết của bạn",
+    content: `${like_data.liker_name} đã thích bài check-in của bạn`,
+    type: NOTIFICATION_TYPE.CHECKIN_LIKE,
+    reference_id: like_data.checkin_id,
+    reference_type: "Checkin",
+    emitNotification,
+  });
+};
+
+const createCheckinCommentNotification = async ({ user_id, comment_data, emitNotification }) => {
+  return await createNotification({
+    user_id,
+    title: "Bình luận mới",
+    content: `${comment_data.commenter_name} đã bình luận: "${comment_data.comment_preview}"`,
+    type: NOTIFICATION_TYPE.CHECKIN_COMMENT,
+    reference_id: comment_data.checkin_id,
+    reference_type: "Checkin",
+    emitNotification,
+  });
+};
+
 module.exports = {
   createNotification,
   getUserNotifications,
@@ -314,4 +340,6 @@ module.exports = {
   createFriendRequestNotification,
   createFriendAcceptedNotification,
   createFriendCheckinNotification,
+  createCheckinLikeNotification,
+  createCheckinCommentNotification,
 };

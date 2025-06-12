@@ -22,7 +22,9 @@ export const getNotificationIcon = (type) => {
     [NOTIFICATION_TYPES.CHECK_IN]: 'location-enter',
     [NOTIFICATION_TYPES.FRIEND_REQUEST]: 'account-plus',
     [NOTIFICATION_TYPES.FRIEND_ACCEPTED]: 'account-check',
-    [NOTIFICATION_TYPES.FRIEND_CHECKIN]: 'camera-account',
+    [NOTIFICATION_TYPES.FRIEND_CHECKIN]: 'map-marker-check',
+    [NOTIFICATION_TYPES.CHECKIN_LIKE]: 'heart',
+    [NOTIFICATION_TYPES.CHECKIN_COMMENT]: 'comment',
   };
 
   return iconMap[type] || 'bell';
@@ -153,6 +155,24 @@ export const handleNotificationNavigation = (notification, navigation) => {
         }
         break;
 
+      case 'CHECKIN_LIKE':
+        // Navigate to specific checkin detail for like notification
+        if (reference_id) {
+          navigation.navigate('CheckinDetail', { checkinId: reference_id });
+        } else {
+          navigation.navigate('CheckinList');
+        }
+        break;
+
+      case 'CHECKIN_COMMENT':
+        // Navigate to specific checkin detail for comment notification
+        if (reference_id) {
+          navigation.navigate('CheckinDetail', { checkinId: reference_id });
+        } else {
+          navigation.navigate('CheckinList');
+        }
+        break;
+
       case 'SHOP_REVIEW':
         // Navigate to shop detail if reference_id exists
         if (reference_id) {
@@ -233,6 +253,8 @@ export const getNotificationTypeText = (type) => {
     [NOTIFICATION_TYPES.FRIEND_REQUEST]: 'Lời mời kết bạn',
     [NOTIFICATION_TYPES.FRIEND_ACCEPTED]: 'Kết bạn thành công',
     [NOTIFICATION_TYPES.FRIEND_CHECKIN]: 'Check-in bạn bè',
+    [NOTIFICATION_TYPES.CHECKIN_LIKE]: 'Thích check-in',
+    [NOTIFICATION_TYPES.CHECKIN_COMMENT]: 'Bình luận check-in',
   };
 
   return typeMap[type] || 'Thông báo';
