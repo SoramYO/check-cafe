@@ -53,12 +53,7 @@ services:
         condition: service_healthy
     networks:
       - checkafe-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health", "||", "exit", "1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+
 
   # Admin Dashboard
   admin:
@@ -66,22 +61,35 @@ services:
       context: ./checkafe-admin
       dockerfile: Dockerfile
       args:
-        # Build-time variables
-        - NEXT_PUBLIC_API_URL=http://localhost:3000/api/
+        # Build-time variables - This is the URL the BROWSER will use to call the API
+        - NEXT_PUBLIC_API_URL=https://api.checkafe.online/api/
+        - API_URL=http://backend:3000/api/
         - NODE_ENV=production
         - PORT=3002
     container_name: checkafe-admin
     restart: unless-stopped
     environment:
-      # Runtime variables
+      # Runtime variables - This is also for the browser
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/
+      - NEXT_PUBLIC_API_URL=https://api.checkafe.online/api/
       - PORT=3002
     expose:
       - "3002"
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - checkafe-network
+
+  # Landing Page
+  landing:
+    build:
+      context: ./landing-page
+      dockerfile: Dockerfile
+    container_name: checkafe-landing
+    restart: unless-stopped
+    expose:
+      - "80"
     networks:
       - checkafe-network
 
@@ -99,14 +107,9 @@ services:
     depends_on:
       - backend
       - admin
+      - landing
     networks:
       - checkafe-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Cloudflare Tunnel
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -115,6 +118,8 @@ services:
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - nginx
     networks:
