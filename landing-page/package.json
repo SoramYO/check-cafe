@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js", 
-    "serve": "live-server --port=3001",
+    "serve": "live-server --port=3009",
     "build": "npm run optimize",
     "optimize": "echo 'Optimizing assets...'",
     "deploy": "echo 'Deploying to production...'"

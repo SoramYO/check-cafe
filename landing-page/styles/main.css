@@ -1135,25 +1135,46 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    
+    .hero {
+        padding-top: 90px;
+        min-height: calc(100vh - 90px);
+    }
     .hero-container {
         grid-template-columns: 1fr;
-        text-align: center;
         gap: 40px;
-        padding: 20px;
+        text-align: center;
+        padding: 0 16px;
+        width: 100%;
+        margin: 0 auto;
     }
-    
     .hero-title {
-        font-size: 2.5rem;
+        font-size: 2.1rem;
+        line-height: 1.15;
     }
-    
+    .hero-content {
+        width: 100%;
+        padding: 0;
+    }
     .hero-actions {
         flex-direction: column;
         align-items: center;
+        gap: 14px;
+        width: 100%;
+        margin-bottom: 32px;
     }
-    
+    .btn {
+        width: 100%;
+        max-width: 320px;
+        justify-content: center;
+        margin: 0 auto;
+    }
     .hero-stats {
         justify-content: center;
+        gap: 18px;
+        width: 100%;
+    }
+    .stat {
+        min-width: 80px;
     }
     
     /* Mobile Phone Mockup */

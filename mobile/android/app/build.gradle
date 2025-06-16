@@ -175,3 +175,35 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// Add task to copy release APK to landing-page/download folder
+tasks.whenTaskAdded { task ->
+    if (task.name == 'assembleRelease') {
+        task.doLast {
+            def releaseApk = file("${project.buildDir}/outputs/apk/release/app-release.apk")
+            def downloadDir = file("${project.rootDir}/../../landing-page/download")
+            def targetApk = file("${downloadDir}/app-release.apk")
+            
+            if (!downloadDir.exists()) {
+                downloadDir.mkdirs()
+                println "Created download directory at ${downloadDir.absolutePath}"
+            }
+            
+            if (releaseApk.exists()) {
+                if (targetApk.exists()) {
+                    println "Existing APK found at ${targetApk.absolutePath}"
+                    println "Replacing with new APK..."
+                    targetApk.delete()
+                }
+                
+                copy {
+                    from releaseApk
+                    into downloadDir
+                }
+                println "APK has been copied to ${downloadDir.absolutePath}"
+            } else {
+                println "Release APK not found at ${releaseApk.absolutePath}"
+            }
+        }
+    }
+}
