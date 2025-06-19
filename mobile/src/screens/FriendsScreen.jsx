@@ -70,10 +70,8 @@ export default function FriendsScreen({ route }) {
   const loadFriends = async () => {
     try {
       const response = await friendAPI.HandleFriend('?page=1&limit=20');
-      console.log('Friends response:', response);
       if (response.data) {
         const friends = response.data.friends || response.data || [];
-        console.log('Friends data:', friends);
         setFriends(friends);
       }
     } catch (error) {
@@ -100,7 +98,6 @@ export default function FriendsScreen({ route }) {
   const loadSuggestions = async () => {
     try {
       const response = await friendAPI.HandleFriend('/suggestions?limit=10');
-      console.log('Suggestions response:', response);
       if (response.data) {
         const suggestions = response.data.suggestions || response.data || [];
         setSuggestions(suggestions);
@@ -119,12 +116,10 @@ export default function FriendsScreen({ route }) {
     setSearching(true);
     try {
       const response = await friendAPI.HandleFriend(`/search?q=${encodeURIComponent(query.trim())}&page=1&limit=20`);
-      console.log('Search response:', response);
 
       if (response.data) {
         // Handle different response formats
         const users = response.data.users || response.data || [];
-        console.log('Search users:', users);
         setSearchResults(users);
       }
     } catch (error) {
@@ -144,18 +139,26 @@ export default function FriendsScreen({ route }) {
 
       if (response.data) {
         toast.success('Đã gửi lời mời kết bạn');
-        // Update UI to show request sent
+        // Update UI to show request sent with new friend status fields
         setSearchResults(prev =>
           prev.map(user =>
             user._id === userId
-              ? { ...user, friendshipStatus: 'request_sent' }
+              ? { 
+                  ...user, 
+                  friendStatus: 'pending_sent',
+                  friendStatusText: 'Đã gửi lời mời'
+                }
               : user
           )
         );
         setSuggestions(prev =>
           prev.map(user =>
             user._id === userId
-              ? { ...user, friendshipStatus: 'request_sent' }
+              ? { 
+                  ...user, 
+                  friendStatus: 'pending_sent',
+                  friendStatusText: 'Đã gửi lời mời'
+                }
               : user
           )
         );
@@ -333,10 +336,17 @@ export default function FriendsScreen({ route }) {
 
   const renderSearchItem = ({ item: user }) => {
     const isProcessing = processingRequest[user._id];
-    const canSendRequest = !user.friendshipStatus || user.friendshipStatus === 'none';
-    const requestSent = user.friendshipStatus === 'request_sent';
-    const isFriend = user.friendshipStatus === 'friends';
-
+    
+    // Sử dụng friendStatus từ API mới
+    const friendStatus = user.friendStatus || 'none';
+    const friendStatusText = user.friendStatusText || 'Chưa là bạn';
+    
+    // Xác định trạng thái để hiển thị button phù hợp
+    const canSendRequest = friendStatus === 'none';
+    const requestSent = friendStatus === 'pending_sent';
+    const requestReceived = friendStatus === 'pending_received';
+    const isFriend = friendStatus === 'friends';
+    const isBlocked = friendStatus === 'blocked';
 
     return (
       <View style={styles.searchCard}>
@@ -353,34 +363,93 @@ export default function FriendsScreen({ route }) {
               {user.mutualFriends} bạn chung
             </Text>
           )}
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.friendRequestButton,
-            requestSent && styles.friendRequestButtonSent,
-            isFriend && styles.friendRequestButtonFriend,
-          ]}
-          onPress={() => canSendRequest && handleSendFriendRequest(user._id)}
-          disabled={!canSendRequest || isProcessing}
-        >
-          {isProcessing ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <>
-              <MaterialCommunityIcons
-                name={
-                  isFriend ? "account-check" :
-                    requestSent ? "account-clock" : "account-plus"
-                }
-                size={16}
-                color="white"
-              />
-              <Text style={styles.friendRequestButtonText}>
-                {isFriend ? 'Bạn bè' : requestSent ? 'Đã gửi' : 'Kết bạn'}
-              </Text>
-            </>
+          {/* Hiển thị trạng thái friend */}
+          {friendStatus !== 'none' && (
+            <Text style={styles.friendStatusText}>
+              {friendStatusText}
+            </Text>
           )}
-        </TouchableOpacity>
+        </View>
+        
+        {/* Chỉ hiển thị button khi có thể thực hiện hành động */}
+        {canSendRequest && (
+          <TouchableOpacity
+            style={styles.friendRequestButton}
+            onPress={() => handleSendFriendRequest(user._id)}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="account-plus"
+                  size={16}
+                  color="white"
+                />
+                <Text style={styles.friendRequestButtonText}>
+                  Kết bạn
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+        
+        {/* Hiển thị trạng thái đã gửi lời mời */}
+        {requestSent && (
+          <View style={styles.friendRequestButtonSent}>
+            <MaterialCommunityIcons
+              name="account-clock"
+              size={16}
+              color="white"
+            />
+            <Text style={styles.friendRequestButtonText}>
+              Đã gửi
+            </Text>
+          </View>
+        )}
+        
+        {/* Hiển thị trạng thái đã là bạn */}
+        {isFriend && (
+          <View style={styles.friendRequestButtonFriend}>
+            <MaterialCommunityIcons
+              name="account-check"
+              size={16}
+              color="white"
+            />
+            <Text style={styles.friendRequestButtonText}>
+              Bạn bè
+            </Text>
+          </View>
+        )}
+        
+        {/* Hiển thị trạng thái đã nhận lời mời */}
+        {requestReceived && (
+          <View style={styles.friendRequestButtonReceived}>
+            <MaterialCommunityIcons
+              name="account-clock"
+              size={16}
+              color="white"
+            />
+            <Text style={styles.friendRequestButtonText}>
+              Đã nhận
+            </Text>
+          </View>
+        )}
+        
+        {/* Hiển thị trạng thái đã chặn */}
+        {isBlocked && (
+          <View style={styles.friendRequestButtonBlocked}>
+            <MaterialCommunityIcons
+              name="account-lock"
+              size={16}
+              color="white"
+            />
+            <Text style={styles.friendRequestButtonText}>
+              Đã chặn
+            </Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -766,10 +835,22 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   friendRequestButtonSent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#666',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
   },
   friendRequestButtonFriend: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
   },
   friendRequestButtonText: {
     color: 'white',
@@ -821,5 +902,28 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  friendStatusText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  friendRequestButtonReceived: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  friendRequestButtonBlocked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f44336',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
   },
 }); 

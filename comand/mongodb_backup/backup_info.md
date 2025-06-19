@@ -1,6 +1,6 @@
 # MongoDB Backup Information 
-- **Backup Date**: Thu 06/19/2025 13:35:37.36 
+- **Backup Date**: Fri 06/20/2025  4:33:21.80 
 - **Database**: checkafe 
 - **File**: checkafe_backup.gz 
 - **Size**: 
-06/19/2025  01:35 PM            95,101 checkafe_backup.gz
+06/20/2025  04:33 AM           101,355 checkafe_backup.gz

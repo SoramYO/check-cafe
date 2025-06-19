@@ -5,12 +5,17 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+# First remove any existing node_modules and package-lock.json
+RUN rm -rf node_modules package-lock.json
+# Then install dependencies and generate a new package-lock.json
+RUN npm install
 
 # Builder stage
 FROM node:18-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/package-lock.json ./package-lock.json
 COPY . .
 
 # Disable Next.js telemetry
