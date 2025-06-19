@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import paymentAPI from "../services/paymentAPI";
+import Header from "../components/Header";
 
 export default function PaymentHistoryScreen({ navigation }) {
   const [transactions, setTransactions] = useState([]);
@@ -107,19 +108,6 @@ export default function PaymentHistoryScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <MaterialCommunityIcons name="arrow-left" size={24} color="#1E293B" />
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>Lịch sử thanh toán gói</Text>
-      <View style={styles.placeholder} />
-    </View>
-  );
-
   const renderFilters = () => (
     <View style={styles.filterContainer}>
       <TouchableOpacity
@@ -180,7 +168,7 @@ export default function PaymentHistoryScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {renderHeader()}
+      <Header title="Lịch sử thanh toán gói" navigation={navigation} />
       {renderFilters()}
       <FlatList
         data={transactions.filter(
@@ -210,27 +198,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
     paddingTop: Platform.OS === "android" ? 40 : 0,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1E293B",
-  },
-  backButton: {
-    padding: 8,
-  },
-  placeholder: {
-    width: 40,
   },
   filterContainer: {
     flexDirection: "row",

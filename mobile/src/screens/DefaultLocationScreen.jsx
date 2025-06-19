@@ -6,12 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocation } from "../context/LocationContext";
 import * as Location from "expo-location";
-
+import Header from "../components/Header";
 export default function DefaultLocationScreen({ navigation }) {
   const { location } = useLocation();
   const [currentAddress, setCurrentAddress] = useState("");
@@ -92,20 +93,8 @@ export default function DefaultLocationScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Header title="Địa chỉ mặc định" navigation={navigation} />
       <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color="#1E293B"
-            />
-          </TouchableOpacity>
-          <Text style={styles.title}>Địa chỉ mặc định</Text>
-        </View>
 
         {/* Current Location */}
         {renderAddressCard(currentAddress || "Đang tải địa chỉ...", true)}
@@ -128,27 +117,11 @@ export default function DefaultLocationScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
   },
   scrollView: {
     flex: 1,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1E293B",
+    marginTop: 16,
   },
   addressCard: {
     backgroundColor: "white",

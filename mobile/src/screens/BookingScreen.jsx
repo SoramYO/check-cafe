@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f1f1f1",
-    paddingTop: Platform.OS === "android" ? 40 : 40,
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   scrollView: {
     flex: 1,

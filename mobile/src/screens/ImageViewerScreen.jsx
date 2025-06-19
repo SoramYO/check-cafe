@@ -4,10 +4,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  StatusBar,
   Text,
   Share,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -85,8 +85,6 @@ export default function ImageViewerScreen({ route }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar hidden={!isControlsVisible} />
-      
       {/* Header */}
       {isControlsVisible && (
         <SafeAreaView style={styles.header} edges={['top']}>

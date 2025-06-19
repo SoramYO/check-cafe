@@ -10,7 +10,6 @@ import {
   Alert,
   Dimensions,
   Share,
-  StatusBar,
   Animated,
   Modal,
   TextInput,
@@ -564,8 +563,6 @@ export default function CheckinListScreen({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#7a5545" />
-
       <View style={styles.header}>
         <Text style={styles.title}>Check-in</Text>
       </View>

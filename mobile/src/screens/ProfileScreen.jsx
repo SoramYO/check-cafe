@@ -51,7 +51,11 @@ const getMenuSections = (role) => {
         title: "Cài đặt",
         items: [
           { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
-          { icon: "shield-check", label: "Điều khoản & Bảo mật", route: "TermsAndPrivacy" },
+          {
+            icon: "shield-check",
+            label: "Điều khoản & Bảo mật",
+            route: "TermsAndPrivacy",
+          },
           {
             icon: "logout",
             label: "Đăng xuất",
@@ -71,19 +75,37 @@ const getMenuSections = (role) => {
           icon: "account-edit",
           label: "Chỉnh sửa thông tin",
           route: "EditProfile",
+          color: "#7a5545",
         },
-        { icon: "ticket-percent", label: "Voucher của tôi", route: "Vouchers" },
-        { icon: "account-group", label: "Bạn bè", route: "Friends", color: "#7a5545" },
-        { icon: "heart-outline", label: "Yêu thích", route: "Favorites" },
+        {
+          icon: "ticket-percent",
+          label: "Voucher của tôi",
+          route: "Vouchers",
+          color: "#7a5545",
+        },
+        {
+          icon: "account-group",
+          label: "Bạn bè",
+          route: "Friends",
+          color: "#7a5545",
+        },
+        {
+          icon: "heart-outline",
+          label: "Yêu thích",
+          route: "Favorites",
+          color: "#7a5545",
+        },
         {
           icon: "history",
           label: "Lịch sử giao dịch",
           route: "PaymentHistory",
+          color: "#7a5545",
         },
         {
           icon: "map-marker-outline",
           label: "Địa điểm mặc định",
           route: "DefaultLocation",
+          color: "#7a5545",
         },
         {
           icon: "crown",
@@ -93,19 +115,29 @@ const getMenuSections = (role) => {
         },
       ],
     },
-          {
-        title: "Cài đặt",
-        items: [
-          { icon: "theme-light-dark", label: "Giao diện", route: "Theme" },
-          { icon: "shield-check", label: "Điều khoản & Bảo mật", route: "TermsAndPrivacy" },
-          {
-            icon: "logout",
-            label: "Đăng xuất",
-            route: "Logout",
-            color: "#EF4444",
-          },
-        ],
-      },
+    {
+      title: "Cài đặt",
+      items: [
+        {
+          icon: "theme-light-dark",
+          label: "Giao diện",
+          route: "Theme",
+          color: "#7a5545",
+        },
+        {
+          icon: "shield-check",
+          label: "Điều khoản & Bảo mật",
+          route: "TermsAndPrivacy",
+          color: "#7a5545",
+        },
+        {
+          icon: "logout",
+          label: "Đăng xuất",
+          route: "Logout",
+          color: "#EF4444",
+        },
+      ],
+    },
   ];
 };
 
@@ -113,14 +145,19 @@ export default function ProfileScreen() {
   const { logout } = useAuth();
   const { user } = useSelector(authSelector);
   const [userInfo, setUserInfo] = useState(null);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const { setItem: setUserData } = useAsyncStorage("userData");
   const menuSections = getMenuSections(user?.role);
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const { trackScreenView, trackTap, trackAppEvent, endSession, isAuthenticated } = useAnalytics();
+  const {
+    trackScreenView,
+    trackTap,
+    trackAppEvent,
+    endSession,
+    isAuthenticated,
+  } = useAnalytics();
 
   const getUserInfo = async () => {
     try {
@@ -129,20 +166,19 @@ export default function ProfileScreen() {
       setUserInfo(response.data.user);
       dispatch(setUser(response.data.user));
       await setUserData(JSON.stringify(response.data.user));
-      
+
       // Track successful profile load
-      trackAppEvent('profile_loaded', {
+      trackAppEvent("profile_loaded", {
         user_id: response.data.user.id,
         role: response.data.user.role,
-        has_avatar: !!response.data.user.avatar
+        has_avatar: !!response.data.user.avatar,
       });
-      
     } catch (error) {
       console.error("Error fetching user profile:", error);
       // Use current user data as fallback
       setUserInfo(user);
-      trackAppEvent('profile_load_failed', {
-        error_message: error.message
+      trackAppEvent("profile_load_failed", {
+        error_message: error.message,
       });
     } finally {
       setLoading(false);
@@ -153,45 +189,45 @@ export default function ProfileScreen() {
     const init = async () => {
       // Only track if user is authenticated
       if (await isAuthenticated()) {
-        trackScreenView('Profile', {
+        trackScreenView("Profile", {
           user_role: user?.role,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     };
     init();
-    
+
     getUserInfo();
   }, []);
 
   const handleLogout = async () => {
     try {
       // Track logout attempt
-      trackAppEvent('logout_attempt', {
+      trackAppEvent("logout_attempt", {
         user_id: user?.id,
         role: user?.role,
-        source: 'profile_screen'
+        source: "profile_screen",
       });
-      
+
       // End analytics session before logout
       await endSession();
-      
+
       await logout();
       toast.success("Đăng xuất thành công");
-      
+
       // Track successful logout
-      trackAppEvent('logout_success', {
+      trackAppEvent("logout_success", {
         user_id: user?.id,
-        source: 'profile_screen'
+        source: "profile_screen",
       });
-      
+
       // Navigation will be handled automatically by AppRouters
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Có lỗi xảy ra khi đăng xuất");
-      trackAppEvent('logout_failed', {
+      trackAppEvent("logout_failed", {
         error_message: error.message,
-        source: 'profile_screen'
+        source: "profile_screen",
       });
     }
   };
@@ -202,11 +238,11 @@ export default function ProfileScreen() {
       style={styles.menuItem}
       onPress={() => {
         // Track menu item click
-        trackTap('profile_menu_item', {
+        trackTap("profile_menu_item", {
           item_label: item.label,
           item_route: item.route,
           user_role: user?.role,
-          source: 'profile_screen'
+          source: "profile_screen",
         });
 
         if (item.label === "Đăng xuất") {
@@ -253,13 +289,18 @@ export default function ProfileScreen() {
               <>
                 <Image
                   source={{
-                    uri: userInfo?.avatar || user?.avatar || "https://via.placeholder.com/60",
+                    uri:
+                      userInfo?.avatar ||
+                      user?.avatar ||
+                      "https://via.placeholder.com/60",
                   }}
                   style={styles.avatar}
                 />
                 <View style={styles.userDetails}>
                   <View style={styles.nameContainer}>
-                    <Text style={styles.userName}>{userInfo?.full_name || user?.full_name}</Text>
+                    <Text style={styles.userName}>
+                      {userInfo?.full_name || user?.full_name}
+                    </Text>
                     {userInfo?.role === "STAFF" && (
                       <View style={styles.staffBadge}>
                         <MaterialCommunityIcons
@@ -284,7 +325,9 @@ export default function ProfileScreen() {
                   <View style={styles.levelBadge}>
                     <MaterialCommunityIcons
                       name={
-                        userInfo?.role === "STAFF" ? "shield-account" : "shield-star"
+                        userInfo?.role === "STAFF"
+                          ? "shield-account"
+                          : "shield-star"
                       }
                       size={16}
                       color={userInfo?.role === "STAFF" ? "#7a5545" : "#6366F1"}
@@ -295,7 +338,9 @@ export default function ProfileScreen() {
                         userInfo?.role === "STAFF" && styles.staffLevelText,
                       ]}
                     >
-                      {userInfo?.role === "STAFF" ? "Nhân viên" : userInfo?.role}
+                      {userInfo?.role === "STAFF"
+                        ? "Nhân viên"
+                        : userInfo?.role}
                     </Text>
                   </View>
                 </View>
@@ -337,7 +382,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
     paddingTop: Platform.OS === "android" ? 40 : 40,
-
   },
   scrollView: {
     flex: 1,

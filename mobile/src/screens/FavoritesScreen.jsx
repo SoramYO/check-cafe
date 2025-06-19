@@ -18,6 +18,7 @@ import {
 import userAPI from "../services/userAPI";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAnalytics } from "../utils/analytics";
+import Header from "../components/Header";
 
 export default function FavoritesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("cafes");
@@ -222,15 +223,7 @@ export default function FavoritesScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#1E293B" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Yêu thích</Text>
-      </View>
+      <Header title="Yêu thích" navigation={navigation} />
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
