@@ -13,7 +13,7 @@ router.use(checkRole([USER_ROLE.ADMIN]));
 
 router.get("/users", adminController.getUsers);
 router.get("/users/:id", adminController.getUserById);
-router.patch("/users", adminController.manageUserAccount);
+router.put("/users", adminController.manageUserAccount);
 router.post("/users", adminController.createUser);
 
 // Dashboard Stats

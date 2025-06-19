@@ -343,12 +343,82 @@ class FriendService {
                 { full_name: { $regex: query.trim(), $options: 'i' } },
                 { email: { $regex: query.trim(), $options: 'i' } }
               ]
-            }
+            },
+            { role: 'CUSTOMER' }
           ]
         })
         .select('full_name avatar email')
         .skip(skip)
         .limit(limitNum);
+
+      // Lấy danh sách user IDs để tìm friend relationships
+      const userIds = users.map(user => user._id);
+
+      // Tìm tất cả friend relationships liên quan đến current user và các users được tìm thấy
+      const friendRelationships = await friendModel.find({
+        $or: [
+          { requester_id: currentUserId, recipient_id: { $in: userIds } },
+          { requester_id: { $in: userIds }, recipient_id: currentUserId }
+        ]
+      });
+
+      // Tạo map để dễ dàng lookup friend status
+      const friendStatusMap = {};
+      friendRelationships.forEach(relationship => {
+        const otherUserId = relationship.requester_id.equals(currentUserId) 
+          ? relationship.recipient_id 
+          : relationship.requester_id;
+        
+        friendStatusMap[otherUserId.toString()] = {
+          _id: relationship._id,
+          status: relationship.status,
+          isRequester: relationship.requester_id.equals(currentUserId),
+          createdAt: relationship.createdAt,
+          acceptedAt: relationship.accepted_at
+        };
+      });
+
+      // Thêm friend status vào mỗi user
+      const usersWithFriendStatus = users.map(user => {
+        const userData = getInfoData({
+          fields: ["_id", "full_name", "avatar", "email"],
+          object: user,
+        });
+
+        const friendInfo = friendStatusMap[user._id.toString()];
+        
+        if (friendInfo) {
+          // Có relationship tồn tại
+          switch (friendInfo.status) {
+            case 'accepted':
+              userData.friendStatus = 'friends';
+              userData.friendStatusText = 'Đã là bạn';
+              break;
+            case 'pending':
+              if (friendInfo.isRequester) {
+                userData.friendStatus = 'pending_sent';
+                userData.friendStatusText = 'Đã gửi lời mời';
+              } else {
+                userData.friendStatus = 'pending_received';
+                userData.friendStatusText = 'Đã nhận lời mời';
+              }
+              break;
+            case 'blocked':
+              userData.friendStatus = 'blocked';
+              userData.friendStatusText = 'Đã chặn';
+              break;
+          }
+          userData.friendRelationshipId = friendInfo._id;
+          userData.friendCreatedAt = friendInfo.createdAt;
+          userData.friendAcceptedAt = friendInfo.acceptedAt;
+        } else {
+          // Không có relationship
+          userData.friendStatus = 'none';
+          userData.friendStatusText = 'Chưa là bạn';
+        }
+
+        return userData;
+      });
 
       const total = await userModel.countDocuments({
         $and: [
@@ -358,15 +428,13 @@ class FriendService {
               { full_name: { $regex: query.trim(), $options: 'i' } },
               { email: { $regex: query.trim(), $options: 'i' } }
             ]
-          }
+          },
+          { role: 'CUSTOMER' }
         ]
       });
 
       return {
-        users: users.map(user => getInfoData({
-          fields: ["_id", "full_name", "avatar", "email"],
-          object: user,
-        })),
+        users: usersWithFriendStatus,
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -432,42 +500,29 @@ class FriendService {
         throw new BadRequestError("Limit must be between 1 and 50");
       }
 
-      // Lấy danh sách bạn bè hiện tại
-      const currentFriends = await friendModel.find({
+      // Lấy tất cả friend relationships (accepted, pending, blocked) để loại trừ
+      const allFriendRelationships = await friendModel.find({
         $or: [
-          { requester_id: userId, status: 'accepted' },
-          { recipient_id: userId, status: 'accepted' }
+          { requester_id: userId },
+          { recipient_id: userId }
         ]
       });
 
-      const friendIds = currentFriends.map(friendship =>
-        friendship.requester_id.toString() === userId.toString()
-          ? friendship.recipient_id
-          : friendship.requester_id
+      // Tạo danh sách user IDs cần loại trừ
+      const excludedUserIds = allFriendRelationships.map(relationship =>
+        relationship.requester_id.toString() === userId.toString()
+          ? relationship.recipient_id
+          : relationship.requester_id
       );
 
       // Thêm chính mình vào danh sách loại trừ
-      friendIds.push(new mongoose.Types.ObjectId(userId));
+      excludedUserIds.push(new mongoose.Types.ObjectId(userId));
 
-      // Lấy danh sách pending requests để loại trừ
-      const pendingRequests = await friendModel.find({
-        $or: [
-          { requester_id: userId, status: 'pending' },
-          { recipient_id: userId, status: 'pending' }
-        ]
-      });
-
-      const pendingUserIds = pendingRequests.map(request =>
-        request.requester_id.toString() === userId.toString()
-          ? request.recipient_id
-          : request.requester_id
-      );
-
-      // Gợi ý: users không phải bạn bè, không có pending request, và không phải admin/staff/chủ shop
+      // Gợi ý: users không có bất kỳ relationship nào và không phải admin/staff/chủ shop
       const suggestions = await userModel
         .find({
           _id: {
-            $nin: [...friendIds, ...pendingUserIds]
+            $nin: excludedUserIds
           },
           role: 'CUSTOMER' // Chỉ hiển thị người dùng thường
         })
