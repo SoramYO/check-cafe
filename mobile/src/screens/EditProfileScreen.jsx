@@ -17,13 +17,14 @@ import { authSelector } from "../redux/reducers/authReducer";
 import { useSelector, useDispatch } from "react-redux";
 import userAPI from "../services/userAPI";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
-import { updateUser } from "../hooks/useAuth";
+import Header from "../components/Header";
+import { useAuth } from "../hooks/useAuth";
 
 export default function EditProfileScreen({ navigation }) {
+  const { updateUser } = useAuth();
   const { user } = useSelector(authSelector);
   const { setItem: setUserData } = useAsyncStorage("userData");
 
-  const dispatch = useDispatch();
 
   const [isEditing, setIsEditing] = useState(false);
   const [userInfo, setUserInfo] = useState(user);
@@ -71,26 +72,23 @@ export default function EditProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#1E293B" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Chỉnh sửa thông tin</Text>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => setIsEditing(!isEditing)}
-          disabled={isSaving}
-        >
-          <MaterialCommunityIcons
-            name={isEditing ? "content-save" : "pencil"}
-            size={24}
-            color={isSaving ? "#94A3B8" : "#7a5545"}
-          />
-        </TouchableOpacity>
-      </View>
+      <Header
+        title="Chỉnh sửa thông tin"
+        navigation={navigation}
+        rightComponent={ 
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => setIsEditing(!isEditing)}
+            disabled={isSaving}
+          >
+            <MaterialCommunityIcons
+              name={isEditing ? "content-save" : "pencil"}
+              size={24}
+              color={isSaving ? "#94A3B8" : "white"}
+            />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView style={styles.content}>
         <View style={styles.avatarSection}>
@@ -153,8 +151,8 @@ export default function EditProfileScreen({ navigation }) {
         </View>
 
         {isEditing && (
-          <TouchableOpacity 
-            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]} 
+          <TouchableOpacity
+            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={isSaving}
           >
@@ -177,7 +175,7 @@ export default function EditProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#f1f1f1",
     paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {

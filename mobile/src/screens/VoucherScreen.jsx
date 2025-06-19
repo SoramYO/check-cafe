@@ -6,11 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import Header from '../components/Header';
 
 const MOCK_VOUCHERS = [
   {
@@ -168,15 +170,7 @@ export default function VoucherScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#1E293B" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Voucher của tôi</Text>
-      </View>
+      <Header title="Voucher của tôi" navigation={navigation} />
 
       <ScrollView
         style={styles.scrollView}
@@ -192,7 +186,7 @@ export default function VoucherScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#f1f1f1',
   },
   backButton: {
     marginRight: 16,

@@ -17,6 +17,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { toast } from 'sonner-native';
 import friendAPI from '../services/friendAPI';
 import { useAnalytics } from '../utils/analytics';
+import Header from '../components/Header';
 
 const TABS = [
   { key: 'friends', label: 'Bạn bè', icon: 'account-group' },
@@ -512,19 +513,7 @@ export default function FriendsScreen({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bạn bè</Text>
-        <View style={styles.headerRight}>
-          {friendRequests.length > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{friendRequests.length}</Text>
-            </View>
-          )}
-        </View>
-      </View>
+      <Header title="Bạn bè" navigation={navigation} />
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
