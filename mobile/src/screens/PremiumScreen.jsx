@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Modal, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import packageAPI from '../services/packageAPI';
@@ -8,6 +8,7 @@ import QRCode from 'react-native-qrcode-svg';
 import userAPI from '../services/userAPI';
 import Toast from 'react-native-toast-message';
 import paymentAPI from '../services/paymentAPI';
+import Header from '../components/Header';
 
 export default function PremiumScreen() {
   const navigation = useNavigation();
@@ -108,13 +109,7 @@ export default function PremiumScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#1E293B" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Nâng cấp Premium</Text>
-        <View style={{ width: 28 }} />
-      </View>
+      <Header title="Nâng cấp Premium" navigation={navigation} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {packages.length === 0 ? (
           <Text style={{ textAlign: 'center', color: '#64748B', marginTop: 40 }}>Không có gói nào khả dụng.</Text>
@@ -210,6 +205,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+    paddingTop: Platform.OS === "android" ? 40 : 0,
   },
   header: {
     flexDirection: 'row',

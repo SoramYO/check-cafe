@@ -16,6 +16,7 @@ import { toast } from "sonner-native";
 import { useAuth } from "../hooks/useAuth";
 import authenticationAPI from "../services/authAPI";
 import { useAnalytics } from "../utils/analytics";
+import Toast from "react-native-toast-message";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -57,7 +58,10 @@ export default function LoginScreen({ navigation }) {
       
       if (response.status === 200) {
         await login(response.data.tokens.accessToken, response.data.user);
-        toast.success("Đăng nhập thành công");
+        Toast.show({
+          type: "success",
+          text1: "Đăng nhập thành công",
+        });
         
         // Track successful login
         trackAppEvent('login_success', {
@@ -68,14 +72,20 @@ export default function LoginScreen({ navigation }) {
         
         // Navigation is handled automatically by AppRouters
       } else {
-        toast.error(response.message || "Đăng nhập thất bại");
+        Toast.show({
+          type: "error",
+          text1: response.message || "Đăng nhập thất bại",
+        });
         trackAppEvent('login_failed', {
           error_message: response.message,
           status_code: response.status
         });
       }
     } catch (error) {
-      toast.error("Có lỗi xảy ra khi đăng nhập");
+      Toast.show({
+        type: "error",
+        text1: "Có lỗi xảy ra khi đăng nhập",
+      });
       trackAppEvent('login_error', {
         error_message: error.message,
         error_type: error.name
