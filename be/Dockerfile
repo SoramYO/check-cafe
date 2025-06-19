@@ -12,10 +12,12 @@ COPY package*.json ./
 
 # Install dependencies (handle missing lock file gracefully)
 RUN if [ -f package-lock.json ]; then \
-    npm ci --omit=dev && npm cache clean --force; \
-  else \
-    npm install --only=production && npm cache clean --force; \
-  fi
+      npm ci --omit=dev --network-timeout=600000 --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 && \
+      npm cache clean --force; \
+    else \
+      npm install --only=production --network-timeout=600000 --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 && \
+      npm cache clean --force; \
+    fi
 
 # Copy source code
 COPY . .

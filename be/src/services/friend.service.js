@@ -58,7 +58,7 @@ class FriendService {
 
       // Lấy thông tin requester để gửi thông báo
       const requester = await userModel.findById(requesterId).select('full_name');
-      
+
       // Gửi thông báo cho recipient
       try {
         await NotificationHelper.sendFriendRequestNotification({
@@ -111,7 +111,7 @@ class FriendService {
 
       // Lấy thông tin accepter để gửi thông báo
       const accepter = await userModel.findById(userId).select('full_name');
-      
+
       // Gửi thông báo cho requester
       try {
         await NotificationHelper.sendFriendAcceptedNotification({
@@ -233,9 +233,9 @@ class FriendService {
         .limit(limitNum);
 
       // Lấy ID của những người bạn
-      const friendIds = friendships.map(friendship => 
-        friendship.requester_id.toString() === userId.toString() 
-          ? friendship.recipient_id 
+      const friendIds = friendships.map(friendship =>
+        friendship.requester_id.toString() === userId.toString()
+          ? friendship.recipient_id
           : friendship.requester_id
       );
 
@@ -340,8 +340,8 @@ class FriendService {
             { _id: { $ne: currentUserId } }, // Loại trừ chính mình
             {
               $or: [
-                              { full_name: { $regex: query.trim(), $options: 'i' } },
-              { email: { $regex: query.trim(), $options: 'i' } }
+                { full_name: { $regex: query.trim(), $options: 'i' } },
+                { email: { $regex: query.trim(), $options: 'i' } }
               ]
             }
           ]
@@ -407,8 +407,8 @@ class FriendService {
 
       if (status === 'pending') {
         // Xác định ai là người gửi, ai là người nhận
-        role = relationship.requester_id.toString() === userId.toString() 
-          ? 'requester' 
+        role = relationship.requester_id.toString() === userId.toString()
+          ? 'requester'
           : 'recipient';
       }
 
@@ -440,9 +440,9 @@ class FriendService {
         ]
       });
 
-      const friendIds = currentFriends.map(friendship => 
-        friendship.requester_id.toString() === userId.toString() 
-          ? friendship.recipient_id 
+      const friendIds = currentFriends.map(friendship =>
+        friendship.requester_id.toString() === userId.toString()
+          ? friendship.recipient_id
           : friendship.requester_id
       );
 
@@ -457,18 +457,19 @@ class FriendService {
         ]
       });
 
-      const pendingUserIds = pendingRequests.map(request => 
-        request.requester_id.toString() === userId.toString() 
-          ? request.recipient_id 
+      const pendingUserIds = pendingRequests.map(request =>
+        request.requester_id.toString() === userId.toString()
+          ? request.recipient_id
           : request.requester_id
       );
 
-      // Gợi ý: users không phải bạn bè và không có pending request
+      // Gợi ý: users không phải bạn bè, không có pending request, và không phải admin/staff/chủ shop
       const suggestions = await userModel
         .find({
-          _id: { 
-            $nin: [...friendIds, ...pendingUserIds] 
-          }
+          _id: {
+            $nin: [...friendIds, ...pendingUserIds]
+          },
+          role: 'CUSTOMER' // Chỉ hiển thị người dùng thường
         })
         .select('full_name avatar email')
         .limit(limitNum);

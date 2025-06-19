@@ -47,7 +47,7 @@ export default function CheckinCameraScreen({ route }) {
   const [photo, setPhoto] = useState(null);
   const [showGuide, setShowGuide] = useState(true);
   const [flash, setFlash] = useState('off');
-  const [isCameraActive, setIsCameraActive] = useState(false); // Đổi từ true thành false
+  const [isCameraActive, setIsCameraActive] = useState(false);
   
   // New states for check-in functionality
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -59,13 +59,17 @@ export default function CheckinCameraScreen({ route }) {
   const [isCameraLoading, setIsCameraLoading] = useState(true);
   
   const cameraRef = useRef(null);
-  const isMountedRef = useRef(true); // Thêm ref để track mounting state
+  const isMountedRef = useRef(true);
+  const isCleaningUpRef = useRef(false); // Thêm flag để tránh cleanup nhiều lần
+  const navigationTimeoutRef = useRef(null); // Thêm ref cho timeout
+  
   const { spotId, spotName, cafeId } = route.params || {};
 
-  // Sử dụng useFocusEffect thay vì useEffect để quản lý camera lifecycle
+  // Tối ưu useFocusEffect
   useFocusEffect(
     useCallback(() => {
-      isMountedRef.current = true; // Thêm dòng này
+      isMountedRef.current = true;
+      isCleaningUpRef.current = false; // Reset cleanup flag
       let isMounted = true;
       let guideTimer = null;
       
@@ -73,7 +77,7 @@ export default function CheckinCameraScreen({ route }) {
         try {
           console.log('Setting up camera...');
           
-          // Reset all states first
+          // Reset states
           setIsCameraActive(false);
           setCameraReady(false);
           setPhoto(null);
@@ -84,54 +88,29 @@ export default function CheckinCameraScreen({ route }) {
           
           if (!isMounted) return;
           
-          // Request camera permission first - this is most critical
+          // Request camera permission
           const cameraPermission = await requestPermission();
           if (!cameraPermission?.granted) {
             console.log('Camera permission denied');
             return;
           }
           
-          // Activate camera immediately after permission granted
+          // Activate camera
           if (isMounted) {
             setIsCameraActive(true);
-            setIsCameraLoading(false); // Camera ready to show
+            setIsCameraLoading(false);
             console.log('Camera activated');
           }
           
-          // Request other permissions in parallel (không block camera)
-          Promise.all([
-            // Location permission and getting location
-            (async () => {
-              try {
-                const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
-                if (locationStatus === 'granted' && isMounted) {
-                  // Get location in background, không block camera
-                  getCurrentLocation().catch(console.error);
-                }
-              } catch (error) {
-                console.error('Location permission error:', error);
-              }
-            })(),
-            
-            // Media library permission
-            (async () => {
-              try {
-                const { status } = await MediaLibrary.requestPermissionsAsync();
-                if (status !== 'granted') {
-                  // Show alert không block camera
-                  setTimeout(() => {
-                    Alert.alert(
-                      'Cần quyền truy cập',
-                      'Ứng dụng cần quyền truy cập thư viện ảnh để lưu ảnh check-in.',
-                      [{ text: 'OK' }]
-                    );
-                  }, 1000);
-                }
-              } catch (error) {
-                console.error('Media library permission error:', error);
-              }
-            })()
-          ]);
+          // Get location in background (không log nhiều)
+          getCurrentLocation().catch(() => {
+            // Silent fail - đã có error handling trong function
+          });
+          
+          // Request media library permission
+          MediaLibrary.requestPermissionsAsync().catch(() => {
+            // Silent fail
+          });
           
           // Setup guide timer
           if (isMounted) {
@@ -142,7 +121,6 @@ export default function CheckinCameraScreen({ route }) {
             }, 3000);
           }
           
-          console.log('Camera setup completed');
         } catch (error) {
           console.error('Camera setup error:', error);
           if (isMounted) {
@@ -158,13 +136,16 @@ export default function CheckinCameraScreen({ route }) {
       setupCamera();
 
       return () => {
-        console.log('Cleaning up camera...');
-        isMountedRef.current = false; // Thêm dòng này
         isMounted = false;
+        isMountedRef.current = false;
         if (guideTimer) {
           clearTimeout(guideTimer);
         }
-        cleanupCamera();
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+        }
+        // Cleanup camera nhưng không log
+        performCleanup(false);
       };
     }, [])
   );
@@ -173,13 +154,10 @@ export default function CheckinCameraScreen({ route }) {
     try {
       if (!isMountedRef.current) return;
       
-      console.log('Getting location...');
-      
-      // Sử dụng accuracy thấp hơn và timeout để nhanh hơn
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced, // Thay đổi từ High sang Balanced
-        maximumAge: 60000, // Cache trong 1 phút
-        timeout: 10000, // Timeout 10 giây
+        accuracy: Location.Accuracy.Balanced,
+        maximumAge: 60000,
+        timeout: 10000,
       });
       
       if (!isMountedRef.current) return;
@@ -189,10 +167,8 @@ export default function CheckinCameraScreen({ route }) {
         longitude: location.coords.longitude,
         accuracy: location.coords.accuracy,
       });
-      
-      console.log('Location obtained');
 
-      // Reverse geocoding chạy trong background, không block UI
+      // Reverse geocoding trong background, không log
       setTimeout(async () => {
         try {
           if (!isMountedRef.current) return;
@@ -206,10 +182,8 @@ export default function CheckinCameraScreen({ route }) {
             const addr = address[0];
             const locationStr = `${addr.street || ''} ${addr.district || ''} ${addr.city || ''}`.trim();
             setLocationName(locationStr || 'Vị trí hiện tại');
-            console.log('Address resolved:', locationStr);
           }
         } catch (error) {
-          console.error('Reverse geocoding error:', error);
           if (isMountedRef.current) {
             setLocationName('Vị trí hiện tại');
           }
@@ -217,18 +191,22 @@ export default function CheckinCameraScreen({ route }) {
       }, 0);
       
     } catch (error) {
-      console.error('Location error:', error);
       if (isMountedRef.current) {
         setLocationName('Không thể lấy vị trí');
       }
     }
   };
 
-  const cleanupCamera = useCallback(() => {
+  // Tối ưu cleanup function
+  const performCleanup = useCallback((shouldLog = true) => {
+    if (isCleaningUpRef.current) return; // Tránh cleanup nhiều lần
+    isCleaningUpRef.current = true;
+    
     try {
-      console.log('Cleaning up camera states...');
+      if (shouldLog) {
+        console.log('Cleaning up camera states...');
+      }
       
-      // Chỉ cleanup nếu component vẫn mounted
       if (isMountedRef.current) {
         setIsCameraActive(false);
         setCameraReady(false);
@@ -241,38 +219,41 @@ export default function CheckinCameraScreen({ route }) {
         setIsCameraLoading(true);
       }
       
-      // Reset camera ref với timeout dài hơn
-      setTimeout(() => {
-        if (cameraRef.current) {
-          cameraRef.current = null;
-        }
-      }, 200); // Tăng từ 50ms lên 200ms
+      // Reset camera ref
+      if (cameraRef.current) {
+        cameraRef.current = null;
+      }
       
-      console.log('Camera cleanup completed');
+      if (shouldLog) {
+        console.log('Camera cleanup completed');
+      }
     } catch (error) {
       console.error('Camera cleanup error:', error);
     }
-  }, []); // Thêm dependency array rỗng
+  }, []);
 
+  // Tối ưu handle close
   const handleClose = useCallback(() => {
+    if (isCleaningUpRef.current) return; // Tránh gọi nhiều lần
+    
     try {
       console.log('Closing camera screen...');
-      isMountedRef.current = false; // Thêm dòng này
-      cleanupCamera();
-      // Tăng delay để đảm bảo cleanup hoàn tất
-      setTimeout(() => {
-        navigation.goBack();
-      }, 300); // Tăng từ 150ms lên 300ms
+      isMountedRef.current = false;
+      
+      // Cleanup ngay lập tức, không log
+      performCleanup(false);
+      
+      // Navigate ngay lập tức, không delay
+      navigation.goBack();
     } catch (error) {
       console.error('Close error:', error);
       navigation.goBack();
     }
-  }, [cleanupCamera, navigation]);
+  }, [navigation, performCleanup]);
 
   const handleCameraReady = useCallback(() => {
     try {
-      if (isCameraActive) {
-        console.log('Camera is ready');
+      if (isCameraActive && isMountedRef.current) {
         setCameraReady(true);
       }
     } catch (error) {
@@ -282,12 +263,6 @@ export default function CheckinCameraScreen({ route }) {
 
   const takePicture = async () => {
     if (!cameraRef.current || !isCameraReady || !isCameraActive || !isMountedRef.current) {
-      console.log('Camera not ready:', { 
-        hasRef: !!cameraRef.current, 
-        isReady: isCameraReady, 
-        isActive: isCameraActive,
-        isMounted: isMountedRef.current // Thêm check này
-      });
       return;
     }
 
@@ -299,14 +274,14 @@ export default function CheckinCameraScreen({ route }) {
         skipProcessing: false
       });
       
-      if (photo && photo.uri && isMountedRef.current) { // Thêm check isMountedRef
+      if (photo && photo.uri && isMountedRef.current) {
         setPhoto(photo);
       } else {
         throw new Error('Không thể lấy ảnh');
       }
     } catch (error) {
       console.error('Camera error:', error);
-      if (isMountedRef.current) { // Chỉ show toast nếu component vẫn mounted
+      if (isMountedRef.current) {
         toast.error('Không thể chụp ảnh. Vui lòng thử lại.');
       }
     }
@@ -314,11 +289,10 @@ export default function CheckinCameraScreen({ route }) {
 
   const handleSave = async () => {
     if (!photo) return;
-    
-    // Show edit form to input title and visibility
     setShowEditForm(true);
   };
 
+  // Tối ưu upload function
   const handleUploadCheckin = async () => {
     if (!title.trim()) {
       toast.error('Vui lòng nhập tiêu đề cho check-in');
@@ -328,64 +302,48 @@ export default function CheckinCameraScreen({ route }) {
     try {
       setIsUploading(true);
       setShowEditForm(false);
-      cleanupCamera();
       
-      // Save to media library
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status === 'granted') {
-        const asset = await MediaLibrary.createAssetAsync(photo.uri);
-        await MediaLibrary.createAlbumAsync('CheckCafe', asset, false);
-      }
+      // Cleanup camera ngay lập tức để tránh lag
+      performCleanup(false);
+      
+      // Save to media library (không await để không block UI)
+      MediaLibrary.requestPermissionsAsync().then(({ status }) => {
+        if (status === 'granted') {
+          MediaLibrary.createAssetAsync(photo.uri).then(asset => {
+            MediaLibrary.createAlbumAsync('CheckCafe', asset, false).catch(() => {});
+          }).catch(() => {});
+        }
+      }).catch(() => {});
 
-      // Prepare check-in data
-      const checkinData = {
-        title: title.trim(),
-        image: photo,
-        location: currentLocation,
-        locationName: locationName,
-        visibility: visibility,
-        cafeId: cafeId,
-        spotId: spotId,
-        spotName: spotName,
-      };
-
-      // Upload check-in bằng fetch API trực tiếp
+      // Prepare và upload data
       const formData = new FormData();
       
-      // Thêm file ảnh thực tế vào FormData
-      if (checkinData.image) {
+      if (photo) {
         formData.append('image', {
-          uri: checkinData.image.uri,
+          uri: photo.uri,
           type: 'image/jpeg',
           name: `checkin_${Date.now()}.jpg`,
         });
       }
       
-      // Thêm dữ liệu khác
-      formData.append('title', checkinData.title);
-      if (checkinData.location) {
+      formData.append('title', title.trim());
+      if (currentLocation) {
         formData.append('location', JSON.stringify({
-          latitude: checkinData.location.latitude,
-          longitude: checkinData.location.longitude,
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
           address: locationName
         }));
       }
-      formData.append('visibility', checkinData.visibility || 'friends');
-      if (checkinData.cafeId) {
-        formData.append('cafeId', checkinData.cafeId);
-      }
-      if (checkinData.tags && checkinData.tags.length > 0) {
-        formData.append('tags', JSON.stringify(checkinData.tags));
+      formData.append('visibility', visibility || 'friends');
+      if (cafeId) {
+        formData.append('cafeId', cafeId);
       }
 
-
-      // Sử dụng fetch API trực tiếp thay vì axios
       const token = await AsyncStorage.getItem('token');
       const apiResponse = await fetch(`${BASE_URL}/checkins`, {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
-          // Không set Content-Type để browser tự động set cho FormData
         },
         body: formData,
       });
@@ -394,9 +352,9 @@ export default function CheckinCameraScreen({ route }) {
       
       if (response.data) {
         toast.success('Check-in thành công!');
-        setTimeout(() => {
-          navigation.navigate('CheckinList', { refresh: true });
-        }, 1000);
+        
+        // Navigate ngay lập tức sau khi upload thành công
+        navigation.navigate('CheckinList', { refresh: true });
       } else {
         throw new Error(response.message || `HTTP ${apiResponse.status}: Upload failed`);
       }
@@ -464,95 +422,90 @@ export default function CheckinCameraScreen({ route }) {
       {isCameraLoading ? (
         <View style={styles.loadingContainer}>
           <MaterialCommunityIcons name="camera" size={64} color="#7a5545" />
-          <Text style={styles.loadingText}>Đang khởi tạo camera...</Text>
+          <Text style={styles.loadingText}>Đang đăng bài...</Text>
         </View>
       ) : !photo ? (
         <View style={styles.cameraContainer}>
-          {isCameraActive && permission?.granted && (
-            <CameraView
-              ref={cameraRef}
-              style={styles.camera}
-              facing={cameraType}
-              onCameraReady={handleCameraReady}
-              flash={flash}
-            >
-              <LinearGradient
-                colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.7)']}
-                style={styles.overlay}
+          <CameraView
+            ref={cameraRef}
+            style={StyleSheet.absoluteFillObject}
+            facing={cameraType}
+            onCameraReady={handleCameraReady}
+            flash={flash}
+          />
+          {/* Overlay UI */}
+          <LinearGradient style={styles.overlay} colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.7)']}>
+            <View style={styles.header}>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={handleClose}
+                activeOpacity={0.7}
               >
-                <View style={styles.header}>
-                  <TouchableOpacity 
-                    style={styles.iconButton}
-                    onPress={handleClose}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialCommunityIcons name="close" size={24} color="white" />
-                  </TouchableOpacity>
-                  <Text style={styles.spotName}>{spotName}</Text>
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={toggleFlash}
-                  >
+                <MaterialCommunityIcons name="close" size={24} color="white" />
+              </TouchableOpacity>
+              <Text style={styles.spotName}>{spotName}</Text>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={toggleFlash}
+              >
+                <MaterialCommunityIcons 
+                  name={flash === 'off' ? 'flash-off' : 'flash'} 
+                  size={24} 
+                  color="white" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            {showGuide && (
+              <View style={styles.guideContainer}>
+                {CAMERA_GUIDES.map((guide, index) => (
+                  <View key={index} style={styles.guideItem}>
                     <MaterialCommunityIcons 
-                      name={flash === 'off' ? 'flash-off' : 'flash'} 
+                      name={guide.icon} 
                       size={24} 
                       color="white" 
                     />
-                  </TouchableOpacity>
-                </View>
-
-                {showGuide && (
-                  <View style={styles.guideContainer}>
-                    {CAMERA_GUIDES.map((guide, index) => (
-                      <View key={index} style={styles.guideItem}>
-                        <MaterialCommunityIcons 
-                          name={guide.icon} 
-                          size={24} 
-                          color="white" 
-                        />
-                        <Text style={styles.guideText}>{guide.text}</Text>
-                      </View>
-                    ))}
+                    <Text style={styles.guideText}>{guide.text}</Text>
                   </View>
-                )}
+                ))}
+              </View>
+            )}
 
-                <View style={styles.gridOverlay}>
-                  <View style={styles.gridRow}>
-                    <View style={styles.gridLine} />
-                    <View style={styles.gridLine} />
-                  </View>
-                  <View style={styles.gridCol}>
-                    <View style={styles.gridLine} />
-                    <View style={styles.gridLine} />
-                  </View>
-                </View>
+            <View style={styles.gridOverlay}>
+              <View style={styles.gridRow}>
+                <View style={styles.gridLine} />
+                <View style={styles.gridLine} />
+              </View>
+              <View style={styles.gridCol}>
+                <View style={styles.gridLine} />
+                <View style={styles.gridLine} />
+              </View>
+            </View>
 
-                <View style={styles.controls}>
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={toggleCameraType}
-                  >
-                    <MaterialCommunityIcons name="camera-flip" size={24} color="white" />
-                  </TouchableOpacity>
+            <View style={styles.controls}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={toggleCameraType}
+              >
+                <MaterialCommunityIcons name="camera-flip" size={24} color="white" />
+              </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.captureButton}
-                    onPress={takePicture}
-                    disabled={!isCameraReady}
-                  >
-                    <View style={styles.captureInner} />
-                  </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.captureButton}
+                onPress={takePicture}
+                disabled={!isCameraReady}
+              >
+                <View style={styles.captureInner} />
+              </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => setShowGuide(true)}
-                  >
-                    <MaterialCommunityIcons name="help-circle" size={24} color="white" />
-                  </TouchableOpacity>
-                </View>
-              </LinearGradient>
-            </CameraView>
-          )}
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setShowGuide(true)}
+              >
+                <MaterialCommunityIcons name="help-circle" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
         </View>
       ) : (
         <View style={styles.previewContainer}>

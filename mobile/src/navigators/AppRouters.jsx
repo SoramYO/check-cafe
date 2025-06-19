@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AuthNavigator from "./AuthNavigator";
 import MainNavigatorCustomer from "./customer/MainNavigatorCustomer";
-// import MainNavigatorStaff from "./staff/MainNavigatorStaff";
 import { addAuth, authSelector, removeAuth } from "../redux/reducers/authReducer";
 import { useSelector, useDispatch } from "react-redux";
 import { useAsyncStorage } from "@react-native-async-storage/async-storage";
@@ -9,6 +8,8 @@ import MainNavigatorStaff from "./staff/MainNavigatorStaff";
 import userAPI from "../services/userAPI";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setLogoutHandler } from "../services/axiosClient";
+import { View, Text, Button } from "react-native";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const AppRouters = () => {
   const auth = useSelector(authSelector);
@@ -17,6 +18,8 @@ const AppRouters = () => {
     useAsyncStorage("userData");
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
+
+
 
   useEffect(() => {
     // Set up logout handler for axios interceptor
@@ -29,24 +32,22 @@ const AppRouters = () => {
 
   const handleGetData = async () => {
     const token = await getToken();
+    
     if (token && token !== 'null') {
       try {
-        console.log("Attempting to fetch user profile...");
         const response = await userAPI.HandleUser("/profile");
         
         if (response.status === 200) {
           const user = response.data.user;
+          
           dispatch(addAuth({ token, user }));
           await setUserData(JSON.stringify(user));
-          console.log("✅ Profile loaded successfully");
         }
-      } catch (error) {
-        console.error("Lỗi khi gọi /profile để lấy user:", error);
+      } catch (error) { 
         
         // Check if it's a 401 error (token expired/invalid) or 530 error (server unreachable)
         if (error.response?.status === 401 || error.response?.status === 530) {
           const errorType = error.response?.status === 401 ? "Token expired or invalid" : "Server unreachable (530)";
-          console.log(`${errorType}, clearing auth data and logging out`);
           
           // Clear invalid token and user data
           await setToken(null);
@@ -62,26 +63,27 @@ const AppRouters = () => {
               const user = JSON.parse(userData);
               if (user && (user._id || user.id)) {
                 dispatch(addAuth({ token, user }));
-                console.log("Using cached user data as fallback");
               } else {
-                console.log("Invalid cached user data, clearing token");
                 await setToken(null);
               }
             }
           } catch (cacheError) {
-            console.error("Failed to load cached user data:", cacheError);
             // Clear invalid token
             await setToken(null);
           }
         }
       }
     } else {
-      console.log("No valid token found");
     }
+    
     setIsLoading(false);
   };
 
-  if (isLoading) return null;
+
+
+  if (isLoading) {
+    return null;
+  }
   
   if (!auth.token) {
     return <AuthNavigator />;
@@ -89,12 +91,41 @@ const AppRouters = () => {
 
   // Ensure user has valid data before routing
   if (!auth.user || (!auth.user._id && !auth.user.id)) {
-    console.log("Invalid user data, redirecting to auth");
     return <AuthNavigator />;
   }
 
-  if (auth.user.role === "CUSTOMER") return <MainNavigatorCustomer />;
-  if (auth.user.role === "STAFF") return <MainNavigatorStaff />;
+  if (auth.user.role === "CUSTOMER") {
+    return <MainNavigatorCustomer />;
+  }
+  if (auth.user.role === "STAFF") {
+    return <MainNavigatorStaff />;
+  }
+
+  // Nếu là SHOP_OWNER thì hiển thị thông báo không có quyền truy cập
+  if (auth.user.role === "SHOP_OWNER") {
+    const handleLogoutAndGoToLogin = async () => {
+      try {
+        await dispatch(removeAuth()); // Xóa Redux auth
+        // Xóa AsyncStorage token/userData nếu cần
+        await AsyncStorage.removeItem("token");
+        await AsyncStorage.removeItem("userData");
+        navigation.navigate('Login');
+      } catch (e) {
+        // fallback
+        navigation.navigate('Login');
+      }
+    };
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={64} color="#E53935" />
+        <Text style={{ fontSize: 20, color: '#E53935', fontWeight: 'bold', marginTop: 16 }}>Bạn không có quyền truy cập</Text>
+        <Text style={{ fontSize: 16, color: '#333', marginTop: 8, textAlign: 'center', maxWidth: 300 }}>
+          Vui lòng đăng nhập bằng tài khoản khách hàng để sử dụng ứng dụng này.
+        </Text>
+        <Button style={{ marginTop: 16 }} title="Đăng nhập" onPress={handleLogoutAndGoToLogin} />
+      </View>
+    );
+  }
 
   return <AuthNavigator />;
 };

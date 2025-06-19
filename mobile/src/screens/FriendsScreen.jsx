@@ -69,10 +69,8 @@ export default function FriendsScreen({ route }) {
   const loadFriends = async () => {
     try {
       const response = await friendAPI.HandleFriend('?page=1&limit=20');
-      console.log('Friends response:', response);
       if (response.data) {
         const friends = response.data.friends || response.data || [];
-        console.log('Friends data:', friends);
         setFriends(friends);
       }
     } catch (error) {
@@ -99,7 +97,6 @@ export default function FriendsScreen({ route }) {
   const loadSuggestions = async () => {
     try {
       const response = await friendAPI.HandleFriend('/suggestions?limit=10');
-      console.log('Suggestions response:', response);
       if (response.data) {
         const suggestions = response.data.suggestions || response.data || [];
         setSuggestions(suggestions);
@@ -118,12 +115,10 @@ export default function FriendsScreen({ route }) {
     setSearching(true);
     try {
       const response = await friendAPI.HandleFriend(`/search?q=${encodeURIComponent(query.trim())}&page=1&limit=20`);
-      console.log('Search response:', response);
 
       if (response.data) {
         // Handle different response formats
         const users = response.data.users || response.data || [];
-        console.log('Search users:', users);
         setSearchResults(users);
       }
     } catch (error) {
