@@ -87,13 +87,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.phuuthanh2003.checkafe'
+    namespace 'com.shiroyo.checkafe'
     defaultConfig {
-        applicationId 'com.phuuthanh2003.checkafe'
+        applicationId 'com.shiroyo.checkafe'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 6
+        versionName "1.0.4"
     }
     signingConfigs {
         debug {
@@ -101,6 +101,12 @@ android {
             storePassword 'android'
             keyAlias 'androiddebugkey'
             keyPassword 'android'
+        }
+        release {
+            storeFile file('release.keystore')
+            storePassword 'checkcafe123'
+            keyAlias 'checkcafe'
+            keyPassword 'checkcafe123'
         }
     }
     buildTypes {
@@ -110,9 +116,9 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
-            minifyEnabled enableProguardInReleaseBuilds
+            minifyEnabled true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             crunchPngs (findProperty('android.enablePngCrunchInReleaseBuilds')?.toBoolean() ?: true)
         }
@@ -173,37 +179,5 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
-    }
-}
-
-// Add task to copy release APK to landing-page/download folder
-tasks.whenTaskAdded { task ->
-    if (task.name == 'assembleRelease') {
-        task.doLast {
-            def releaseApk = file("${project.buildDir}/outputs/apk/release/app-release.apk")
-            def downloadDir = file("${project.rootDir}/../../landing-page/download")
-            def targetApk = file("${downloadDir}/app-release.apk")
-            
-            if (!downloadDir.exists()) {
-                downloadDir.mkdirs()
-                println "Created download directory at ${downloadDir.absolutePath}"
-            }
-            
-            if (releaseApk.exists()) {
-                if (targetApk.exists()) {
-                    println "Existing APK found at ${targetApk.absolutePath}"
-                    println "Replacing with new APK..."
-                    targetApk.delete()
-                }
-                
-                copy {
-                    from releaseApk
-                    into downloadDir
-                }
-                println "APK has been copied to ${downloadDir.absolutePath}"
-            } else {
-                println "Release APK not found at ${releaseApk.absolutePath}"
-            }
-        }
     }
 }

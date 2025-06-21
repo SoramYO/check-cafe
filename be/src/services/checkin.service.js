@@ -13,11 +13,7 @@ const NotificationHelper = require("../utils/notification.helper");
 class CheckinService {
   // Tạo checkin mới
   createCheckin = async (req) => {
-    const session = await mongoose.startSession();
-
     try {
-      session.startTransaction();
-
       // Extract parameters from req
       const userId = req.user.userId;
       const { title, location, visibility, cafeId, tags } = req.body;
@@ -48,7 +44,7 @@ class CheckinService {
       const imageUrl = imageFile.path; // URL từ Cloudinary
       const imagePublicId = imageFile.filename; // Public ID từ Cloudinary
 
-      const newCheckin = await checkinModel.create([{
+      const newCheckin = await checkinModel.create({
         user_id: userId,
         title: title.trim(),
         image: imageUrl,
@@ -62,13 +58,11 @@ class CheckinService {
         visibility: visibility || "friends",
         cafe_id: cafeId || null,
         tags: parsedTags,
-      }], { session });
-
-      await session.commitTransaction();
+      });
 
       // Populate user info
       const populatedCheckin = await checkinModel
-        .findById(newCheckin[0]._id)
+        .findById(newCheckin._id)
         .populate('user_id', 'full_name avatar')
         .populate('cafe_id', 'name address');
 
@@ -90,10 +84,10 @@ class CheckinService {
           );
 
           if (friendIds.length > 0) {
-            const locationName = populatedCheckin.location?.name || 
-                               populatedCheckin.location?.address || 
-                               populatedCheckin.cafe_id?.name || 
-                               'một địa điểm';
+            const locationName = populatedCheckin.location?.name ||
+              populatedCheckin.location?.address ||
+              populatedCheckin.cafe_id?.name ||
+              'một địa điểm';
 
             await NotificationHelper.sendFriendCheckinNotification({
               friend_ids: friendIds,
@@ -114,12 +108,8 @@ class CheckinService {
       });
 
     } catch (error) {
-      await session.abortTransaction();
       console.error("Error creating checkin:", error);
       throw error;
-
-    } finally {
-      session.endSession();
     }
   };
 
@@ -369,7 +359,6 @@ class CheckinService {
         .skip(skip)
         .limit(limitNum);
 
-        console.log("Nearby checkins query:", checkins);
 
       return checkins.map(checkin => getInfoData({
         fields: ["_id", "title", "image", "location", "visibility", "cafe_id", "tags", "likes_count", "comments_count", "createdAt", "user_id"],
@@ -383,11 +372,7 @@ class CheckinService {
 
   // Like/Unlike checkin
   likeCheckin = async (req) => {
-    const session = await mongoose.startSession();
-
     try {
-      session.startTransaction();
-
       // Extract parameters from req
       const userId = req.user.userId;
       const { checkinId } = req.params;
@@ -398,7 +383,7 @@ class CheckinService {
       }
 
       // Kiểm tra checkin tồn tại
-      const checkin = await checkinModel.findById(checkinId).session(session);
+      const checkin = await checkinModel.findById(checkinId);
       if (!checkin) {
         throw new NotFoundError("Checkin not found");
       }
@@ -411,29 +396,34 @@ class CheckinService {
       const existingLike = await checkinLikeModel.findOne({
         user_id: userId,
         checkin_id: checkinId,
-      }).session(session);
+      });
 
       let isLiked = false;
 
       if (existingLike) {
-        // Unlike
-        await checkinLikeModel.findByIdAndDelete(existingLike._id).session(session);
-        await checkinModel.findByIdAndUpdate(
-          checkinId,
-          { $inc: { likes_count: -1 } },
-          { session }
-        );
+        // Unlike - thực hiện parallel để tăng performance
+        await Promise.all([
+          checkinLikeModel.findByIdAndDelete(existingLike._id),
+          checkinModel.findByIdAndUpdate(
+            checkinId,
+            { $inc: { likes_count: -1 } },
+            { new: true }
+          )
+        ]);
       } else {
-        // Like
-        await checkinLikeModel.create([{
-          user_id: userId,
-          checkin_id: checkinId,
-        }], { session });
-        await checkinModel.findByIdAndUpdate(
-          checkinId,
-          { $inc: { likes_count: 1 } },
-          { session }
-        );
+        // Like - thực hiện parallel để tăng performance
+        await Promise.all([
+          checkinLikeModel.create({
+            user_id: userId,
+            checkin_id: checkinId,
+          }),
+          checkinModel.findByIdAndUpdate(
+            checkinId,
+            { $inc: { likes_count: 1 } },
+            { new: true }
+          )
+        ]);
+        
         isLiked = true;
 
         // Gửi thông báo cho chủ checkin khi có người like (không gửi cho chính mình)
@@ -441,7 +431,7 @@ class CheckinService {
           try {
             // Lấy thông tin người like
             const liker = await userModel.findById(userId).select('full_name');
-            
+
             await NotificationHelper.sendCheckinLikeNotification({
               checkin_owner_id: checkin.user_id.toString(),
               liker_name: liker.full_name,
@@ -454,15 +444,11 @@ class CheckinService {
         }
       }
 
-      await session.commitTransaction();
-
       return { isLiked };
 
     } catch (error) {
-      await session.abortTransaction();
+      console.error("Error in likeCheckin:", error);
       throw error;
-    } finally {
-      session.endSession();
     }
   };
 
@@ -531,11 +517,7 @@ class CheckinService {
 
   // Comment checkin
   commentCheckin = async (req) => {
-    const session = await mongoose.startSession();
-
     try {
-      session.startTransaction();
-
       // Extract parameters from req
       const userId = req.user.userId;
       const { checkinId } = req.params;
@@ -551,7 +533,7 @@ class CheckinService {
       }
 
       // Kiểm tra checkin tồn tại
-      const checkin = await checkinModel.findById(checkinId).session(session);
+      const checkin = await checkinModel.findById(checkinId);
       if (!checkin) {
         throw new NotFoundError("Checkin not found");
       }
@@ -560,21 +542,25 @@ class CheckinService {
         throw new BadRequestError("Checkin is not active");
       }
 
-      // Tạo comment
-      const [newComment] = await checkinCommentModel.create([{
+      // Tạo comment trước
+      const newComment = await checkinCommentModel.create({
         user_id: userId,
         checkin_id: checkinId,
         comment: comment.trim(),
-      }], { session });
+      });
 
-      // Tăng comments_count
-      await checkinModel.findByIdAndUpdate(
-        checkinId,
-        { $inc: { comments_count: 1 } },
-        { session }
-      );
-
-      await session.commitTransaction();
+      // Tăng comments_count - nếu fail cũng không critical
+      try {
+        await checkinModel.findByIdAndUpdate(
+          checkinId,
+          { $inc: { comments_count: 1 } },
+          { new: true }
+        );
+      } catch (countError) {
+        console.error("Error updating comments_count:", countError);
+        // Log lỗi nhưng không throw để không ảnh hưởng đến việc tạo comment
+        // Có thể implement background job để sync lại count sau
+      }
 
       // Populate user info
       const populatedComment = await checkinCommentModel
@@ -583,25 +569,27 @@ class CheckinService {
 
       // Gửi thông báo cho chủ checkin khi có người comment (không gửi cho chính mình)
       if (checkin.user_id.toString() !== userId.toString()) {
-        try {
-          // Lấy thông tin người comment
-          const commenter = await userModel.findById(userId).select('full_name');
-          
-          // Tạo preview của comment (tối đa 50 ký tự)
-          const commentPreview = comment.trim().length > 50 
-            ? comment.trim().substring(0, 50) + "..."
-            : comment.trim();
+        // Chạy notification async để không block response
+        setImmediate(async () => {
+          try {
+            // Lấy thông tin người comment
+            const commenter = await userModel.findById(userId).select('full_name');
 
-          await NotificationHelper.sendCheckinCommentNotification({
-            checkin_owner_id: checkin.user_id.toString(),
-            commenter_name: commenter.full_name,
-            comment_preview: commentPreview,
-            checkin_id: checkinId,
-          });
-        } catch (notificationError) {
-          console.error("Error sending checkin comment notification:", notificationError);
-          // Không throw error để không ảnh hưởng đến flow chính
-        }
+            // Tạo preview của comment (tối đa 50 ký tự)
+            const commentPreview = comment.trim().length > 50
+              ? comment.trim().substring(0, 50) + "..."
+              : comment.trim();
+
+            await NotificationHelper.sendCheckinCommentNotification({
+              checkin_owner_id: checkin.user_id.toString(),
+              commenter_name: commenter.full_name,
+              comment_preview: commentPreview,
+              checkin_id: checkinId,
+            });
+          } catch (notificationError) {
+            console.error("Error sending checkin comment notification:", notificationError);
+          }
+        });
       }
 
       return getInfoData({
@@ -610,20 +598,14 @@ class CheckinService {
       });
 
     } catch (error) {
-      await session.abortTransaction();
+      console.error("Error in commentCheckin:", error);
       throw error;
-    } finally {
-      session.endSession();
     }
   };
 
   // Xóa checkin
   deleteCheckin = async (req) => {
-    const session = await mongoose.startSession();
-
     try {
-      session.startTransaction();
-
       // Extract parameters from req
       const userId = req.user.userId;
       const { checkinId } = req.params;
@@ -634,7 +616,7 @@ class CheckinService {
       }
 
       // Kiểm tra checkin tồn tại và quyền sở hữu
-      const checkin = await checkinModel.findById(checkinId).session(session);
+      const checkin = await checkinModel.findById(checkinId);
       if (!checkin) {
         throw new NotFoundError("Checkin not found");
       }
@@ -647,22 +629,38 @@ class CheckinService {
         throw new BadRequestError("Checkin is already deleted");
       }
 
-      // Soft delete
+      // Soft delete checkin
       await checkinModel.findByIdAndUpdate(
         checkinId,
         { is_active: false },
-        { session }
+        { new: true }
       );
 
-      await session.commitTransaction();
+      // Optional: Cleanup related data asynchronously (không block response)
+      setImmediate(async () => {
+        try {
+          // Soft delete related likes và comments nếu cần
+          await Promise.all([
+            checkinLikeModel.updateMany(
+              { checkin_id: checkinId },
+              { is_active: false }
+            ),
+            checkinCommentModel.updateMany(
+              { checkin_id: checkinId },
+              { is_active: false }
+            )
+          ]);
+        } catch (cleanupError) {
+          console.error("Error cleaning up related checkin data:", cleanupError);
+          // Log error nhưng không affect main operation
+        }
+      });
 
       return { message: "Checkin deleted successfully" };
 
     } catch (error) {
-      await session.abortTransaction();
+      console.error("Error in deleteCheckin:", error);
       throw error;
-    } finally {
-      session.endSession();
     }
   };
 

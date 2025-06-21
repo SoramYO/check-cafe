@@ -174,7 +174,6 @@ class FriendService {
       const userId = req.user.userId;
       const { userId: targetUserId } = req.params;
 
-      console.log("Unfriend request received:", { userId, targetUserId });
 
       // Tìm mối quan hệ bạn bè
       const friendship = await friendModel.findOne({

@@ -19,8 +19,8 @@
     "@reduxjs/toolkit": "^2.8.1",
     "axios": "^1.9.0",
     "date-fns": "^4.1.0",
-    "expo": "~53.0.9",
-    "expo-camera": "^16.1.6",
+    "expo": "53.0.12",
+    "expo-camera": "~16.1.8",
     "expo-crypto": "^14.1.5",
     "expo-device": "^7.1.4",
     "expo-font": "^13.3.1",
@@ -33,22 +33,30 @@
     "expo-status-bar": "~2.2.3",
     "query-string": "^9.1.2",
     "react": "19.0.0",
-    "react-native": "0.79.2",
-    "react-native-gesture-handler": "^2.25.0",
+    "react-native": "0.79.4",
+    "react-native-gesture-handler": "~2.24.0",
     "react-native-maps": "^1.20.1",
     "react-native-qrcode-svg": "^6.3.15",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-screens": "~4.10.0",
+    "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-toast-message": "^2.3.0",
     "react-redux": "^9.2.0",
-    "sonner-native": "^0.19.1"
+    "sonner-native": "^0.19.1",
+    "expo-system-ui": "~5.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~19.0.10",
     "typescript": "~5.8.3"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
   },
   "private": true
 }
