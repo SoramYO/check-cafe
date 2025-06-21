@@ -24,6 +24,7 @@
     "expo-crypto": "^14.1.5",
     "expo-device": "^7.1.4",
     "expo-font": "^13.3.1",
+    "expo-image-picker": "^16.1.4",
     "expo-linear-gradient": "^14.1.4",
     "expo-location": "^18.1.5",
     "expo-media-library": "^17.1.6",
@@ -31,6 +32,7 @@
     "expo-speech": "^13.1.7",
     "expo-splash-screen": "^0.30.8",
     "expo-status-bar": "~2.2.3",
+    "expo-system-ui": "~5.0.9",
     "query-string": "^9.1.2",
     "react": "19.0.0",
     "react-native": "0.79.4",
@@ -43,8 +45,7 @@
     "react-native-svg": "15.11.2",
     "react-native-toast-message": "^2.3.0",
     "react-redux": "^9.2.0",
-    "sonner-native": "^0.19.1",
-    "expo-system-ui": "~5.0.9"
+    "sonner-native": "^0.19.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

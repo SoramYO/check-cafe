@@ -44,6 +44,12 @@
           "color": "#7a5545",
           "sounds": ["./assets/notification_sound.wav"]
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ứng dụng cần quyền truy cập thư viện ảnh để bạn có thể chọn ảnh cho check-in."
+        }
       ]
     ]
   }
