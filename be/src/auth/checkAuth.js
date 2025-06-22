@@ -36,10 +36,17 @@ const checkAuth = async (req, res, next) => {
       // Decode accessToken nếu hợp lệ
       const decoded = JWT.verify(accessToken, accessTokenKey);
       req.user = {
+        _id: decoded.userId, // Thêm _id để consistent với MongoDB ObjectId
         userId: decoded.userId,
         email: decoded.email,
         role: decoded.role,
       };
+
+      // Thêm shop_id nếu có (cho SHOP_OWNER)
+      if (decoded.shop_id) {
+        req.user.shop_id = decoded.shop_id;
+      }
+      
       next();
     } catch (error) {
       // Nếu accessToken hết hạn và có refreshToken
@@ -93,9 +100,11 @@ const refreshTokenHandler = async (refreshToken) => {
 
     return {
       user: {
+        _id: decodedRefresh.userId, // Thêm _id để consistent
         userId: decodedRefresh.userId,
         email: decodedRefresh.email,
         role: decodedRefresh.role,
+        shop_id: decodedRefresh.shop_id, // Thêm shop_id nếu có
       },
       accessToken: newTokens.accessToken,
       refreshToken: newTokens.refreshToken,
@@ -153,22 +162,25 @@ const checkShopOwnership = async (req, res, next) => {
     const { shopId } = req.params;
     const { userId, role } = req.user;
 
-  if (role === USER_ROLE.ADMIN) return next();
-  const shop = await shopModel.findById(shopId);
-  if (!shop) {
-    return res.status(404).json({
-      status: "error",
-      code: 404,
-      message: "Shop not found",
-    });
-  }
-  if (shop.owner_id.toString() !== userId) {
+    if (role === USER_ROLE.ADMIN) return next();
+    
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      return res.status(404).json({
+        status: "error",
+        code: 404,
+        message: "Shop not found",
+      });
+    }
+    
+    if (shop.owner_id.toString() !== userId) {
       return res.status(403).json({
         status: "error",
         code: 403,
         message: "You are not authorized to perform this action",
       });
     }
+    
     next();
   } catch (error) {
     return res.status(403).json({
@@ -179,4 +191,33 @@ const checkShopOwnership = async (req, res, next) => {
   }
 };
 
-module.exports = { checkAuth, checkRole, checkShopOwnership };
+// Middleware kiểm tra shop owner có shop_id trong token
+const checkShopOwnerHasShop = (req, res, next) => {
+  try {
+    const { role, shop_id } = req.user;
+    
+    if (role === USER_ROLE.ADMIN) {
+      return next(); // Admin luôn được phép
+    }
+    
+    if (role === USER_ROLE.SHOP_OWNER) {
+      if (!shop_id) {
+        return res.status(403).json({
+          status: "error",
+          code: 403,
+          message: "Shop owner must have a shop assigned",
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    return res.status(403).json({
+      status: "error",
+      code: 403,
+      message: "Authorization failed",
+    });
+  }
+};
+
+module.exports = { checkAuth, checkRole, checkShopOwnership, checkShopOwnerHasShop };
