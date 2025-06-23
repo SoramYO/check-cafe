@@ -89,22 +89,48 @@ export default function RegisterScreen({ navigation }) {
       return false;
     }
 
-    // Validate phone format (Vietnamese phone numbers)
+    // Validate phone format (Vietnamese phone numbers) - enhanced with more specific message
     const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
     if (!phoneRegex.test(phone)) {
       Toast.show({
         type: "error",
         text1: "Số điện thoại không hợp lệ",
+        text2: "Vui lòng nhập số điện thoại Việt Nam (10 số, bắt đầu bằng 03, 05, 07, 08, 09)",
       });
       return false;
     }
 
+    // Validate password strength
+    if (password.length < 6) {
+      Toast.show({
+        type: "error",
+        text1: "Mật khẩu quá ngắn",
+        text2: "Mật khẩu phải có ít nhất 6 ký tự",
+      });
+      return false;
+    }
+
+    // Check for password complexity
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
+      Toast.show({
+        type: "error",
+        text1: "Mật khẩu chưa đủ mạnh",
+        text2: "Mật khẩu phải chứa chữ hoa, chữ thường và số",
+      });
+      return false;
+    }
 
     // Validate password confirmation
     if (password !== confirmPassword) {
       Toast.show({
         type: "error",
         text1: "Mật khẩu xác nhận không khớp",
+        text2: "Vui lòng nhập lại mật khẩu xác nhận",
       });
       return false;
     }

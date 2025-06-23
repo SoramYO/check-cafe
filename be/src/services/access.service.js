@@ -55,7 +55,7 @@ class AccessService {
       // Step 5: Trả về kết quả
       return {
         user: getInfoData({
-          fields: ["_id", "full_name", "email", "role"],
+          fields: ["_id", "full_name", "email", "role", "phone"],
           object: newUser,
         }),
         tokens,
