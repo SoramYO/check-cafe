@@ -9,7 +9,7 @@ const { BadRequestError } = require("../configs/error.response");
 const { createTokenPair } = require("../auth/jwt");
 
 class AccessService {
-  signUp = async ({ full_name, email, password }) => {
+  signUp = async ({ full_name, email, password, phone }) => {
     // Step 1: Check if email exists
     const existingUser = await userModel.findOne({ email });
     if (existingUser) {
@@ -23,6 +23,7 @@ class AccessService {
       email,
       password: passwordHash,
       role: USER_ROLE.CUSTOMER,
+      phone,
     });
 
     if (newUser) {
