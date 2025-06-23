@@ -176,6 +176,61 @@ class AdminController {
       next(error);
     }
   };
+
+  updateUserById = async (req, res, next) => {
+    try {
+      const result = await adminService.updateUserById(req.params.id, req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteUserById = async (req, res, next) => {
+    try {
+      const result = await adminService.deleteUserById(req.params.id);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Reports
+  getUserReports = async (req, res, next) => {
+    try {
+      const result = await adminService.getUserReports(req.query);
+      new OK({ message: "Get user reports successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getShopReports = async (req, res, next) => {
+    try {
+      const result = await adminService.getShopReports(req.query);
+      new OK({ message: "Get shop reports successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOrderReports = async (req, res, next) => {
+    try {
+      const result = await adminService.getOrderReports(req.query);
+      new OK({ message: "Get order reports successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getRevenueReports = async (req, res, next) => {
+    try {
+      const result = await adminService.getRevenueReports(req.query);
+      new OK({ message: "Get revenue reports successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new AdminController();
