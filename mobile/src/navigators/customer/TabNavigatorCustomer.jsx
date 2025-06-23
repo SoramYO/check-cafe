@@ -6,9 +6,51 @@ import BookingsScreen from "../../screens/BookingsScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ProfileScreen from "../../screens/ProfileScreen";
 import CheckinListScreen from "../../screens/CheckinListScreen";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 
 const TabNavigatorCustomer = () => {
   const Tab = createBottomTabNavigator();
+
+  const CustomCheckinButton = ({ children, onPress }) => (
+    <TouchableOpacity
+      style={styles.customCheckinButton}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={styles.outerBorder}>
+        <View style={styles.innerCircle}>{children}</View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const styles = StyleSheet.create({
+    customCheckinButton: {
+      top: -18,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    outerBorder: {
+      width: 74,
+      height: 74,
+      borderRadius: 37,
+      backgroundColor: "#bfa08a", // cafe sữa border
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    innerCircle: {
+      width: 62,
+      height: 62,
+      borderRadius: 31,
+      backgroundColor: "#7a5545",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+  });
 
   return (
     <Tab.Navigator
@@ -23,7 +65,8 @@ const TabNavigatorCustomer = () => {
           } else if (route.name === "Map") {
             iconName = focused ? "map" : "map-outline";
           } else if (route.name === "Checkin") {
-            iconName = focused ? "camera" : "camera-outline";
+            // handled below
+            return null;
           } else if (route.name === "Bookings") {
             iconName = focused ? "calendar-check" : "calendar-check-outline";
           } else if (route.name === "Profile") {
@@ -52,7 +95,22 @@ const TabNavigatorCustomer = () => {
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} />
       <Tab.Screen name="Map" component={MapScreen} />
-      <Tab.Screen name="Checkin" component={CheckinListScreen} />
+      <Tab.Screen
+        name="Checkin"
+        component={CheckinListScreen}
+        options={{
+          tabBarButton: (props) => (
+            <CustomCheckinButton {...props}>
+              <MaterialCommunityIcons
+                name={props.accessibilityState?.selected ? "camera" : "camera-outline"}
+                size={36}
+                color="#fff"
+              />
+            </CustomCheckinButton>
+          ),
+          tabBarLabel: "",
+        }}
+      />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
