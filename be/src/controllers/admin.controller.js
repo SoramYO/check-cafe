@@ -176,6 +176,24 @@ class AdminController {
       next(error);
     }
   };
+
+  updateUserById = async (req, res, next) => {
+    try {
+      const result = await adminService.updateUserById(req.params.id, req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteUserById = async (req, res, next) => {
+    try {
+      const result = await adminService.deleteUserById(req.params.id);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new AdminController();

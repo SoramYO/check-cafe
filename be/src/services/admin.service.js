@@ -843,6 +843,111 @@ class AdminService {
       };
     }
   };
+
+  updateUserById = async (id, updateData) => {
+    try {
+      // Check if user exists
+      const existingUser = await userModel.findById(id);
+      if (!existingUser) {
+        return {
+          code: "404",
+          message: "User not found",
+          status: "error",
+        };
+      }
+
+      // Validate role if provided
+      if (updateData.role) {
+        const validRoles = ["ADMIN", "SHOP_OWNER", "CUSTOMER"];
+        if (!validRoles.includes(updateData.role)) {
+          return {
+            code: "400",
+            message: "Invalid role",
+            status: "error",
+          };
+        }
+      }
+
+      // Only allow updating specific fields
+      const allowedFields = ['full_name', 'role', 'is_active', 'phone'];
+      const safeUpdateData = {};
+      
+      allowedFields.forEach(field => {
+        if (updateData[field] !== undefined) {
+          safeUpdateData[field] = updateData[field];
+        }
+      });
+
+      // Validate is_active is boolean if provided
+      if (safeUpdateData.is_active !== undefined && typeof safeUpdateData.is_active !== 'boolean') {
+        return {
+          code: "400",
+          message: "is_active must be a boolean value",
+          status: "error",
+        };
+      }
+
+      // Update user
+      const updatedUser = await userModel.findByIdAndUpdate(
+        id,
+        safeUpdateData,
+        { new: true, runValidators: true }
+      ).select("-password");
+
+      return {
+        code: "200",
+        status: 200,
+        metadata: {
+          user: updatedUser
+        },
+        message: "User updated successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  deleteUserById = async (id) => {
+    try {
+      // Check if user exists
+      const existingUser = await userModel.findById(id);
+      if (!existingUser) {
+        return {
+          code: "404",
+          message: "User not found",
+          status: "error",
+        };
+      }
+
+      // Don't allow deleting admin users
+      if (existingUser.role === "ADMIN") {
+        return {
+          code: "403",
+          message: "Cannot delete admin users",
+          status: "error",
+        };
+      }
+
+      // Soft delete - set is_active to false instead of actually deleting
+      await userModel.findByIdAndUpdate(id, { is_active: false });
+
+      return {
+        code: "200",
+        status: 200,
+        message: "User deleted successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
 }
 
 module.exports = new AdminService();

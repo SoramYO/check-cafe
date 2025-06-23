@@ -14,6 +14,8 @@ router.use(checkRole([USER_ROLE.ADMIN]));
 router.get("/users", adminController.getUsers);
 router.get("/users/:id", adminController.getUserById);
 router.put("/users", adminController.manageUserAccount);
+router.put("/users/:id", adminController.updateUserById);
+router.delete("/users/:id", adminController.deleteUserById);
 router.post("/users", adminController.createUser);
 
 // Dashboard Stats
