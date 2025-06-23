@@ -162,18 +162,18 @@ const checkShopOwnership = async (req, res, next) => {
     const { shopId } = req.params;
     const { userId, role } = req.user;
 
-    if (role === USER_ROLE.ADMIN) return next();
+  if (role === USER_ROLE.ADMIN) return next();
     
-    const shop = await shopModel.findById(shopId);
-    if (!shop) {
-      return res.status(404).json({
-        status: "error",
-        code: 404,
-        message: "Shop not found",
-      });
-    }
+  const shop = await shopModel.findById(shopId);
+  if (!shop) {
+    return res.status(404).json({
+      status: "error",
+      code: 404,
+      message: "Shop not found",
+    });
+  }
     
-    if (shop.owner_id.toString() !== userId) {
+  if (shop.owner_id.toString() !== userId) {
       return res.status(403).json({
         status: "error",
         code: 403,

@@ -419,7 +419,7 @@ class DiscountService {
                     "usage_limit", "used_count", "user_usage_limit", "minimum_order_value",
                     "maximum_discount_amount", "start_date", "end_date", "is_active",
                     "created_by", "creator_type", "createdAt"
-                ]));
+            ]));
 
             if (!discount) {
                 throw new NotFoundError(DISCOUNT_MESSAGE.DISCOUNT_NOT_FOUND);
