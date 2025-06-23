@@ -16,8 +16,24 @@ class AdvertisementService {
       search,
     } = req.query;
 
+    // Lấy thời gian hiện tại
+    const currentDate = new Date();
+
     const query = {
       status: "Approved",
+      $or: [
+        // Quảng cáo không có giới hạn thời gian (start_date và end_date đều null)
+        { start_date: null, end_date: null },
+        // Quảng cáo chỉ có start_date, không có end_date
+        { start_date: { $lte: currentDate }, end_date: null },
+        // Quảng cáo chỉ có end_date, không có start_date
+        { start_date: null, end_date: { $gte: currentDate } },
+        // Quảng cáo có cả start_date và end_date, đang trong khoảng thời gian
+        {
+          start_date: { $lte: currentDate },
+          end_date: { $gte: currentDate }
+        }
+      ]
     };
 
     if (search) {
@@ -271,6 +287,65 @@ class AdvertisementService {
     } catch (error) {
       throw new BadRequestError(error.message || "Failed to delete advertisement");
     }
+  };
+  getAdvertisementsMobile = async (req) => {
+    const { page = 1, limit = 10, search, sortBy = "createdAt", sortOrder = "desc" } = req.query;
+    
+    // Lấy thời gian hiện tại
+    const currentDate = new Date();
+
+    const query = {
+      status: "Approved",
+      $or: [
+        // Quảng cáo không có giới hạn thời gian (start_date và end_date đều null)
+        { start_date: null, end_date: null },
+        // Quảng cáo chỉ có start_date, không có end_date
+        { start_date: { $lte: currentDate }, end_date: null },
+        // Quảng cáo chỉ có end_date, không có start_date
+        { start_date: null, end_date: { $gte: currentDate } },
+        // Quảng cáo có cả start_date và end_date, đang trong khoảng thời gian
+        {
+          start_date: { $lte: currentDate },
+          end_date: { $gte: currentDate }
+        }
+      ]
+    };
+
+    if (search) {
+      query.title = { $regex: search, $options: "i" };
+    }
+
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    const paginateOptions = {
+      model: advertisementModel,
+      query,
+      page,
+      limit,
+      sort,
+      search,
+      searchFields: ["title"],
+      select: getSelectData([
+        "_id",
+        "title",
+        "subtitle",
+        "description",
+        "features",
+        "image",
+        "redirect_url",
+        "type",
+        "shop_id",
+        "start_date",
+        "end_date",
+        "status",
+        "createdAt",
+        "updatedAt",
+      ]),
+    };
+
+    const advertisements = await getPaginatedData(paginateOptions);
+
+    return advertisements
   };
 }
 

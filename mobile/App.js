@@ -11,6 +11,7 @@ import { Provider } from "react-redux";
 import { LocationProvider } from "./src/context/LocationContext";
 import { ShopProvider } from "./src/context/ShopContext";
 import { AnalyticsProvider } from "./src/context/AnalyticsProvider";
+import { PremiumProvider } from "./src/context/PremiumContext";
 import "react-native-reanimated";
 import Toast from "react-native-toast-message";
 
@@ -25,15 +26,17 @@ export default function App() {
       <Provider store={store}>
         <SafeAreaProvider style={styles.container}>
           <Toaster />
-          <AnalyticsProvider>
-            <ShopProvider>
-              <LocationProvider>
-                <NavigationContainer>
-                  <AppRouters />
-                </NavigationContainer>
-              </LocationProvider>
-            </ShopProvider>
-          </AnalyticsProvider>
+          <PremiumProvider>
+            <AnalyticsProvider>
+              <ShopProvider>
+                <LocationProvider>
+                  <NavigationContainer>
+                    <AppRouters />
+                  </NavigationContainer>
+                </LocationProvider>
+              </ShopProvider>
+            </AnalyticsProvider>
+          </PremiumProvider>
           <Toast visibilityTime={3000} />
         </SafeAreaProvider>
       </Provider>

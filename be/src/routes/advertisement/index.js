@@ -15,6 +15,9 @@ router.post(
   advertisementController.createAdvertisement
 );
 router.get("/", advertisementController.getAdvertisements);
+
+router.get("/mobile", advertisementController.getAdvertisementsMobile);
+
 router.get("/:advertisementId", advertisementController.getAdvertisementById);
 
 router.put("/:advertisementId", advertisementController.updateAdvertisement);

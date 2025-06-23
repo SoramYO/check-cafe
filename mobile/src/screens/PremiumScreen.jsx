@@ -8,10 +8,12 @@ import QRCode from 'react-native-qrcode-svg';
 import userAPI from '../services/userAPI';
 import Toast from 'react-native-toast-message';
 import paymentAPI from '../services/paymentAPI';
+import { usePremium } from '../context/PremiumContext';
 import Header from '../components/Header';
 
 export default function PremiumScreen() {
   const navigation = useNavigation();
+  const { refreshPremiumStatus } = usePremium();
   const [packages, setPackages] = useState([]);
   const [currentPackage, setCurrentPackage] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
@@ -56,6 +58,14 @@ export default function PremiumScreen() {
             });
             resetPaymentStates();
             fetchData();
+            
+            // Refresh premium status in context
+            await refreshPremiumStatus();
+            
+            // Navigate back after successful payment
+            setTimeout(() => {
+              navigation.goBack();
+            }, 2000);
           } else if (response.data.status === "failed") {
             Toast.show({
               type: 'error',
