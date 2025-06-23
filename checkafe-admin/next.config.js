@@ -30,10 +30,14 @@ const nextConfig = {
   
   // API rewrites for proxy
   async rewrites() {
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'http://backend:3000' 
+      : 'http://localhost:3000';
+    
     return [
       {
         source: '/api/:path*',
-        destination: `http://backend:3000/api/:path*`,
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

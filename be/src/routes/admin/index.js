@@ -14,6 +14,8 @@ router.use(checkRole([USER_ROLE.ADMIN]));
 router.get("/users", adminController.getUsers);
 router.get("/users/:id", adminController.getUserById);
 router.put("/users", adminController.manageUserAccount);
+router.put("/users/:id", adminController.updateUserById);
+router.delete("/users/:id", adminController.deleteUserById);
 router.post("/users", adminController.createUser);
 
 // Dashboard Stats
@@ -21,6 +23,13 @@ router.get("/stats", adminController.getDashboardStats);
 
 // Shop owners without shops
 router.get("/shop-owners-without-shops", adminController.getShopOwnersWithoutShops);
+
+// Reports API
+router.get("/reports/users", adminController.getUserReports);
+router.get("/reports/shops", adminController.getShopReports);
+router.get("/reports/orders", adminController.getOrderReports);
+router.get("/reports/revenue", adminController.getRevenueReports);
+
 
 // Shop management by admin
 const shopController = require("../../controllers/shop.controller");
@@ -42,6 +51,7 @@ router.get(
   checkAdmin,
   adminController.getOverviewStats
 );
+
 
 
 // Account Management

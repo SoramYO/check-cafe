@@ -25,24 +25,19 @@ interface EditUserModalProps {
 
 interface EditUserForm {
   full_name: string
-  email: string
   role: "ADMIN" | "CUSTOMER" | "SHOP_OWNER"
   is_active: boolean
   phone?: string
-  vip_status?: boolean
-  points?: number
 }
 
 export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModalProps) {
   const [loading, setLoading] = useState(false)
+  const [userEmail, setUserEmail] = useState("")
   const [formData, setFormData] = useState<EditUserForm>({
     full_name: "",
-    email: "",
     role: "CUSTOMER",
     is_active: true,
-    phone: "",
-    vip_status: false,
-    points: 0
+    phone: ""
   })
 
   useEffect(() => {
@@ -56,14 +51,12 @@ export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModa
       setLoading(true)
       const response = await authorizedAxiosInstance.get<UserDetailResponse>(`/v1/admin/users/${userId}`)
         const user = response.data
+        setUserEmail(user.email)
         setFormData({
           full_name: user.full_name,
-          email: user.email,
           role: user.role as "ADMIN" | "CUSTOMER" | "SHOP_OWNER",
           is_active: user.is_active,
-          phone: user.phone || "",
-          vip_status: user.vip_status || false,
-          points: user.points || 0
+          phone: user.phone || ""
         })
     
     } catch (error) {
@@ -98,13 +91,17 @@ export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModa
 
   const handleUpdateUser = async () => {
     try {
+      setLoading(true)
       const response = await authorizedAxiosInstance.put(`/v1/admin/users/${userId}`, formData)
-      if (response.data.status === 200) {
+      if (response.data.status === 200 || response.data.code === "200") {
         toast.success('Cập nhật người dùng thành công')
         onSuccess()
       }
     } catch (err: any) {
+      console.error('Error updating user:', err)
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật người dùng')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -120,6 +117,19 @@ export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModa
           <>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={userEmail}
+                  className="col-span-3"
+                  disabled
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="full_name" className="text-right">
                   Họ và tên
                 </Label>
@@ -132,27 +142,13 @@ export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModa
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  disabled
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="phone" className="text-right">
                   Số điện thoại
                 </Label>
                 <Input
                   id="phone"
                   name="phone"
-                  value={formData.phone}
+                  value={formData.phone || ""}
                   onChange={handleInputChange}
                   className="col-span-3"
                 />
@@ -176,19 +172,6 @@ export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModa
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="points" className="text-right">
-                  Điểm
-                </Label>
-                <Input
-                  id="points"
-                  name="points"
-                  type="number"
-                  value={formData.points}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="is_active" className="text-right">
                   Trạng thái
                 </Label>
@@ -203,27 +186,14 @@ export function EditUserModal({ userId, open, onClose, onSuccess }: EditUserModa
                   </Label>
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="vip_status" className="text-right">
-                  VIP
-                </Label>
-                <div className="flex items-center space-x-2 col-span-3">
-                  <Switch
-                    id="vip_status"
-                    checked={formData.vip_status}
-                    onCheckedChange={(checked) => handleSwitchChange('vip_status', checked)}
-                  />
-                  <Label htmlFor="vip_status">
-                    {formData.vip_status ? 'VIP' : 'Thường'}
-                  </Label>
-                </div>
-              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={onClose} disabled={loading}>
                 Hủy
               </Button>
-              <Button onClick={handleUpdateUser}>Lưu thay đổi</Button>
+              <Button onClick={handleUpdateUser} disabled={loading}>
+                {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Button>
             </DialogFooter>
           </>
         )}
