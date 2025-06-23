@@ -1,31 +1,220 @@
+'use client'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowUpRight, Download, Calendar, Filter } from "lucide-react"
+import { ArrowUpRight, Download, Calendar, Filter, TrendingUp, TrendingDown } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import AdminUserReportChart from "@/components/admin/admin-user-report-chart"
 import AdminShopReportChart from "@/components/admin/admin-shop-report-chart"
 import AdminRevenueReportChart from "@/components/admin/admin-revenue-report-chart"
 import AdminOrderReportChart from "@/components/admin/admin-order-report-chart"
+import { useState, useEffect } from "react"
+import authorizedAxiosInstance from "@/lib/axios"
+import { toast } from "sonner"
+
+interface ReportData {
+  summary: {
+    [key: string]: number
+  }
+  breakdown: {
+    [key: string]: number
+  }
+  charts: {
+    [key: string]: any[]
+  }
+  period: {
+    start: string
+    end: string
+    period: string
+  }
+}
+
+interface ReportsResponse {
+  status: number
+  message: string
+  data: ReportData
+}
 
 export default function ReportsPage() {
+  const [activeTab, setActiveTab] = useState("users")
+  const [period, setPeriod] = useState("this-month")
+  const [loading, setLoading] = useState(false)
+  const [userReports, setUserReports] = useState<ReportData | null>(null)
+  const [shopReports, setShopReports] = useState<ReportData | null>(null)
+  const [orderReports, setOrderReports] = useState<ReportData | null>(null)
+  const [revenueReports, setRevenueReports] = useState<ReportData | null>(null)
+  // Test function to check API accessibility
+  const testAdminAPI = async () => {
+    try {
+      console.log('Testing admin API access...')
+      const response = await authorizedAxiosInstance.get('/v1/admin/users?page=1&limit=1')
+      console.log('Admin API test successful:', response.data)
+      return true
+    } catch (error: any) {
+      console.log('Admin API test failed:', error.response?.data || error.message)
+      return false
+    }
+  }
+
+  // Fetch reports data
+  const fetchReports = async (reportType: string) => {
+    try {
+      setLoading(true)
+      
+      // Debug: Check if token exists
+      const token = localStorage.getItem('accessToken')
+      console.log('Access token:', token ? 'exists' : 'missing')
+      
+      // Test admin API access first
+      const apiAccessible = await testAdminAPI()
+      if (!apiAccessible) {
+        toast.error('Không có quyền truy cập API admin. Vui lòng đăng nhập lại.')
+        return
+      }
+      
+      console.log('Making request to:', `/v1/admin/reports/${reportType}`)
+      console.log('With params:', { period })
+      
+      const response = await authorizedAxiosInstance.get<ReportsResponse>(`/v1/admin/reports/${reportType}`, {
+        params: { period }
+      })
+      
+      if (response.data.status === 200) {
+        // Debug the response data
+        debugReportData(reportType, response.data.data)
+        
+        switch (reportType) {
+          case 'users':
+            setUserReports(response.data.data)
+            break
+          case 'shops':
+            setShopReports(response.data.data)
+            break
+          case 'orders':
+            setOrderReports(response.data.data)
+            break
+          case 'revenue':
+            setRevenueReports(response.data.data)
+            break
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching ${reportType} reports:`, error)
+      toast.error(`Có lỗi xảy ra khi tải báo cáo ${reportType}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch data when period changes or component mounts
+  useEffect(() => {
+    fetchReports(activeTab)
+  }, [period, activeTab])
+
+  // Safe number helper - ensures no NaN values are displayed
+  const safeNumber = (value: any): number => {
+    if (value === null || value === undefined || isNaN(Number(value))) {
+      console.warn('safeNumber: Converting invalid value to 0:', value, typeof value)
+      return 0
+    }
+    return Number(value)
+  }
+
+  // Debug helper to log data structure
+  const debugReportData = (reportType: string, data: any) => {
+    console.group(`🔍 Debug ${reportType} Reports`)
+    console.log('Raw data:', data)
+    
+    if (data?.summary) {
+      console.group('📊 Summary')
+      Object.entries(data.summary).forEach(([key, value]) => {
+        const isNaN_check = isNaN(Number(value))
+        const style = isNaN_check ? 'color: red; font-weight: bold' : 'color: green'
+        console.log(`%c${key}: ${value} (${typeof value}) ${isNaN_check ? '❌ NaN' : '✅ Valid'}`, style)
+      })
+      console.groupEnd()
+    }
+    
+    if (data?.breakdown) {
+      console.group('📈 Breakdown')
+      Object.entries(data.breakdown).forEach(([key, value]) => {
+        const isNaN_check = isNaN(Number(value))
+        const style = isNaN_check ? 'color: red; font-weight: bold' : 'color: green'
+        console.log(`%c${key}: ${value} (${typeof value}) ${isNaN_check ? '❌ NaN' : '✅ Valid'}`, style)
+      })
+      console.groupEnd()
+    }
+    
+    console.groupEnd()
+  }
+
+  // Format number with Vietnamese locale
+  const formatNumber = (num: number) => {
+    if (isNaN(num) || num === null || num === undefined) {
+      return '0'
+    }
+    return new Intl.NumberFormat('vi-VN').format(num)
+  }
+
+  // Format currency
+  const formatCurrency = (num: number) => {
+    if (isNaN(num) || num === null || num === undefined) {
+      return '0 ₫'
+    }
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(num)
+  }
+
+  // Growth indicator component
+  const GrowthIndicator = ({ value, isPercentage = true }: { value: number, isPercentage?: boolean }) => {
+    // Handle NaN, null, undefined values
+    const safeValue = isNaN(value) || value === null || value === undefined ? 0 : value
+    const isPositive = safeValue >= 0
+    const Icon = isPositive ? TrendingUp : TrendingDown
+    const colorClass = isPositive ? "text-green-500" : "text-red-500"
+    
+    return (
+      <p className={`text-xs ${colorClass} flex items-center`}>
+        <Icon className="mr-1 h-3 w-3" />
+        {isPositive ? '+' : ''}{safeValue.toFixed(1)}{isPercentage ? '%' : ''} so với kỳ trước
+      </p>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Báo cáo tổng quan</h1>
           <p className="text-gray-500">Xem báo cáo chi tiết về hoạt động của hệ thống ChecKafe.</p>
+          {(userReports?.period || shopReports?.period || orderReports?.period || revenueReports?.period) && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Kỳ báo cáo: {(() => {
+                const period = userReports?.period || shopReports?.period || orderReports?.period || revenueReports?.period;
+                if (period) {
+                  return new Date(period.start).toLocaleDateString('vi-VN') + ' - ' + new Date(period.end).toLocaleDateString('vi-VN');
+                }
+                return '';
+              })()}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <Button className="bg-primary hover:bg-primary-dark">
-            <Download className="mr-2 h-4 w-4" /> Xuất báo cáo
+          <Button 
+            className="bg-primary hover:bg-primary-dark"
+            disabled={loading}
+          >
+            <Download className="mr-2 h-4 w-4" /> 
+            {loading ? 'Đang tải...' : 'Xuất báo cáo'}
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex gap-2 w-full md:w-auto">
-          <Select defaultValue="this-month">
+          <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Thời gian" />
             </SelectTrigger>
@@ -49,364 +238,279 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="users">Người dùng</TabsTrigger>
           <TabsTrigger value="shops">Quán cà phê</TabsTrigger>
           <TabsTrigger value="orders">Đơn đặt chỗ</TabsTrigger>
-          <TabsTrigger value="revenue">Doanh thu</TabsTrigger>
+          {/* <TabsTrigger value="revenue">Doanh thu</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng người dùng</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">12,845</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +18% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Người dùng mới</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">1,245</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +12% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Người dùng hoạt động</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">8,432</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +5% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tỷ lệ giữ chân</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">78%</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +2% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {loading ? (
+            <div className="py-8 text-center">Đang tải dữ liệu...</div>
+          ) : userReports ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng người dùng</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(userReports.summary.totalUsers || 0)}</div>
+                    <GrowthIndicator value={userReports.summary.userGrowth || 0} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Người dùng mới</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(userReports.summary.newUsers || 0)}</div>
+                    <GrowthIndicator value={userReports.summary.userGrowth || 0} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Người dùng hoạt động</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(userReports.summary.activeUsers || 0)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {userReports.summary.retentionRate || 0}% tỷ lệ hoạt động
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tỷ lệ giữ chân</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userReports.summary.retentionRate || 0}%</div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatNumber(userReports.breakdown.vipUsers || 0)} VIP users
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">Không có dữ liệu</div>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Người dùng theo thời gian</CardTitle>
-              <CardDescription>Số lượng người dùng mới và tổng số người dùng theo thời gian</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AdminUserReportChart />
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
+          {userReports && (
             <Card>
               <CardHeader>
-                <CardTitle>Phân bố người dùng theo khu vực</CardTitle>
-                <CardDescription>Số lượng người dùng theo khu vực địa lý</CardDescription>
+                <CardTitle>Người dùng theo thời gian</CardTitle>
+                <CardDescription>Số lượng người dùng mới và tổng số người dùng theo thời gian</CardDescription>
               </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ phân bố người dùng</p>
-                </div>
+              <CardContent>
+                <AdminUserReportChart />
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Phân bố người dùng theo độ tuổi</CardTitle>
-                <CardDescription>Số lượng người dùng theo nhóm tuổi</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ phân bố độ tuổi</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          )}
+
+          
         </TabsContent>
 
         <TabsContent value="shops" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng quán cà phê</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">342</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +7% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Quán mới</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">28</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +15% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Quán VIP</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">124</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +10% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Đánh giá trung bình</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">4.6</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +0.2 so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {loading ? (
+            <div className="py-8 text-center">Đang tải dữ liệu...</div>
+          ) : shopReports ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng quán cà phê</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(shopReports.summary.totalShops || 0)}</div>
+                    <GrowthIndicator value={shopReports.summary.shopGrowth || 0} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Quán mới</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(shopReports.summary.newShops || 0)}</div>
+                    <GrowthIndicator value={shopReports.summary.shopGrowth || 0} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Quán VIP</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(shopReports.breakdown.vipShops || 0)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {safeNumber(shopReports.summary.totalShops) > 0 ? ((safeNumber(shopReports.breakdown.vipShops) / safeNumber(shopReports.summary.totalShops)) * 100).toFixed(1) : 0}% tổng số quán
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Đánh giá trung bình</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{safeNumber(shopReports.summary.avgRating).toFixed(1)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatNumber(shopReports.breakdown.activeShops || 0)} quán hoạt động
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">Không có dữ liệu</div>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quán cà phê theo thời gian</CardTitle>
-              <CardDescription>Số lượng quán mới và tổng số quán theo thời gian</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AdminShopReportChart />
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
+          {shopReports && (
             <Card>
               <CardHeader>
-                <CardTitle>Phân bố quán theo khu vực</CardTitle>
-                <CardDescription>Số lượng quán theo khu vực địa lý</CardDescription>
+                <CardTitle>Quán cà phê theo thời gian</CardTitle>
+                <CardDescription>Số lượng quán mới và tổng số quán theo thời gian</CardDescription>
               </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ phân bố quán</p>
-                </div>
+              <CardContent>
+                <AdminShopReportChart />
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Phân bố quán theo chủ đề</CardTitle>
-                <CardDescription>Số lượng quán theo chủ đề</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ phân bố chủ đề</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          )}
+
+         
         </TabsContent>
 
         <TabsContent value="orders" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng đơn đặt</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">28,452</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +12% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Đơn đặt hôm nay</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">1,284</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +8% so với hôm qua
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tỷ lệ hoàn thành</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">92%</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +2% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Thời gian đặt trước</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">2.5 giờ</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +0.3 giờ so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {loading ? (
+            <div className="py-8 text-center">Đang tải dữ liệu...</div>
+          ) : orderReports ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng đơn đặt</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(orderReports.summary.totalOrders || 0)}</div>
+                    <GrowthIndicator value={orderReports.summary.orderGrowth || 0} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Đơn đặt trong kỳ</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(orderReports.summary.ordersInPeriod || 0)}</div>
+                    <GrowthIndicator value={orderReports.summary.orderGrowth || 0} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tỷ lệ hoàn thành</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{orderReports.summary.completionRate || 0}%</div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatNumber(orderReports.breakdown.completed || 0)} đơn hoàn thành
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Đơn đặt trung bình/ngày</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatNumber(orderReports.summary.avgOrdersPerDay || 0)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatNumber(orderReports.breakdown.cancelled || 0)} đơn hủy
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">Không có dữ liệu</div>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Đơn đặt chỗ theo thời gian</CardTitle>
-              <CardDescription>Số lượng đơn đặt chỗ theo thời gian</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AdminOrderReportChart />
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
+          {orderReports && (
             <Card>
               <CardHeader>
-                <CardTitle>Phân bố đơn đặt theo giờ</CardTitle>
-                <CardDescription>Số lượng đơn đặt theo khung giờ trong ngày</CardDescription>
+                <CardTitle>Đơn đặt chỗ theo thời gian</CardTitle>
+                <CardDescription>Số lượng đơn đặt chỗ theo thời gian</CardDescription>
               </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ phân bố theo giờ</p>
-                </div>
+              <CardContent>
+                <AdminOrderReportChart />
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Phân bố đơn đặt theo ngày</CardTitle>
-                <CardDescription>Số lượng đơn đặt theo ngày trong tuần</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ phân bố theo ngày</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          )}
+
         </TabsContent>
 
         <TabsContent value="revenue" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">985.6M VND</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +15% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Doanh thu từ VIP</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">245.2M VND</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +20% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Doanh thu từ hoa hồng</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">142.8M VND</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +8% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Giá trị đơn trung bình</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">120K VND</div>
-                <p className="text-xs text-green-500 flex items-center">
-                  <ArrowUpRight className="mr-1 h-3 w-3" />
-                  +5% so với tháng trước
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {loading ? (
+            <div className="py-8 text-center">Đang tải dữ liệu...</div>
+          ) : revenueReports ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatCurrency(revenueReports.summary.totalRevenue || 0)}</div>
+                    <GrowthIndicator value={revenueReports.summary.revenueGrowth || 0} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Doanh thu từ VIP</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatCurrency(revenueReports.breakdown.vipRevenue || 0)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {safeNumber(revenueReports.summary.totalRevenue) > 0 ? ((safeNumber(revenueReports.breakdown.vipRevenue) / safeNumber(revenueReports.summary.totalRevenue)) * 100).toFixed(1) : 0}% tổng doanh thu
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Doanh thu từ hoa hồng</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatCurrency(revenueReports.breakdown.commissionRevenue || 0)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {safeNumber(revenueReports.summary.totalRevenue) > 0 ? ((safeNumber(revenueReports.breakdown.commissionRevenue) / safeNumber(revenueReports.summary.totalRevenue)) * 100).toFixed(1) : 0}% tổng doanh thu
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Giá trị đơn trung bình</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{formatCurrency(revenueReports.summary.avgOrderValue || 0)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatNumber(revenueReports.summary.totalTransactions || 0)} giao dịch
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">Không có dữ liệu</div>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Doanh thu theo thời gian</CardTitle>
-              <CardDescription>Doanh thu theo thời gian phân chia theo nguồn</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AdminRevenueReportChart />
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
+          {revenueReports && (
             <Card>
               <CardHeader>
-                <CardTitle>Phân bố doanh thu theo nguồn</CardTitle>
-                <CardDescription>Tỷ lệ doanh thu từ các nguồn khác nhau</CardDescription>
+                <CardTitle>Doanh thu theo thời gian</CardTitle>
+                <CardDescription>Doanh thu theo thời gian phân chia theo nguồn</CardDescription>
               </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ phân bố doanh thu</p>
-                </div>
+              <CardContent>
+                <AdminRevenueReportChart />
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Top 10 quán có doanh thu cao nhất</CardTitle>
-                <CardDescription>Các quán cà phê có doanh thu cao nhất hệ thống</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">Biểu đồ top quán</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          )}  
         </TabsContent>
       </Tabs>
     </div>
