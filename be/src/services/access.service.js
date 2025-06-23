@@ -1,6 +1,7 @@
 "use strict";
 
 const userModel = require("../models/user.model");
+const shopModel = require("../models/shop.model");
 const bcrypt = require("bcryptjs");
 const { getInfoData } = require("../utils");
 const { USER_ROLE } = require("../constants/enum");
@@ -29,8 +30,23 @@ class AccessService {
       const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
       const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
 
+      // Tạo payload cho token
+      const tokenPayload = { 
+        userId: newUser._id, 
+        email, 
+        role: newUser.role 
+      };
+
+      // Nếu user là SHOP_OWNER, thêm shop_id vào token (nếu có)
+      if (newUser.role === USER_ROLE.SHOP_OWNER) {
+        const userShop = await shopModel.findOne({ owner_id: newUser._id });
+        if (userShop) {
+          tokenPayload.shop_id = userShop._id;
+        }
+      }
+
       const tokens = await createTokenPair(
-        { userId: newUser._id, email, role: newUser.role },
+        tokenPayload,
         accessTokenKey,
         refreshTokenKey
       );
@@ -77,8 +93,23 @@ class AccessService {
     }
 
     // Step 5: Create token pair
+    // Tạo payload cho token
+    const tokenPayload = { 
+      userId: foundUser._id, 
+      email, 
+      role: foundUser.role 
+    };
+
+    // Nếu user là SHOP_OWNER, thêm shop_id vào token (nếu có)
+    if (foundUser.role === USER_ROLE.SHOP_OWNER) {
+      const userShop = await shopModel.findOne({ owner_id: foundUser._id });
+      if (userShop) {
+        tokenPayload.shop_id = userShop._id;
+      }
+    }
+
     const tokens = await createTokenPair(
-      { userId: foundUser._id, email, role: foundUser.role },
+      tokenPayload,
       accessTokenKey,
       refreshTokenKey
     );
@@ -107,6 +138,55 @@ class AccessService {
       };
     } catch (error) {
       throw new BadRequestError(error.message || "Logout failed");
+    }
+  };
+
+  // Method để refresh token khi shop owner được assign shop mới
+  refreshTokenWithShopInfo = async ({ userId }) => {
+    try {
+      const foundUser = await userModel.findById(userId);
+      if (!foundUser) {
+        throw new BadRequestError("User not found");
+      }
+
+      const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
+      const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
+
+      if (!accessTokenKey || !refreshTokenKey) {
+        throw new Error("Secret keys are not defined in environment variables");
+      }
+
+      // Tạo payload cho token
+      const tokenPayload = { 
+        userId: foundUser._id, 
+        email: foundUser.email, 
+        role: foundUser.role 
+      };
+
+      // Nếu user là SHOP_OWNER, thêm shop_id vào token (nếu có)
+      if (foundUser.role === USER_ROLE.SHOP_OWNER) {
+        const userShop = await shopModel.findOne({ owner_id: foundUser._id });
+        if (userShop) {
+          tokenPayload.shop_id = userShop._id;
+        }
+      }
+
+      const tokens = await createTokenPair(
+        tokenPayload,
+        accessTokenKey,
+        refreshTokenKey
+      );
+
+      return {
+        user: getInfoData({
+          fields: ["_id", "full_name", "email", "role", "avatar", "is_active", "points", "vip_status", "phone"],
+          object: foundUser,
+        }),
+        tokens,
+        shop_id: tokenPayload.shop_id || null,
+      };
+    } catch (error) {
+      throw new BadRequestError(error.message || "Failed to refresh token");
     }
   };
 

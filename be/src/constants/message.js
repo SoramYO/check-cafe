@@ -151,6 +151,22 @@ const DISCOUNT_MESSAGE = {
   UPDATE_DISCOUNT_SUCCESS: "Update discount successfully",
   DELETE_DISCOUNT_SUCCESS: "Delete discount successfully",
   GET_DISCOUNT_BY_ID_SUCCESS: "Get discount by ID successfully",
+  
+  // User discount messages
+  GET_AVAILABLE_DISCOUNTS_SUCCESS: "Get available discounts successfully",
+  APPLY_DISCOUNT_SUCCESS: "Apply discount successfully",
+  VALIDATE_DISCOUNT_SUCCESS: "Validate discount successfully",
+  
+  // Error messages
+  DISCOUNT_NOT_FOUND: "Discount not found",
+  DISCOUNT_EXPIRED: "Discount has expired",
+  DISCOUNT_NOT_ACTIVE: "Discount is not active",
+  DISCOUNT_USAGE_LIMIT_EXCEEDED: "Discount usage limit exceeded",
+  USER_USAGE_LIMIT_EXCEEDED: "User has exceeded usage limit for this discount",
+  MINIMUM_ORDER_VALUE_NOT_MET: "Order value does not meet minimum requirement",
+  DISCOUNT_NOT_APPLICABLE: "Discount is not applicable for this shop",
+  INSUFFICIENT_POINTS: "Insufficient points to use this discount",
+  VIP_ONLY_DISCOUNT: "This discount is only for VIP users",
 };
 module.exports = {
   ACCESS_MESSAGE,
