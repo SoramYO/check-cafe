@@ -24,6 +24,13 @@ router.get("/stats", adminController.getDashboardStats);
 // Shop owners without shops
 router.get("/shop-owners-without-shops", adminController.getShopOwnersWithoutShops);
 
+// Reports API
+router.get("/reports/users", adminController.getUserReports);
+router.get("/reports/shops", adminController.getShopReports);
+router.get("/reports/orders", adminController.getOrderReports);
+router.get("/reports/revenue", adminController.getRevenueReports);
+
+
 // Shop management by admin
 const shopController = require("../../controllers/shop.controller");
 const discountController = require("../../controllers/discount.controller");
@@ -44,6 +51,7 @@ router.get(
   checkAdmin,
   adminController.getOverviewStats
 );
+
 
 
 // Account Management
