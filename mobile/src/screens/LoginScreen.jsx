@@ -82,9 +82,10 @@ export default function LoginScreen({ navigation }) {
         });
       }
     } catch (error) {
+      const message = error.response.data.message;
       Toast.show({
         type: "error",
-        text1: "Có lỗi xảy ra khi đăng nhập",
+        text1: message || "Có lỗi xảy ra khi đăng nhập",
       });
       trackAppEvent('login_error', {
         error_message: error.message,

@@ -151,6 +151,7 @@ export default function BookingsScreen() {
   const renderRequestItem = ({ item }) => (
     <TouchableOpacity
       style={styles.requestCard}
+      activeOpacity={0.9}
       onPress={() => {
         trackTap('booking_card', {
           booking_id: item._id,
@@ -162,113 +163,140 @@ export default function BookingsScreen() {
         navigation.navigate("BookingDetail", { booking: item });
       }}
     >
-      <View style={styles.ticketHeader}>
-        <View style={styles.statusIndicator}>
-          <View
-            style={[
-              styles.statusDot,
-              item.status === "Pending" && styles.pendingDot,
-              item.status === "Confirmed" && styles.confirmedDot,
-              item.status === "Completed" && styles.completedDot,
-            ]}
+      {/* Status Badge - Floating on top */}
+      <View style={styles.statusBadge}>
+        <View
+          style={[
+            styles.statusBadgeInner,
+            item.status === "Pending" && styles.pendingBadge,
+            item.status === "Confirmed" && styles.confirmedBadge,
+            item.status === "Completed" && styles.completedBadge,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={
+              item.status === "Pending" 
+                ? "clock-outline" 
+                : item.status === "Confirmed" 
+                ? "check-circle" 
+                : "check-all"
+            }
+            size={14}
+            color="white"
           />
-          <Text
-            style={[
-              styles.statusText,
-              item.status === "Pending" && styles.pendingText,
-              item.status === "Confirmed" && styles.confirmedText,
-              item.status === "Completed" && styles.completedText,
-            ]}
-          >
+          <Text style={styles.statusBadgeText}>
             {item.status === "Pending"
               ? "Chờ xác nhận"
               : item.status === "Confirmed"
               ? "Đã xác nhận"
-              : "Đã hoàn thành"}
+              : "Hoàn thành"}
           </Text>
         </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <MaterialCommunityIcons
-            name="dots-horizontal"
-            size={24}
-            color="#64748B"
-          />
-        </TouchableOpacity>
       </View>
 
-      <Image
-        source={{ uri: item.shop_id?.shopImages[0].url }}
-        style={styles.cafeImage}
-      />
+      {/* Cafe Image with overlay gradient */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: item.shop_id?.shopImages[0].url }}
+          style={styles.cafeImage}
+        />
+        <View style={styles.imageOverlay} />
+        
+        {/* Cafe name on image */}
+        <View style={styles.cafeNameOverlay}>
+          <Text style={styles.cafeNameOnImage} numberOfLines={1}>
+            {item.shop_id?.name}
+          </Text>
+        </View>
+      </View>
+
+      {/* Card Content */}
       <View style={styles.cardContent}>
-        <Text style={styles.cafeName}>{item.shop_id?.name}</Text>
-
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="calendar" size={20} color="#64748B" />
-            <Text style={styles.detailText}>
-              {new Date(item?.reservation_date).toLocaleDateString("vi-VN")}
-            </Text>
+        {/* Booking Details with Icons */}
+        <View style={styles.detailsGrid}>
+          <View style={styles.detailCard}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="calendar" size={18} color="#7a5545" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Ngày đặt</Text>
+              <Text style={styles.detailValue}>
+                {new Date(item?.reservation_date).toLocaleDateString("vi-VN")}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="clock-outline"
-              size={20}
-              color="#64748B"
-            />
-            <Text style={styles.detailText}>
-              {item?.time_slot_id?.start_time} - {item?.time_slot_id?.end_time}
-            </Text>
+          <View style={styles.detailCard}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="clock-outline" size={18} color="#7a5545" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Thời gian</Text>
+              <Text style={styles.detailValue}>
+                {item?.time_slot_id?.start_time} - {item?.time_slot_id?.end_time}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="account-group"
-              size={20}
-              color="#64748B"
-            />
-            <Text style={styles.detailText}>
-              {item?.number_of_people} người
-            </Text>
+          <View style={styles.detailCard}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="account-group" size={18} color="#7a5545" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Số người</Text>
+              <Text style={styles.detailValue}>
+                {item?.number_of_people} người
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.actionButtons}>
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
           {activeTab === "Pending" ? (
             <>
               <TouchableOpacity
-                style={[styles.actionButton, styles.cancelButton]}
+                style={[styles.modernActionButton, styles.cancelButton]}
+                activeOpacity={0.8}
               >
-                <Text style={styles.cancelButtonText}>Hủy đặt chỗ</Text>
+                <MaterialCommunityIcons name="close-circle-outline" size={16} color="#EF4444" />
+                <Text style={styles.cancelButtonText}>Hủy đặt</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, styles.primaryButton]}
+                style={[styles.modernActionButton, styles.primaryButton]}
+                activeOpacity={0.8}
               >
+                <MaterialCommunityIcons name="pencil-outline" size={16} color="white" />
                 <Text style={styles.primaryButtonText}>Chỉnh sửa</Text>
               </TouchableOpacity>
             </>
           ) : activeTab === "Confirmed" ? (
             <>
               <TouchableOpacity
-                style={[styles.actionButton, styles.secondaryButton]}
+                style={[styles.modernActionButton, styles.qrButton]}
                 onPress={() => handleShowQR(item)}
+                activeOpacity={0.8}
               >
-                <Text style={styles.secondaryButtonText}>Hiện QR code</Text>
+                <MaterialCommunityIcons name="qrcode" size={16} color="#7a5545" />
+                <Text style={styles.qrButtonText}>QR Code</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, styles.primaryButton]}
+                style={[styles.modernActionButton, styles.primaryButton]}
                 onPress={() =>
                   navigation.navigate("BookingDetail", { booking: item })
                 }
+                activeOpacity={0.8}
               >
-                <Text style={styles.primaryButtonText}>Xem chi tiết</Text>
+                <MaterialCommunityIcons name="eye-outline" size={16} color="white" />
+                <Text style={styles.primaryButtonText}>Chi tiết</Text>
               </TouchableOpacity>
             </>
           ) : (
             <TouchableOpacity
-              style={[styles.actionButton, styles.primaryButton]}
+              style={[styles.modernActionButton, styles.primaryButton, { flex: 1 }]}
+              activeOpacity={0.8}
             >
+              <MaterialCommunityIcons name="eye-outline" size={16} color="white" />
               <Text style={styles.primaryButtonText}>Xem chi tiết</Text>
             </TouchableOpacity>
           )}
@@ -418,126 +446,163 @@ const styles = StyleSheet.create({
   },
   requestCard: {
     backgroundColor: "white",
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 12,
-    borderColor: "#BFA58E",
-    borderWidth: 1,
+    marginBottom: 16,
     shadowColor: "#7a5545",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    position: "relative",
   },
-  ticketHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 10,
-    backgroundColor: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#BFA58E",
+  statusBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 10,
   },
-  statusIndicator: {
+  statusBadgeInner: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     gap: 4,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  pendingDot: {
+  pendingBadge: {
     backgroundColor: "#F59E0B",
   },
-  confirmedDot: {
+  confirmedBadge: {
     backgroundColor: "#10B981",
   },
-  completedDot: {
+  completedBadge: {
     backgroundColor: "#6366F1",
   },
-  statusText: {
-    fontSize: 13,
-    fontFamily: "Poppins_500Medium",
-    color: "#7a5545",
+  statusBadgeText: {
+    fontSize: 11,
+    fontFamily: "Poppins_600SemiBold",
+    color: "white",
   },
-  pendingText: {
-    color: "#F59E0B",
-  },
-  confirmedText: {
-    color: "#10B981",
-  },
-  completedText: {
-    color: "#6366F1",
+  imageContainer: {
+    position: "relative",
+    height: 160,
   },
   cafeImage: {
     width: "100%",
-    height: 140,
-    borderBottomWidth: 1,
-    borderBottomColor: "#BFA58E",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  imageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  cafeNameOverlay: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    right: 60,
+  },
+  cafeNameOnImage: {
+    fontSize: 18,
+    fontFamily: "Poppins_700Bold",
+    color: "white",
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   cardContent: {
-    padding: 12,
+    padding: 16,
     backgroundColor: "white",
   },
-  cafeName: {
-    fontSize: 16,
-    fontFamily: "Poppins_600SemiBold",
-    color: "#7a5545",
-    marginBottom: 8,
+  detailsGrid: {
+    gap: 12,
+    marginBottom: 16,
   },
-  detailsContainer: {
-    gap: 8,
-    marginBottom: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#BFA58E",
-  },
-  detailRow: {
+  detailCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    backgroundColor: "#F8F9FA",
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#7a5545",
   },
-  detailText: {
-    fontSize: 13,
-    fontFamily: "Poppins_400Regular",
-    color: "#7a5545",
+  detailIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(122, 85, 69, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
-  actionButtons: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 4,
-  },
-  actionButton: {
+  detailTextContainer: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+  },
+  detailLabel: {
+    fontSize: 11,
+    fontFamily: "Poppins_500Medium",
+    color: "#64748B",
+    marginBottom: 2,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontFamily: "Poppins_600SemiBold",
+    color: "#1E293B",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  modernActionButton: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
   },
   cancelButton: {
     backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
   },
   cancelButtonText: {
     color: "#EF4444",
-    fontFamily: "Poppins_500Medium",
-    fontSize: 12,
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 13,
   },
   primaryButton: {
     backgroundColor: "#7a5545",
   },
   primaryButtonText: {
     color: "white",
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Poppins_600SemiBold",
     fontSize: 13,
   },
-  moreButton: {
-    padding: 2,
+  qrButton: {
+    backgroundColor: "rgba(122, 85, 69, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(122, 85, 69, 0.2)",
+  },
+  qrButtonText: {
+    color: "#7a5545",
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 13,
   },
   emptyState: {
     flex: 1,
@@ -550,12 +615,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium",
     color: "#BFA58E",
   },
-  secondaryButton: {
-    backgroundColor: "rgba(191, 165, 142, 0.2)",
-  },
-  secondaryButtonText: {
-    color: "#7a5545",
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
