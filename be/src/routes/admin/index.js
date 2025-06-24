@@ -30,6 +30,22 @@ router.get("/reports/shops", adminController.getShopReports);
 router.get("/reports/orders", adminController.getOrderReports);
 router.get("/reports/revenue", adminController.getRevenueReports);
 
+// ===== NOTIFICATION ROUTES =====
+router.get("/notifications", adminController.getNotifications);
+router.get("/notifications/stats", adminController.getNotificationStats);
+router.get("/notifications/:id", adminController.getNotificationById);
+router.post("/notifications", adminController.createNotification);
+router.put("/notifications/:id", adminController.updateNotification);
+router.put("/notifications/:id/read", adminController.markNotificationAsRead);
+router.put("/notifications/read-all", adminController.markAllNotificationsAsRead);
+router.delete("/notifications/:id", adminController.deleteNotification);
+router.delete("/notifications", adminController.deleteMultipleNotifications);
+
+// Special notification creation routes
+router.post("/notifications/system", adminController.createSystemNotification);
+router.post("/notifications/user", adminController.createUserNotification);
+router.post("/notifications/shop", adminController.createShopNotification);
+
 // ===== SHOP DETAILED INFORMATION ROUTES =====
 router.get("/shops/:shopId/reviews", adminController.getShopReviews);
 router.get("/shops/:shopId/statistics", adminController.getShopDetailedStats);
@@ -41,8 +57,8 @@ router.get("/shops/:shopId/reservations", adminController.getShopReservations);
 
 // Shop management by admin
 const shopController = require("../../controllers/shop.controller");
-const discountController = require("../../controllers/discount.controller");
 router.post("/shops", shopController.createShopByAdmin);
+router.get("/shops", shopController.getAllPublicShops);
 
 // Ads Management
 router.get("/ads", checkAdmin, adminController.getAds);

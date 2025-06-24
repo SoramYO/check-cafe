@@ -2,54 +2,88 @@
 
 const { BadRequestError, NotFoundError } = require("../configs/error.response");
 const notificationModel = require("../models/notification.model");
-const { NOTIFICATION_TYPE } = require("../constants/enum");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const { isValidObjectId } = require("mongoose");
 
 const createNotification = async ({
   user_id,
+  shop_id,
   title,
-  content,
+  message,
   type,
-  reference_id,
-  reference_type = "Reservation",
+  category = "system",
+  priority = "medium",
+  related_id,
+  related_type,
+  action_url,
+  action_text,
+  expires_at,
+  metadata = {},
   emitNotification,
 }) => {
   try {
-    if (!isValidObjectId(user_id)) {
+    if (user_id && !isValidObjectId(user_id)) {
       throw new BadRequestError("Invalid user_id");
     }
-    if (reference_id && !isValidObjectId(reference_id)) {
-      throw new BadRequestError("Invalid reference_id");
+    if (shop_id && !isValidObjectId(shop_id)) {
+      throw new BadRequestError("Invalid shop_id");
     }
-    if (!Object.values(NOTIFICATION_TYPE).includes(type)) {
+    if (related_id && !isValidObjectId(related_id)) {
+      throw new BadRequestError("Invalid related_id");
+    }
+
+    const validTypes = ["info", "warning", "error", "success"];
+    if (!validTypes.includes(type)) {
       throw new BadRequestError("Invalid notification type");
+    }
+
+    const validCategories = ["system", "user", "shop", "booking", "payment", "verification"];
+    if (!validCategories.includes(category)) {
+      throw new BadRequestError("Invalid notification category");
+    }
+
+    const validPriorities = ["low", "medium", "high", "urgent"];
+    if (!validPriorities.includes(priority)) {
+      throw new BadRequestError("Invalid notification priority");
     }
 
     const notification = await notificationModel.create({
       user_id,
+      shop_id,
       title,
-      content,
+      message,
       type,
-      reference_id,
-      reference_type,
+      category,
+      priority,
+      related_id,
+      related_type,
+      action_url,
+      action_text,
+      expires_at: expires_at ? new Date(expires_at) : undefined,
+      metadata,
     });
 
-    // Gửi thông báo qua Socket.IO
-    const notificationData = {
-      _id: notification._id,
-      user_id: notification.user_id,
-      title: notification.title,
-      content: notification.content,
-      type: notification.type,
-      reference_id: notification.reference_id,
-      reference_type: notification.reference_type,
-      is_read: notification.is_read,
-      created_at: notification.created_at,
-    };
-    emitNotification(user_id, notificationData);
+    if (user_id && emitNotification) {
+      const notificationData = {
+        _id: notification._id,
+        user_id: notification.user_id,
+        shop_id: notification.shop_id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        category: notification.category,
+        priority: notification.priority,
+        related_id: notification.related_id,
+        related_type: notification.related_type,
+        read: notification.read,
+        action_url: notification.action_url,
+        action_text: notification.action_text,
+        createdAt: notification.createdAt,
+      };
+      emitNotification(user_id, notificationData);
+    }
 
-    return notificationData;
+    return notification;
   } catch (error) {
     throw error instanceof BadRequestError
       ? error
@@ -63,36 +97,49 @@ const getUserNotifications = async (req) => {
     const {
       page = 1,
       limit = 10,
-      sortBy = "created_at",
+      sortBy = "createdAt",
       sortOrder = "desc",
       type,
-      is_read,
+      category,
+      priority,
+      read,
     } = req.query;
 
-    // Xây dựng query
     const query = { user_id: userId };
-    if (type && Object.values(NOTIFICATION_TYPE).includes(type)) {
+    if (type) {
       query.type = type;
     }
-    if (is_read !== undefined) {
-      query.is_read = is_read === "true";
+    if (category) {
+      query.category = category;
+    }
+    if (priority) {
+      query.priority = priority;
+    }
+    if (read !== undefined) {
+      query.read = read === "true";
     }
 
-    // Xây dựng sort
-    const validSortFields = ["created_at", "type", "is_read"];
+    query.$or = [
+      { expires_at: { $exists: false } },
+      { expires_at: { $gt: new Date() } }
+    ];
+
+    const validSortFields = ["createdAt", "type", "category", "priority", "read"];
     if (sortBy && !validSortFields.includes(sortBy)) {
       throw new BadRequestError(`Invalid sortBy. Must be one of: ${validSortFields.join(", ")}`);
     }
     const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
 
-    // Phân trang
     const paginateOptions = {
       model: notificationModel,
       query,
       page,
       limit,
-      select: "_id user_id title content type reference_id reference_type is_read created_at",
+      select: "_id user_id shop_id title message type category priority related_id related_type read action_url action_text createdAt",
       sort,
+      populate: [
+        { path: "shop_id", select: "name address" }
+      ]
     };
 
     const result = await getPaginatedData(paginateOptions);
@@ -125,7 +172,7 @@ const markNotificationAsRead = async (req) => {
 
     const notification = await notificationModel.findOneAndUpdate(
       { _id: notificationId, user_id: userId },
-      { is_read: true },
+      { read: true },
       { new: true }
     );
 
@@ -137,13 +184,18 @@ const markNotificationAsRead = async (req) => {
       notification: {
         _id: notification._id,
         user_id: notification.user_id,
+        shop_id: notification.shop_id,
         title: notification.title,
-        content: notification.content,
+        message: notification.message,
         type: notification.type,
-        reference_id: notification.reference_id,
-        reference_type: notification.reference_type,
-        is_read: notification.is_read,
-        created_at: notification.created_at,
+        category: notification.category,
+        priority: notification.priority,
+        related_id: notification.related_id,
+        related_type: notification.related_type,
+        read: notification.read,
+        action_url: notification.action_url,
+        action_text: notification.action_text,
+        createdAt: notification.createdAt,
       },
     };
   } catch (error) {
@@ -184,8 +236,8 @@ const markAllNotificationsAsRead = async (req) => {
     const { userId } = req.user;
 
     const result = await notificationModel.updateMany(
-      { user_id: userId, is_read: false },
-      { is_read: true }
+      { user_id: userId, read: false },
+      { read: true }
     );
 
     return {
@@ -205,7 +257,11 @@ const getUnreadCount = async (req) => {
 
     const count = await notificationModel.countDocuments({
       user_id: userId,
-      is_read: false,
+      read: false,
+      $or: [
+        { expires_at: { $exists: false } },
+        { expires_at: { $gt: new Date() } }
+      ]
     });
 
     return { unread_count: count };
@@ -216,15 +272,16 @@ const getUnreadCount = async (req) => {
   }
 };
 
-// Utility functions for creating specific notification types
 const createBookingNotification = async ({ user_id, booking_data, emitNotification }) => {
   return await createNotification({
     user_id,
     title: "Cập nhật đặt chỗ",
-    content: `Đặt chỗ của bạn tại ${booking_data.shop_name} đã được ${booking_data.status_text}`,
-    type: NOTIFICATION_TYPE.BOOKING,
-    reference_id: booking_data.reservation_id,
-    reference_type: "Reservation",
+    message: `Đặt chỗ của bạn tại ${booking_data.shop_name} đã được ${booking_data.status_text}`,
+    type: "info",
+    category: "booking",
+    priority: "medium",
+    related_id: booking_data.reservation_id,
+    related_type: "booking",
     emitNotification,
   });
 };
@@ -233,10 +290,12 @@ const createPromotionNotification = async ({ user_id, promotion_data, emitNotifi
   return await createNotification({
     user_id,
     title: "Khuyến mãi mới",
-    content: promotion_data.message,
-    type: NOTIFICATION_TYPE.PROMOTION,
-    reference_id: promotion_data.promotion_id,
-    reference_type: "Promotion",
+    message: promotion_data.message,
+    type: "success",
+    category: "payment",
+    priority: "medium",
+    related_id: promotion_data.promotion_id,
+    related_type: "payment",
     emitNotification,
   });
 };
@@ -245,10 +304,12 @@ const createSystemNotification = async ({ user_id, system_data, emitNotification
   return await createNotification({
     user_id,
     title: system_data.title,
-    content: system_data.content,
-    type: NOTIFICATION_TYPE.SYSTEM,
-    reference_id: system_data.reference_id,
-    reference_type: system_data.reference_type || "System",
+    message: system_data.content,
+    type: system_data.type || "info",
+    category: "system",
+    priority: system_data.priority || "medium",
+    related_id: system_data.reference_id,
+    related_type: system_data.reference_type || "system",
     emitNotification,
   });
 };
@@ -257,10 +318,12 @@ const createReminderNotification = async ({ user_id, reminder_data, emitNotifica
   return await createNotification({
     user_id,
     title: "Nhắc nhở",
-    content: reminder_data.content,
-    type: NOTIFICATION_TYPE.REMINDER,
-    reference_id: reminder_data.reference_id,
-    reference_type: reminder_data.reference_type || "Reminder",
+    message: reminder_data.content,
+    type: "warning",
+    category: "system",
+    priority: "medium",
+    related_id: reminder_data.reference_id,
+    related_type: reminder_data.reference_type || "system",
     emitNotification,
   });
 };
@@ -269,10 +332,12 @@ const createFriendRequestNotification = async ({ user_id, friend_data, emitNotif
   return await createNotification({
     user_id,
     title: "Yêu cầu kết bạn",
-    content: `${friend_data.requester_name} muốn kết bạn với bạn`,
-    type: NOTIFICATION_TYPE.FRIEND_REQUEST,
-    reference_id: friend_data.request_id,
-    reference_type: "FriendRequest",
+    message: `${friend_data.requester_name} muốn kết bạn với bạn`,
+    type: "info",
+    category: "user",
+    priority: "medium",
+    related_id: friend_data.request_id,
+    related_type: "user",
     emitNotification,
   });
 };
@@ -281,10 +346,12 @@ const createFriendAcceptedNotification = async ({ user_id, friend_data, emitNoti
   return await createNotification({
     user_id,
     title: "Kết bạn thành công",
-    content: `${friend_data.accepter_name} đã chấp nhận lời mời kết bạn của bạn`,
-    type: NOTIFICATION_TYPE.FRIEND_ACCEPTED,
-    reference_id: friend_data.request_id,
-    reference_type: "FriendRequest",
+    message: `${friend_data.accepter_name} đã chấp nhận lời mời kết bạn của bạn`,
+    type: "success",
+    category: "user",
+    priority: "medium",
+    related_id: friend_data.request_id,
+    related_type: "user",
     emitNotification,
   });
 };
@@ -293,10 +360,12 @@ const createFriendCheckinNotification = async ({ user_id, checkin_data, emitNoti
   return await createNotification({
     user_id,
     title: "Bạn bè check-in",
-    content: `${checkin_data.friend_name} đã check-in tại ${checkin_data.location_name || 'một địa điểm'}`,
-    type: NOTIFICATION_TYPE.FRIEND_CHECKIN,
-    reference_id: checkin_data.checkin_id,
-    reference_type: "Checkin",
+    message: `${checkin_data.friend_name} đã check-in tại ${checkin_data.location_name || 'một địa điểm'}`,
+    type: "info",
+    category: "user",
+    priority: "low",
+    related_id: checkin_data.checkin_id,
+    related_type: "user",
     emitNotification,
   });
 };
@@ -305,10 +374,12 @@ const createCheckinLikeNotification = async ({ user_id, like_data, emitNotificat
   return await createNotification({
     user_id,
     title: "Ai đó đã thích bài viết của bạn",
-    content: `${like_data.liker_name} đã thích bài check-in của bạn`,
-    type: NOTIFICATION_TYPE.CHECKIN_LIKE,
-    reference_id: like_data.checkin_id,
-    reference_type: "Checkin",
+    message: `${like_data.liker_name} đã thích bài check-in của bạn`,
+    type: "success",
+    category: "user",
+    priority: "low",
+    related_id: like_data.checkin_id,
+    related_type: "user",
     emitNotification,
   });
 };
@@ -317,10 +388,12 @@ const createCheckinCommentNotification = async ({ user_id, comment_data, emitNot
   return await createNotification({
     user_id,
     title: "Bình luận mới",
-    content: `${comment_data.commenter_name} đã bình luận: "${comment_data.comment_preview}"`,
-    type: NOTIFICATION_TYPE.CHECKIN_COMMENT,
-    reference_id: comment_data.checkin_id,
-    reference_type: "Checkin",
+    message: `${comment_data.commenter_name} đã bình luận: "${comment_data.comment_preview}"`,
+    type: "info",
+    category: "user",
+    priority: "low",
+    related_id: comment_data.checkin_id,
+    related_type: "user",
     emitNotification,
   });
 };
@@ -332,7 +405,6 @@ module.exports = {
   markAllNotificationsAsRead,
   getUnreadCount,
   deleteNotification,
-  // Utility functions
   createBookingNotification,
   createPromotionNotification,
   createSystemNotification,

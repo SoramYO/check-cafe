@@ -21,22 +21,7 @@ class AdminController {
       data: result,
     }).send(res);
   });
-  // Auth
-  login = async (req, res, next) => {
-    try {
-      res.status(200).json(await adminService.login(req.body));
-    } catch (error) {
-      next(error);
-    }
-  };
 
-  logout = async (req, res, next) => {
-    try {
-      res.status(200).json(await adminService.logout(req.user));
-    } catch (error) {
-      next(error);
-    }
-  };
 
   changePassword = async (req, res, next) => {
     try {
@@ -430,6 +415,130 @@ class AdminController {
     try {
       const result = await adminService.getRevenueReports(req.query);
       new OK({ message: "Get revenue reports successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ===== NOTIFICATION CONTROLLERS =====
+  
+  // Get all notifications
+  getNotifications = async (req, res, next) => {
+    try {
+      const result = await adminService.getNotifications(req.query);
+      new OK({ message: "Get notifications successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get notification by ID
+  getNotificationById = async (req, res, next) => {
+    try {
+      const result = await adminService.getNotificationById(req.params.id);
+      new OK({ message: "Get notification successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Create notification
+  createNotification = async (req, res, next) => {
+    try {
+      const result = await adminService.createNotification(req.body);
+      new OK({ message: "Create notification successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Update notification
+  updateNotification = async (req, res, next) => {
+    try {
+      const result = await adminService.updateNotification(req.params.id, req.body);
+      new OK({ message: "Update notification successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Mark notification as read
+  markNotificationAsRead = async (req, res, next) => {
+    try {
+      const result = await adminService.markNotificationAsRead(req.params.id);
+      new OK({ message: "Mark notification as read successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Mark all notifications as read
+  markAllNotificationsAsRead = async (req, res, next) => {
+    try {
+      const result = await adminService.markAllNotificationsAsRead(req.query);
+      new OK({ message: "Mark all notifications as read successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Delete notification
+  deleteNotification = async (req, res, next) => {
+    try {
+      const result = await adminService.deleteNotification(req.params.id);
+      new OK({ message: "Delete notification successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Delete multiple notifications
+  deleteMultipleNotifications = async (req, res, next) => {
+    try {
+      const result = await adminService.deleteMultipleNotifications(req.body.ids);
+      new OK({ message: "Delete multiple notifications successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get notification statistics
+  getNotificationStats = async (req, res, next) => {
+    try {
+      const result = await adminService.getNotificationStats();
+      new OK({ message: "Get notification statistics successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Create system notification
+  createSystemNotification = async (req, res, next) => {
+    try {
+      const result = await adminService.createSystemNotification(req.body);
+      new OK({ message: "Create system notification successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Create user notification
+  createUserNotification = async (req, res, next) => {
+    try {
+      const { userId, ...notificationData } = req.body;
+      const result = await adminService.createUserNotification(userId, notificationData);
+      new OK({ message: "Create user notification successfully", data: result }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Create shop notification
+  createShopNotification = async (req, res, next) => {
+    try {
+      const { shopId, ...notificationData } = req.body;
+      const result = await adminService.createShopNotification(shopId, notificationData);
+      new OK({ message: "Create shop notification successfully", data: result }).send(res);
     } catch (error) {
       next(error);
     }

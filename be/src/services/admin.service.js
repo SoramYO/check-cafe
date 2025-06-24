@@ -4,81 +4,12 @@ const userModel = require("../models/user.model");
 const advertisementModel = require("../models/advertisement.model");
 const reservationModel = require("../models/reservation.model");
 const shopModel = require("../models/shop.model");
+const notificationModel = require("../models/notification.model");
 const bcrypt = require("bcryptjs");
-const { createTokenPair } = require("../auth/authUtils");
-const crypto = require("crypto");
-const KeyTokenService = require("./keyToken.service");
 const mongoose = require('mongoose');
 const reviewModel = require("../models/review.model");
 
 class AdminService {
-  // Auth
-  login = async ({ email, password }) => {
-    try {
-      const admin = await userModel.findOne({ email, role: "ADMIN" });
-      if (!admin) {
-        return {
-          code: "xxx",
-          message: "Admin not found",
-          status: "error",
-        };
-      }
-
-      const match = await bcrypt.compare(password, admin.password);
-      if (!match) {
-        return {
-          code: "xxx",
-          message: "Invalid password",
-          status: "error",
-        };
-      }
-
-      const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-        modulusLength: 4096,
-        publicKeyEncoding: { type: "pkcs1", format: "pem" },
-        privateKeyEncoding: { type: "pkcs1", format: "pem" },
-      });
-
-      const publicKeyString = await KeyTokenService.createKeyToken({
-        userId: admin._id,
-        publicKey,
-      });
-
-      const tokens = await createTokenPair(
-        { userId: admin._id, email, role: "ADMIN" },
-        publicKeyString,
-        privateKey
-      );
-
-      return {
-        code: "200",
-        metadata: { tokens },
-        message: "Login successful",
-      };
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: error.message,
-        status: "error",
-      };
-    }
-  };
-
-  logout = async (user) => {
-    try {
-      await KeyTokenService.removeKeyById(user._id);
-      return {
-        code: "200",
-        message: "Logout successful",
-      };
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: error.message,
-        status: "error",
-      };
-    }
-  };
 
   changePassword = async (user, { currentPassword, newPassword }) => {
     try {
@@ -2559,6 +2490,400 @@ class AdminService {
     } catch (error) {
       return {
         code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // ===== NOTIFICATION SERVICES =====
+  
+  // Get all notifications for admin
+  getNotifications = async ({ page = 1, limit = 20, type, category, read, priority, startDate, endDate }) => {
+    try {
+      const query = {};
+      
+      // Filter by type
+      if (type) {
+        query.type = type;
+      }
+      
+      // Filter by category
+      if (category) {
+        query.category = category;
+      }
+      
+      // Filter by read status
+      if (read !== undefined) {
+        query.read = read === 'true';
+      }
+      
+      // Filter by priority
+      if (priority) {
+        query.priority = priority;
+      }
+      
+      // Filter by date range
+      if (startDate || endDate) {
+        query.createdAt = {};
+        if (startDate) {
+          query.createdAt.$gte = new Date(startDate);
+        }
+        if (endDate) {
+          query.createdAt.$lte = new Date(endDate);
+        }
+      }
+      
+      // Exclude expired notifications
+      query.$or = [
+        { expires_at: { $exists: false } },
+        { expires_at: { $gt: new Date() } }
+      ];
+
+      const notifications = await notificationModel
+        .find(query)
+        .populate('user_id', 'full_name email avatar')
+        .populate('shop_id', 'name address')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+      const total = await notificationModel.countDocuments(query);
+      const unreadCount = await notificationModel.countDocuments({ ...query, read: false });
+
+      return {
+        code: "200",
+        metadata: {
+          notifications,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+          summary: {
+            total,
+            unread: unreadCount,
+            read: total - unreadCount
+          }
+        },
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get notification by ID
+  getNotificationById = async (id) => {
+    try {
+      const notification = await notificationModel
+        .findById(id)
+        .populate('user_id', 'full_name email avatar')
+        .populate('shop_id', 'name address')
+        .lean();
+
+      if (!notification) {
+        return {
+          code: "404",
+          message: "Notification not found",
+          status: "error",
+        };
+      }
+
+      return {
+        code: "200",
+        metadata: { notification },
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Create notification
+  createNotification = async (notificationData) => {
+    try {
+      const newNotification = await notificationModel.create(notificationData);
+      
+      const populatedNotification = await notificationModel
+        .findById(newNotification._id)
+        .populate('user_id', 'full_name email avatar')
+        .populate('shop_id', 'name address')
+        .lean();
+
+      return {
+        code: "201",
+        metadata: { notification: populatedNotification },
+        message: "Notification created successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Update notification
+  updateNotification = async (id, updateData) => {
+    try {
+      const updatedNotification = await notificationModel
+        .findByIdAndUpdate(id, updateData, { new: true })
+        .populate('user_id', 'full_name email avatar')
+        .populate('shop_id', 'name address')
+        .lean();
+
+      if (!updatedNotification) {
+        return {
+          code: "404",
+          message: "Notification not found",
+          status: "error",
+        };
+      }
+
+      return {
+        code: "200",
+        metadata: { notification: updatedNotification },
+        message: "Notification updated successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Mark notification as read
+  markNotificationAsRead = async (id) => {
+    try {
+      const notification = await notificationModel.findById(id);
+      
+      if (!notification) {
+        return {
+          code: "404",
+          message: "Notification not found",
+          status: "error",
+        };
+      }
+
+      notification.read = true;
+      await notification.save();
+
+      return {
+        code: "200",
+        message: "Notification marked as read",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Mark all notifications as read
+  markAllNotificationsAsRead = async (filters = {}) => {
+    try {
+      const query = { read: false, ...filters };
+      
+      // Exclude expired notifications
+      query.$or = [
+        { expires_at: { $exists: false } },
+        { expires_at: { $gt: new Date() } }
+      ];
+
+      const result = await notificationModel.updateMany(query, { read: true });
+
+      return {
+        code: "200",
+        metadata: { updatedCount: result.modifiedCount },
+        message: `${result.modifiedCount} notifications marked as read`,
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Delete notification
+  deleteNotification = async (id) => {
+    try {
+      const notification = await notificationModel.findByIdAndDelete(id);
+      
+      if (!notification) {
+        return {
+          code: "404",
+          message: "Notification not found",
+          status: "error",
+        };
+      }
+
+      return {
+        code: "200",
+        message: "Notification deleted successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Delete multiple notifications
+  deleteMultipleNotifications = async (ids) => {
+    try {
+      const result = await notificationModel.deleteMany({ _id: { $in: ids } });
+
+      return {
+        code: "200",
+        metadata: { deletedCount: result.deletedCount },
+        message: `${result.deletedCount} notifications deleted successfully`,
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get notification statistics
+  getNotificationStats = async () => {
+    try {
+      const [
+        totalNotifications,
+        unreadNotifications,
+        todayNotifications,
+        thisWeekNotifications,
+        thisMonthNotifications,
+        typeStats,
+        categoryStats,
+        priorityStats
+      ] = await Promise.all([
+        notificationModel.countDocuments(),
+        notificationModel.countDocuments({ read: false }),
+        notificationModel.countDocuments({
+          createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+        }),
+        notificationModel.countDocuments({
+          createdAt: { $gte: new Date(new Date().setDate(new Date().getDate() - 7)) }
+        }),
+        notificationModel.countDocuments({
+          createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+        }),
+        notificationModel.aggregate([
+          { $group: { _id: "$type", count: { $sum: 1 } } }
+        ]),
+        notificationModel.aggregate([
+          { $group: { _id: "$category", count: { $sum: 1 } } }
+        ]),
+        notificationModel.aggregate([
+          { $group: { _id: "$priority", count: { $sum: 1 } } }
+        ])
+      ]);
+
+      return {
+        code: "200",
+        metadata: {
+          summary: {
+            total: totalNotifications,
+            unread: unreadNotifications,
+            read: totalNotifications - unreadNotifications,
+            today: todayNotifications,
+            thisWeek: thisWeekNotifications,
+            thisMonth: thisMonthNotifications
+          },
+          breakdown: {
+            byType: typeStats.reduce((acc, stat) => {
+              acc[stat._id] = stat.count;
+              return acc;
+            }, {}),
+            byCategory: categoryStats.reduce((acc, stat) => {
+              acc[stat._id] = stat.count;
+              return acc;
+            }, {}),
+            byPriority: priorityStats.reduce((acc, stat) => {
+              acc[stat._id] = stat.count;
+              return acc;
+            }, {})
+          }
+        },
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Create system notification (helper method)
+  createSystemNotification = async (data) => {
+    try {
+      const notification = await notificationModel.createSystemNotification(data);
+      return {
+        code: "201",
+        metadata: { notification },
+        message: "System notification created successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Create user notification (helper method)
+  createUserNotification = async (userId, data) => {
+    try {
+      const notification = await notificationModel.createUserNotification(userId, data);
+      return {
+        code: "201",
+        metadata: { notification },
+        message: "User notification created successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Create shop notification (helper method)
+  createShopNotification = async (shopId, data) => {
+    try {
+      const notification = await notificationModel.createShopNotification(shopId, data);
+      return {
+        code: "201",
+        metadata: { notification },
+        message: "Shop notification created successfully",
+      };
+    } catch (error) {
+      return {
+        code: "500",
         message: error.message,
         status: "error",
       };

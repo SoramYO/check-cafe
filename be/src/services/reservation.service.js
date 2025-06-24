@@ -8,7 +8,7 @@ const shopModel = require("../models/shop.model");
 const shopSeatModel = require("../models/shopSeat.model");
 const shopTimeSlotModel = require("../models/shopTimeSlot.model");
 const { RESERVATION_STATUS, RESERVATION_TYPE, NOTIFICATION_TYPE } = require("../constants/enum");
-const { getInfoData, getSelectData } = require("../utils");
+const { getInfoData, getSelectData, getUnselectData } = require("../configs/success.response");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const { isValidObjectId } = mongoose;
 const pointModel = require("../models/point.model");
@@ -107,20 +107,26 @@ const createReservation = async (req) => {
     // Tạo thông báo cho CUSTOMER
     await createNotification({
       user_id: userId,
-      title: "Reservation Created",
-      content: `Your reservation at ${shop.name} on ${reservationDate.toLocaleDateString()} has been created.`,
-      type: NOTIFICATION_TYPE.RESERVATION_CREATED,
-      reference_id: reservation._id,
+      title: "Đặt chỗ thành công",
+      message: `Đặt chỗ của bạn tại ${shop.name} vào ngày ${reservationDate.toLocaleDateString('vi-VN')} đã được tạo.`,
+      type: NOTIFICATION_TYPE.INFO,
+      category: NOTIFICATION_TYPE.BOOKING,
+      priority: NOTIFICATION_TYPE.MEDIUM,
+      related_id: reservation._id,
+      related_type: "booking",
       emitNotification,
     });
 
     // Tạo thông báo cho SHOP_OWNER
     await createNotification({
       user_id: shop.owner_id,
-      title: "New Reservation",
-      content: `A new reservation (#${reservation._id}) has been created for ${shop.name} on ${reservationDate.toLocaleDateString()}.`,
-      type: NOTIFICATION_TYPE.RESERVATION_CREATED,
-      reference_id: reservation._id,
+      title: "Đặt chỗ mới",
+      message: `Có đặt chỗ mới (#${reservation._id}) tại ${shop.name} vào ngày ${reservationDate.toLocaleDateString('vi-VN')}.`,
+      type: NOTIFICATION_TYPE.INFO,
+      category: NOTIFICATION_TYPE.BOOKING,
+      priority: NOTIFICATION_TYPE.MEDIUM,
+      related_id: reservation._id,
+      related_type: "booking",
       emitNotification,
     });
 
@@ -211,10 +217,13 @@ const confirmReservation = async (req) => {
     // Tạo thông báo cho CUSTOMER
     await createNotification({
       user_id: reservation.user_id,
-      title: "Reservation Confirmed",
-      content: `Your reservation at ${reservation.shop_id.name} on ${reservation.reservation_date.toLocaleDateString()} has been confirmed.`,
-      type: NOTIFICATION_TYPE.RESERVATION_CONFIRMED,
-      reference_id: reservation._id,
+      title: "Đặt chỗ được xác nhận",
+      message: `Đặt chỗ của bạn tại ${reservation.shop_id.name} vào ngày ${reservation.reservation_date.toLocaleDateString('vi-VN')} đã được xác nhận.`,
+      type: NOTIFICATION_TYPE.SUCCESS,
+      category: NOTIFICATION_TYPE.BOOKING,
+      priority: NOTIFICATION_TYPE.MEDIUM,
+      related_id: reservation._id,
+      related_type: "booking",
       emitNotification,
     });
 
@@ -277,10 +286,13 @@ const cancelReservation = async (req) => {
     // Tạo thông báo cho CUSTOMER
     await createNotification({
       user_id: reservation.user_id,
-      title: "Reservation Cancelled",
-      content: `Your reservation at ${reservation.shop_id.name} on ${reservation.reservation_date.toLocaleDateString()} has been cancelled.`,
-      type: NOTIFICATION_TYPE.RESERVATION_CANCELLED,
-      reference_id: reservation._id,
+      title: "Đặt chỗ bị hủy",
+      message: `Đặt chỗ của bạn tại ${reservation.shop_id.name} vào ngày ${reservation.reservation_date.toLocaleDateString('vi-VN')} đã bị hủy.`,
+      type: NOTIFICATION_TYPE.WARNING,
+      category: NOTIFICATION_TYPE.BOOKING,
+      priority: NOTIFICATION_TYPE.MEDIUM,
+      related_id: reservation._id,
+      related_type: "booking",
       emitNotification,
     });
 
@@ -288,10 +300,13 @@ const cancelReservation = async (req) => {
     if (reservation.user_id.toString() === userId) {
       await createNotification({
         user_id: reservation.shop_id.owner_id,
-        title: "Reservation Cancelled",
-        content: `Reservation (#${reservation._id}) at ${reservation.shop_id.name} on ${reservation.reservation_date.toLocaleDateString()} has been cancelled by customer.`,
-        type: NOTIFICATION_TYPE.RESERVATION_CANCELLED,
-        reference_id: reservation._id,
+        title: "Đặt chỗ bị hủy",
+        message: `Đặt chỗ (#${reservation._id}) tại ${reservation.shop_id.name} vào ngày ${reservation.reservation_date.toLocaleDateString('vi-VN')} đã bị hủy bởi khách hàng.`,
+        type: NOTIFICATION_TYPE.WARNING,
+        category: NOTIFICATION_TYPE.BOOKING,
+        priority: NOTIFICATION_TYPE.MEDIUM,
+        related_id: reservation._id,
+        related_type: "booking",
         emitNotification,
       });
     }
@@ -351,10 +366,13 @@ const completeReservation = async (req) => {
     // Tạo thông báo cho CUSTOMER
     await createNotification({
       user_id: reservation.user_id,
-      title: "Reservation Completed",
-      content: `Your reservation at ${reservation.shop_id.name} on ${reservation.reservation_date.toLocaleDateString()} has been completed.`,
-      type: NOTIFICATION_TYPE.RESERVATION_COMPLETED,
-      reference_id: reservation._id,
+      title: "Đặt chỗ hoàn thành",
+      message: `Đặt chỗ của bạn tại ${reservation.shop_id.name} vào ngày ${reservation.reservation_date.toLocaleDateString('vi-VN')} đã hoàn thành.`,
+      type: NOTIFICATION_TYPE.SUCCESS,
+      category: NOTIFICATION_TYPE.BOOKING,
+      priority: NOTIFICATION_TYPE.MEDIUM,
+      related_id: reservation._id,
+      related_type: "booking",
       emitNotification,
     });
 
@@ -502,10 +520,13 @@ const checkInReservationCustomer = async (req) => {
 
     await createNotification({
       user_id: reservation.shop_id.owner_id,
-      title: "Customer Check-in",
-      content: `Customer checked in for reservation (#${reservationId}) at ${reservation.shop_id.name} on ${reservation.reservation_date.toLocaleDateString()}.`,
-      type: NOTIFICATION_TYPE.CHECK_IN,
-      reference_id: reservationId,
+      title: "Khách hàng đã check-in",
+      message: `Khách hàng đã check-in cho đặt chỗ (#${reservationId}) tại ${reservation.shop_id.name} vào ngày ${reservation.reservation_date.toLocaleDateString('vi-VN')}.`,
+      type: NOTIFICATION_TYPE.INFO,
+      category: NOTIFICATION_TYPE.BOOKING,
+      priority: NOTIFICATION_TYPE.MEDIUM,
+      related_id: reservationId,
+      related_type: "booking",
       emitNotification,
     });
 
@@ -668,10 +689,13 @@ const checkInReservationByShop = async (req) => {
 
     await createNotification({
       user_id: reservation.user_id,
-      title: "Check-in Confirmed",
-      content: `Your reservation at ${reservation.shop_id.name} on ${reservation.reservation_date.toLocaleDateString()} has been checked in.`,
-      type: NOTIFICATION_TYPE.CHECK_IN,
-      reference_id: reservation._id,
+      title: "Check-in được xác nhận",
+      message: `Đặt chỗ của bạn tại ${reservation.shop_id.name} vào ngày ${reservation.reservation_date.toLocaleDateString('vi-VN')} đã được check-in.`,
+      type: NOTIFICATION_TYPE.SUCCESS,
+      category: NOTIFICATION_TYPE.BOOKING,
+      priority: NOTIFICATION_TYPE.MEDIUM,
+      related_id: reservation._id,
+      related_type: "booking",
       emitNotification,
     });
 
