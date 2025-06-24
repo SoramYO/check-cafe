@@ -26,24 +26,39 @@ const RESERVATION_STATUS = {
   COMPLETED: "Completed",
 };
 
-
 const NOTIFICATION_TYPE = {
+  // Loại thông báo (type)
+  INFO: "info",
+  WARNING: "warning", 
+  ERROR: "error",
+  SUCCESS: "success",
+  
+  // Danh mục thông báo (category)
+  SYSTEM: "system",
+  USER: "user",
+  SHOP: "shop",
+  BOOKING: "booking",
+  PAYMENT: "payment",
+  VERIFICATION: "verification",
+  
+  // Độ ưu tiên (priority)
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  URGENT: "urgent",
+  
+  // Legacy types cho backward compatibility
   RESERVATION_CREATED: "RESERVATION_CREATED",
-  RESERVATION_CONFIRMED: "RESERVATION_CONFIRMED",
+  RESERVATION_CONFIRMED: "RESERVATION_CONFIRMED", 
   RESERVATION_CANCELLED: "RESERVATION_CANCELLED",
   RESERVATION_COMPLETED: "RESERVATION_COMPLETED",
   CHECK_IN: "CHECK_IN",
-  // Thêm các loại thông báo khác theo NotificationScreen.jsx
-  BOOKING: "booking",
-  PROMOTION: "promotion", 
+  PROMOTION: "promotion",
   REMINDER: "reminder",
   UPDATE: "update",
   REVIEW: "review",
-  SYSTEM: "system",
-  // Friend notifications
   FRIEND_REQUEST: "FRIEND_REQUEST",
   FRIEND_ACCEPTED: "FRIEND_ACCEPTED",
-  // Checkin notifications
   FRIEND_CHECKIN: "FRIEND_CHECKIN",
   CHECKIN_LIKE: "CHECKIN_LIKE",
   CHECKIN_COMMENT: "CHECKIN_COMMENT",

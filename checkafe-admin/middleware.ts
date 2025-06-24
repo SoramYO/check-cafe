@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Các route public không cần authentication
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/404', '/not-found']
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/404', '/not-found', '/privacy', '/terms']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
   // Các route cần authentication

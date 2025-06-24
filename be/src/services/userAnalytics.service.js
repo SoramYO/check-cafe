@@ -57,7 +57,6 @@ class UserAnalyticsService {
         if (endTime && endTime > fiveMinutesAgo) {
           analytics.session_data.is_active = true;
           analytics.session_data.end_time = undefined;
-          console.log(`Reactivating session ${sessionId} for activity recording`);
         } else {
           throw new Error('Session has expired');
         }
@@ -174,7 +173,6 @@ class UserAnalyticsService {
       result.platform_distribution = platformStats;
       result.top_countries = countryStats;
       
-      console.log('Overall analytics result:', result);
       return result;
     } catch (error) {
       console.error('Error in getOverallAnalytics:', error);
@@ -200,7 +198,6 @@ class UserAnalyticsService {
         most_common_actions: []
       };
       
-      console.log('User analytics result:', result);
       return result;
     } catch (error) {
       console.error('Error in getUserAnalytics:', error);
@@ -266,7 +263,6 @@ class UserAnalyticsService {
         { $limit: limit }
       ]);
       
-      console.log('Top users result:', topUsers);
       return topUsers;
     } catch (error) {
       console.error('Error in getTopActiveUsers:', error);
@@ -434,7 +430,6 @@ class UserAnalyticsService {
         { $sort: { count: -1 } }
       ]);
       
-      console.log('Action analytics result:', actions);
       return actions;
     } catch (error) {
       console.error('Error in getActionAnalytics:', error);
