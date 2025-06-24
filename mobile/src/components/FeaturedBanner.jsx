@@ -39,6 +39,8 @@ export default function FeaturedBanner() {
   useEffect(() => {
     getAdvertisements();
     const timer = setInterval(() => {
+      if (advertisements.length === 0) return;
+      
       const nextIndex = Math.floor(scrollX._value / width) + 1;
       if (nextIndex >= advertisements.length) {
         slideRef.current?.scrollTo({ x: 0, animated: true });
@@ -51,9 +53,23 @@ export default function FeaturedBanner() {
   }, [advertisements.length]);
 
   const getAdvertisements = async (page = 1, limit = 10) => {
-    const response = await advertisementAPI.HandleAdvertisement(`?page=${page}&limit=${limit}`);
-    setAdvertisements(response.data.data);
+    try {
+      const response = await advertisementAPI.HandleAdvertisement(`/mobile?page=${page}&limit=${limit}&sortBy=createdAt&sortOrder=desc`);
+      if (response.data && response.data.data) {
+        setAdvertisements(response.data.data);
+      } else if (response.data && Array.isArray(response.data)) {
+        setAdvertisements(response.data);
+      } else {
+        setAdvertisements([]);
+      }
+    } catch (error) {
+      console.error('Error fetching advertisements:', error);
+      setAdvertisements([]);
+    }
   };
+
+  // Sử dụng quảng cáo từ API hoặc fallback về banner mặc định
+  const displayBanners = advertisements.length > 0 ? advertisements : FEATURED_BANNERS;
 
   const handleBannerPress = (banner) => {
     navigation.navigate('FeaturedDetail', { type: banner.type, id: banner._id });
@@ -71,8 +87,8 @@ export default function FeaturedBanner() {
           { useNativeDriver: true }
         )}
       >
-        {advertisements.map((banner, index) => (
-          <View key={banner._id} style={styles.slide}>
+        {displayBanners.map((banner, index) => (
+          <View key={banner._id || banner.id} style={styles.slide}>
             <Image
               source={{ uri: banner?.image}}
               style={styles.image}
@@ -80,7 +96,7 @@ export default function FeaturedBanner() {
             <View style={styles.overlay}>
               <View style={styles.content}>
                 <Text style={styles.title}>{banner.title}</Text>
-                <Text style={styles.subtitle}>{banner.description || banner.content}</Text>
+                <Text style={styles.subtitle}>{banner.description || banner.subtitle}</Text>
                 <TouchableOpacity
                   style={styles.button}
                   onPress={() => handleBannerPress(banner)}
@@ -100,7 +116,7 @@ export default function FeaturedBanner() {
         ))}
       </Animated.ScrollView>
       <View style={styles.pagination}>
-        {advertisements.map((_, index) => {
+        {displayBanners.map((_, index) => {
           const inputRange = [
             (index - 1) * width,
             index * width,
@@ -119,7 +135,14 @@ export default function FeaturedBanner() {
           return (
             <Animated.View
               key={index}
-              style={[styles.dot, { opacity, transform: [{ scale }] }]}
+              style={[
+                styles.dot, 
+                { 
+                  backgroundColor: '#7a5545',
+                  opacity, 
+                  transform: [{ scale }] 
+                }
+              ]}
             />
           );
         })}
@@ -142,7 +165,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   content: {
@@ -168,7 +190,6 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7a5545',
     alignSelf: 'flex-start',
     paddingHorizontal: 18,
     paddingVertical: 10,
@@ -199,7 +220,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFF9F5',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,

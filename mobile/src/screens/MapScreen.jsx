@@ -357,6 +357,9 @@ export default function MapScreen() {
                     }}
                     mapType="standard"
                     provider={MapView.PROVIDER_OPENSTREETMAP}
+                    onError={(error) => {
+                      console.log('Map error:', error);
+                    }}
                   >
                     {shops?.map(renderMarker)}
                     {selectedCafe && location && (

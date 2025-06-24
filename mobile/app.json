@@ -2,7 +2,7 @@
   "expo": {
     "name": "checkafe",
     "slug": "checkafe",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
@@ -20,24 +20,35 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.phuuthanh2003.checkafe"
+      "package": "com.shiroyo.checkafe",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDNI_ZWPqvdS6r6gPVO50I4TlYkfkZdXh8"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/logo.png"
     },
     "extra": {
       "eas": {
-        "projectId": "ed660efc-7c1f-4d4b-b21c-b1f91c915956"
+        "projectId": "4a238ed6-e280-4f17-bf37-c46bb75b0f62"
       }
     },
-    "owner": "phuuthanh2003",
+    "owner": "shiroyo",
     "plugins": [
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/notification_icon.png",
           "color": "#7a5545",
-          "sounds": ["./assets/notification-sound.wav"]
+          "sounds": ["./assets/notification_sound.wav"]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ứng dụng cần quyền truy cập thư viện ảnh để bạn có thể chọn ảnh cho check-in."
         }
       ]
     ]

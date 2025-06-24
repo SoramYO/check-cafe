@@ -123,7 +123,7 @@ class ShopOwnerService {
   };
 
   // Alternative method using MongoDB Transaction (Atomic operation)
-  registerShopOwnerWithTransaction = async ({
+  registerShopOwner = async ({
     shop_name,
     owner_name,
     email,
@@ -138,54 +138,98 @@ class ShopOwnerService {
     description,
     category,
   }) => {
-    const session = await mongoose.startSession();
     
     try {
-      session.startTransaction();
-      
-      // Tất cả operations trong transaction
-      const existingUser = await userModel.findOne({ email }).session(session);
-      const [newUser] = await userModel.create([{
+      // Step 1: Validate tất cả input trước khi tạo data
+      const existingUser = await userModel.findOne({ email });
+      if (existingUser) {
+        throw new ConflictError("Email already exists");
+      }
+
+      const categoryDoc = await shopCategoryModel.findOne({ 
+        name: category, 
+        is_active: true 
+      });
+      if (!categoryDoc) {
+        throw new BadRequestError("Invalid category");
+      }
+
+      // Step 2: Hash password trước
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Step 3: Prepare data objects
+      const userData = {
         full_name: owner_name,
         email,
-        password: await bcrypt.hash(password, 10),
+        password: hashedPassword,
         phone,
         role: USER_ROLE.SHOP_OWNER,
-      }], { session });
-      const [newShop] = await shopModel.create([{
+      };
+
+      // Step 4: Create user first (critical operation)
+      const newUser = await userModel.create(userData);
+
+      // Step 5: Prepare shop data với user_id
+      const shopData = {
         name: shop_name,
         address,
         description,
         phone,
-        website: "", // Default empty, can be updated later
+        website: "",
         location: {
           type: "Point",
-          coordinates: [0, 0], // Default coordinates, should be updated later
+          coordinates: [0, 0],
         },
         owner_id: newUser._id,
-        category_id: await shopCategoryModel.findOne({ name: category, is_active: true }).session(session)._id,
+        category_id: categoryDoc._id,
         city,
         city_code,
         district,
         district_code,
         ward,
-        status: "Pending", // Pending approval from admin
-      }], { session });
-      
-      // Commit transaction
-      await session.commitTransaction();
-      
-      // Step 5: Create token pair
-      const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
-      const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
+        status: "Pending",
+      };
 
-      const tokens = await createTokenPair(
-        { userId: newUser._id, email, role: newUser.role },
-        accessTokenKey,
-        refreshTokenKey
-      );
+      // Step 6: Create shop với error handling
+      let newShop;
+      try {
+        newShop = await shopModel.create(shopData);
+      } catch (shopError) {
+        // Critical: Cleanup user nếu shop creation fail
+        console.error("Shop creation failed, initiating user cleanup:", shopError);
+        
+        // Async cleanup để không block error response
+        setImmediate(async () => {
+          try {
+            await userModel.findByIdAndDelete(newUser._id);
+            console.log(`Cleaned up user ${newUser._id} after shop creation failure`);
+          } catch (cleanupError) {
+            console.error(`CRITICAL: Failed to cleanup user ${newUser._id}:`, cleanupError);
+            // Log critical error for manual intervention
+          }
+        });
+        
+        throw new InternalServerError("Failed to create shop. Please try again.");
+      }
+      
+      // Step 7: Create tokens (non-critical, có thể retry)
+      let tokens;
+      try {
+        const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
+        const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET_SIGNATURE;
 
-      // Step 6: Return result
+        tokens = await createTokenPair(
+          { userId: newUser._id, email, role: newUser.role },
+          accessTokenKey,
+          refreshTokenKey
+        );
+      } catch (tokenError) {
+        console.error("Token creation failed:", tokenError);
+        // Return without tokens, user có thể login sau
+        tokens = null;
+      }
+
+      // Step 8: Return result
       return {
         user: getInfoData({
           fields: ["_id", "full_name", "email", "role", "phone"],
@@ -196,15 +240,12 @@ class ShopOwnerService {
           object: newShop,
         }),
         tokens,
+        message: tokens ? "Registration successful" : "Registration successful. Please login to get access token."
       };
 
     } catch (error) {
-      // 🔄 ROLLBACK: MongoDB tự động rollback TẤT CẢ thay đổi
-      await session.abortTransaction();
-      console.log(`Transaction aborted due to error: ${error.message}`);
+      console.error(`Error in register shop owner: ${error.message}`);
       throw error;
-    } finally {
-      session.endSession();
     }
   };
 }

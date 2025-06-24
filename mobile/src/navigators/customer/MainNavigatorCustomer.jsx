@@ -11,6 +11,7 @@ import BookingDetailScreen from "../../screens/BookingDetailScreen";
 import DefaultLocationScreen from "../../screens/DefaultLocationScreen";
 import ThemeScreen from "../../screens/ThemeScreen";
 import PremiumScreen from "../../screens/PremiumScreen";
+import AddAddressScreen from "../../screens/AddAddressScreen";
 import TabNavigatorCustomer from "./TabNavigatorCustomer";
 import PaymentHistoryScreen from "../../screens/PaymentHistoryScreen";
 import MenuItemDetailScreen from "../../screens/MenuItemDetailScreen";
@@ -39,6 +40,7 @@ const MainNavigatorCustomer = () => {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Theme" component={ThemeScreen} />
       <Stack.Screen name="DefaultLocation" component={DefaultLocationScreen} />
+      <Stack.Screen name="AddAddress" component={AddAddressScreen} />
       <Stack.Screen name="Vouchers" component={VoucherScreen} />
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
       <Stack.Screen name="CheckinCamera" component={CheckinCameraScreen} />

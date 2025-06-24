@@ -26,7 +26,10 @@ class AdvertisementController {
     const result = await advertisementService.deleteAdvertisement(req);
     new OK({ message: ADVERTISEMENT_MESSAGE.DELETE_ADVERTISEMENT_SUCCESS, data: result }).send(res);
   });
-
+  getAdvertisementsMobile = asyncHandler(async (req, res) => {
+    const result = await advertisementService.getAdvertisementsMobile(req);
+    new OK({ message: ADVERTISEMENT_MESSAGE.GET_ADVERTISEMENT_LIST_SUCCESS, data: result }).send(res);
+  });
 }
 
 module.exports = new AdvertisementController();
