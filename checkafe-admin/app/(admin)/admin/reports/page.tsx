@@ -43,37 +43,10 @@ export default function ReportsPage() {
   const [shopReports, setShopReports] = useState<ReportData | null>(null)
   const [orderReports, setOrderReports] = useState<ReportData | null>(null)
   const [revenueReports, setRevenueReports] = useState<ReportData | null>(null)
-  // Test function to check API accessibility
-  const testAdminAPI = async () => {
-    try {
-      console.log('Testing admin API access...')
-      const response = await authorizedAxiosInstance.get('/v1/admin/users?page=1&limit=1')
-      console.log('Admin API test successful:', response.data)
-      return true
-    } catch (error: any) {
-      console.log('Admin API test failed:', error.response?.data || error.message)
-      return false
-    }
-  }
 
-  // Fetch reports data
   const fetchReports = async (reportType: string) => {
     try {
       setLoading(true)
-      
-      // Debug: Check if token exists
-      const token = localStorage.getItem('accessToken')
-      console.log('Access token:', token ? 'exists' : 'missing')
-      
-      // Test admin API access first
-      const apiAccessible = await testAdminAPI()
-      if (!apiAccessible) {
-        toast.error('Không có quyền truy cập API admin. Vui lòng đăng nhập lại.')
-        return
-      }
-      
-      console.log('Making request to:', `/v1/admin/reports/${reportType}`)
-      console.log('With params:', { period })
       
       const response = await authorizedAxiosInstance.get<ReportsResponse>(`/v1/admin/reports/${reportType}`, {
         params: { period }
@@ -141,6 +114,14 @@ export default function ReportsPage() {
         const isNaN_check = isNaN(Number(value))
         const style = isNaN_check ? 'color: red; font-weight: bold' : 'color: green'
         console.log(`%c${key}: ${value} (${typeof value}) ${isNaN_check ? '❌ NaN' : '✅ Valid'}`, style)
+      })
+      console.groupEnd()
+    }
+
+    if (data?.charts) {
+      console.group('📊 Charts')
+      Object.entries(data.charts).forEach(([key, value]) => {
+        console.log(`${key}:`, value)
       })
       console.groupEnd()
     }
@@ -305,7 +286,10 @@ export default function ReportsPage() {
                 <CardDescription>Số lượng người dùng mới và tổng số người dùng theo thời gian</CardDescription>
               </CardHeader>
               <CardContent>
-                <AdminUserReportChart />
+                <AdminUserReportChart 
+                  data={userReports.charts?.userGrowth || userReports.charts?.timeline} 
+                  loading={loading}
+                />
               </CardContent>
             </Card>
           )}
@@ -372,7 +356,10 @@ export default function ReportsPage() {
                 <CardDescription>Số lượng quán mới và tổng số quán theo thời gian</CardDescription>
               </CardHeader>
               <CardContent>
-                <AdminShopReportChart />
+                <AdminShopReportChart 
+                  data={shopReports.charts?.shopGrowth || shopReports.charts?.timeline} 
+                  loading={loading}
+                />
               </CardContent>
             </Card>
           )}
@@ -439,7 +426,10 @@ export default function ReportsPage() {
                 <CardDescription>Số lượng đơn đặt chỗ theo thời gian</CardDescription>
               </CardHeader>
               <CardContent>
-                <AdminOrderReportChart />
+                <AdminOrderReportChart 
+                  data={orderReports.charts?.orderTimeline || orderReports.charts?.dailyOrders} 
+                  loading={loading}
+                />
               </CardContent>
             </Card>
           )}
@@ -507,7 +497,10 @@ export default function ReportsPage() {
                 <CardDescription>Doanh thu theo thời gian phân chia theo nguồn</CardDescription>
               </CardHeader>
               <CardContent>
-                <AdminRevenueReportChart />
+                <AdminRevenueReportChart 
+                  data={revenueReports.charts?.revenueTimeline || revenueReports.charts?.dailyRevenue} 
+                  loading={loading}
+                />
               </CardContent>
             </Card>
           )}  

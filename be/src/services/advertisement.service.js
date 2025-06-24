@@ -16,24 +16,8 @@ class AdvertisementService {
       search,
     } = req.query;
 
-    // Lấy thời gian hiện tại
-    const currentDate = new Date();
 
     const query = {
-      status: "Approved",
-      $or: [
-        // Quảng cáo không có giới hạn thời gian (start_date và end_date đều null)
-        { start_date: null, end_date: null },
-        // Quảng cáo chỉ có start_date, không có end_date
-        { start_date: { $lte: currentDate }, end_date: null },
-        // Quảng cáo chỉ có end_date, không có start_date
-        { start_date: null, end_date: { $gte: currentDate } },
-        // Quảng cáo có cả start_date và end_date, đang trong khoảng thời gian
-        {
-          start_date: { $lte: currentDate },
-          end_date: { $gte: currentDate }
-        }
-      ]
     };
 
     if (search) {

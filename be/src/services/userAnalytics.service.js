@@ -346,7 +346,6 @@ class UserAnalyticsService {
         { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1, "_id.week": 1 } }
       ]);
       
-      console.log('Activity by time result:', activity);
       return activity;
     } catch (error) {
       console.error('Error in getActivityByTime:', error);
