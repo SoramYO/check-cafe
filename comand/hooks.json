@@ -5,28 +5,14 @@
     "command-working-directory": "/root/checkafe",
     "response-message": "Auto deploy started!",
     "trigger-rule": {
-      "and": [
-        {
-          "match": {
-            "type": "payload-hash-sha1",
-            "secret": "your-webhook-secret-here",
-            "parameter": {
-              "source": "header",
-              "name": "X-Hub-Signature-256"
-            }
-          }
-        },
-        {
-          "match": {
-            "type": "value",
-            "value": "refs/heads/main",
-            "parameter": {
-              "source": "payload",
-              "name": "ref"
-            }
-          }
+      "match": {
+        "type": "value",
+        "value": "refs/heads/main",
+        "parameter": {
+          "source": "payload",
+          "name": "ref"
         }
-      ]
+      }
     }
   }
 ] 
