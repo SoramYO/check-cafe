@@ -11,20 +11,33 @@ const HEADER = {
 
 const checkAdmin = async (req, res, next) => {
   try {
-    const userId = req.headers[HEADER.CLIENT_ID];
-    if (!userId) throw new Error("Invalid Request");
+    // Lấy accessToken từ header với format Bearer
+    const authHeader = req.headers[HEADER.AUTHORIZATION];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        code: "xxx",
+        message: "No access token provided or invalid format",
+        status: "error",
+      });
+    }
+    const accessToken = authHeader.split(" ")[1];
 
-    const keyStore = await KeyTokenService.findByUserId(userId);
-    if (!keyStore) throw new Error("Not found keyStore");
+    // Xác minh accessToken sử dụng ACCESS_TOKEN_SECRET_SIGNATURE
+    const accessTokenKey = process.env.ACCESS_TOKEN_SECRET_SIGNATURE;
+    if (!accessTokenKey) {
+      return res.status(500).json({
+        code: "xxx",
+        message: "Access token secret key not defined",
+        status: "error",
+      });
+    }
 
-    const accessToken = req.headers[HEADER.AUTHORIZATION];
-    if (!accessToken) throw new Error("Invalid Request");
-
-    const decodeUser = JWT.verify(accessToken, keyStore.publicKey);
+    const decodeUser = JWT.verify(accessToken, accessTokenKey);
     if (decodeUser.role !== "ADMIN") {
       return res.status(403).json({
         code: "xxx",
         message: "Permission denied",
+        status: "error",
       });
     }
 

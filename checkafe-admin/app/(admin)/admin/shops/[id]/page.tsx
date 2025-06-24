@@ -1,9 +1,13 @@
+'use client'
+import { useState, useEffect, use } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   ArrowLeft,
   CheckCircle,
@@ -19,43 +23,317 @@ import {
   Users,
   Coffee,
   ImageIcon,
+  Eye,
+  Download,
+  RefreshCw,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { toast } from "sonner"
+import authorizedAxiosInstance from "@/lib/axios"
+import { Shop } from "../types"
+import { useToast } from "@/hooks/use-toast"
 
-export default function ShopDetailPage({ params }: { params: { id: string } }) {
-  // Giả lập dữ liệu quán cà phê
-  const shop = {
-    id: params.id,
-    name: "Cafe Ngon",
-    logo: "/placeholder.svg?height=80&width=80",
-    coverImage: "/placeholder.svg?height=300&width=800",
-    description: "Quán cà phê với không gian thoáng đãng, view đẹp và đồ uống chất lượng cao.",
-    address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
-    phone: "0901234567",
-    email: "info@cafengon.com",
-    website: "https://cafengon.com",
-    openingHours: "07:30 - 22:00",
-    rating: 4.8,
-    totalOrders: 1250,
-    status: "active",
-    verificationStatus: "pending",
-    joinDate: "01/01/2025",
-    owner: {
-      name: "Nguyễn Văn A",
-      phone: "0909123456",
-      email: "nguyenvana@gmail.com",
-    },
-    businessLicense: {
-      number: "0123456789",
-      issueDate: "01/01/2023",
-      issuedBy: "Sở Kế hoạch và Đầu tư TP.HCM",
-      document: "/placeholder.svg?height=400&width=300",
-      uploadDate: "15/05/2025",
-    },
-    amenities: ["Wifi miễn phí", "Bãi đỗ xe", "Máy lạnh", "Chỗ ngồi ngoài trời", "Ổ cắm điện"],
-    theme: "Vintage",
+interface Review {
+  _id: string
+  rating: number
+  comment: string
+  createdAt: string
+  user_id: {
+    _id: string
+    full_name: string
+    avatar?: string
+  }
+  reservation_id?: {
+    booking_date: string
+  }
+}
+
+interface ShopStats {
+  shop: {
+    _id: string
+    name: string
+    address: string
+    rating_avg: number
+    rating_count: number
+    is_open: boolean
+    vip_status: boolean
+  }
+  statistics: {
+    reviews: {
+      total: number
+      averageRating: number
+      periodTotal: number
+    }
+    reservations: {
+      total: number
+    }
+    checkins: {
+      total: number
+    }
+  }
+  period: string
+  dateRange: {
+    start: string
+    end: string
+  }
+}
+
+interface Verification {
+  _id: string
+  status: string
+  document_url: string
+  document_name: string
+  submitted_at: string
+  reviewed_at?: string
+  reviewed_by?: {
+    _id: string
+    full_name: string
+  }
+  notes?: string
+}
+
+interface Activity {
+  _id: string
+  action: string
+  description: string
+  createdAt: string
+  user_id?: {
+    _id: string
+    full_name: string
+    email: string
+  }
+}
+
+interface ShopOwner {
+  _id: string
+  full_name: string
+  email: string
+  phone?: string
+  avatar?: string
+  createdAt: string
+}
+
+export default function ShopDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
+  const { toast } = useToast()
+  const [shop, setShop] = useState<Shop | null>(null)
+  const [loading, setLoading] = useState(false)
+  
+  // Tab data states
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [reviewsPagination, setReviewsPagination] = useState({
+    page: 1,
+    total: 0,
+    totalPages: 0
+  })
+  
+  const [stats, setStats] = useState<ShopStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  
+  const [verifications, setVerifications] = useState<Verification[]>([])
+  const [verificationsLoading, setVerificationsLoading] = useState(false)
+  
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [activitiesLoading, setActivitiesLoading] = useState(false)
+  
+  const [owner, setOwner] = useState<ShopOwner | null>(null)
+  const [ownerLoading, setOwnerLoading] = useState(false)
+
+  useEffect(() => {
+    fetchShopDetails()
+    fetchShopOwnerInfo()
+  }, [resolvedParams.id])
+
+  const fetchShopDetails = async () => {
+    try {
+      setLoading(true)
+      const response = await authorizedAxiosInstance.get(`/v1/shops/${resolvedParams.id}`)
+      if (response.data.status === 200) {
+        setShop(response.data.data.shop)
+      }
+    } catch (error) {
+      console.error('Error fetching shop details:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: 'Không thể tải thông tin quán'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchShopOwnerInfo = async () => {
+    try {
+      setOwnerLoading(true)
+      const response = await authorizedAxiosInstance.get(`/v1/admin/shops/${resolvedParams.id}/owner`)
+      if (response.data.status === 200 && response.data.data.code === "200") {
+        setOwner(response.data.data.metadata.owner)
+      } else {
+        console.error('Error fetching shop owner:', response.data.data?.message)
+      }
+    } catch (error) {
+      console.error('Error fetching shop owner:', error)
+    } finally {
+      setOwnerLoading(false)
+    }
+  }
+
+  const fetchShopReviews = async (page = 1) => {
+    try {
+      setReviewsLoading(true)
+      const response = await authorizedAxiosInstance.get(`/v1/admin/shops/${resolvedParams.id}/reviews`, {
+        params: { page, limit: 10 }
+      })
+      if (response.data.status === 200 && response.data.data.code === "200") {
+        setReviews(response.data.data.metadata.reviews)
+        setReviewsPagination({
+          page: response.data.data.metadata.pagination.page,
+          total: response.data.data.metadata.pagination.total,
+          totalPages: response.data.data.metadata.pagination.totalPages
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: response.data.data?.message || 'Không thể tải đánh giá'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: 'Không thể tải đánh giá'
+      })
+    } finally {
+      setReviewsLoading(false)
+    }
+  }
+
+  const fetchShopStats = async () => {
+    try {
+      setStatsLoading(true)
+      const response = await authorizedAxiosInstance.get(`/v1/admin/shops/${resolvedParams.id}/statistics`)
+      if (response.data.status === 200 && response.data.data.code === "200") {
+        setStats(response.data.data.metadata)
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: response.data.data?.message || 'Không thể tải thống kê'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: 'Không thể tải thống kê'
+      })
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  const fetchShopVerifications = async () => {
+    try {
+      setVerificationsLoading(true)
+      const response = await authorizedAxiosInstance.get(`/v1/admin/shops/${resolvedParams.id}/verifications`)
+      if (response.data.status === 200 && response.data.data.code === "200") {
+        setVerifications(response.data.data.metadata.verifications)
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: response.data.data?.message || 'Không thể tải giấy phép xác minh'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching verifications:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: 'Không thể tải giấy phép xác minh'
+      })
+    } finally {
+      setVerificationsLoading(false)
+    }
+  }
+
+  const fetchShopActivities = async () => {
+    try {
+      setActivitiesLoading(true)
+      const response = await authorizedAxiosInstance.get(`/v1/admin/shops/${resolvedParams.id}/activity-history`)
+      if (response.data.status === 200 && response.data.data.code === "200") {
+        setActivities(response.data.data.metadata.activities)
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: response.data.data?.message || 'Không thể tải lịch sử hoạt động'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error)
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: 'Không thể tải lịch sử hoạt động'
+      })
+    } finally {
+      setActivitiesLoading(false)
+    }
+  }
+
+  const handleTabChange = (value: string) => {
+    switch (value) {
+      case 'reviews':
+        if (reviews.length === 0) fetchShopReviews()
+        break
+      case 'analytics':
+        if (!stats) fetchShopStats()
+        break
+      case 'verification':
+        if (verifications.length === 0) fetchShopVerifications()
+        break
+      case 'history':
+        if (activities.length === 0) fetchShopActivities()
+        break
+    }
+  }
+
+  if (loading) {
+    return <div>Đang tải...</div>
+  }
+
+  if (!shop) {
+    return <div>Không tìm thấy thông tin quán</div>
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">Đang chờ</Badge>
+      case 'approved':
+        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Đã duyệt</Badge>
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Từ chối</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+      />
+    ))
   }
 
   return (
@@ -73,23 +351,22 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {shop.verificationStatus === "pending" && (
+          {verifications.length > 0 && (
             <>
-              <Button variant="outline" className="gap-1 text-red-500 border-red-200 hover:bg-red-50">
-                <XCircle className="h-4 w-4" /> Từ chối
-              </Button>
-              <Button className="gap-1 bg-green-600 hover:bg-green-700">
-                <CheckCircle className="h-4 w-4" /> Xác minh
-              </Button>
+              {verifications.map((verification) => (
+                <Badge key={verification._id} variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
+                  {verification.status}
+                </Badge>
+              ))}
             </>
           )}
-          {shop.status === "active" ? (
+          {shop.is_open ? (
             <Button variant="outline" className="gap-1 text-red-500 border-red-200 hover:bg-red-50">
-              Tạm ngưng hoạt động
+              Đóng cửa
             </Button>
           ) : (
             <Button variant="outline" className="gap-1 text-green-600 border-green-200 hover:bg-green-50">
-              Kích hoạt
+              Mở cửa
             </Button>
           )}
         </div>
@@ -98,27 +375,37 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">
           <div className="relative h-48 w-full">
-            <Image src={shop.coverImage || "/placeholder.svg"} alt={shop.name} fill className="object-cover" />
+            <Image 
+              src={shop.mainImage?.url || "/placeholder.svg"} 
+              alt={shop.name} 
+              fill 
+              className="object-cover" 
+            />
           </div>
           <CardHeader className="flex-row items-start gap-4 space-y-0">
             <div className="relative h-20 w-20 rounded-full overflow-hidden border-4 border-white -mt-12 bg-white">
-              <Image src={shop.logo || "/placeholder.svg"} alt={shop.name} fill className="object-cover" />
+              <Image 
+                src={shop.mainImage?.url || "/placeholder.svg"} 
+                alt={shop.name} 
+                fill 
+                className="object-cover" 
+              />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <CardTitle>{shop.name}</CardTitle>
-                {shop.status === "active" ? (
+                {shop.is_open ? (
                   <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
                     Đang hoạt động
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-                    Tạm ngưng
+                    Đóng cửa
                   </Badge>
                 )}
-                {shop.verificationStatus === "verified" && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-                    <CheckCircle className="h-3 w-3 mr-1" /> Đã xác minh
+                {shop.vip_status && (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+                    <CheckCircle className="h-3 w-3 mr-1" /> VIP
                   </Badge>
                 )}
               </div>
@@ -137,38 +424,30 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
                   <span>{shop.phone}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span>{shop.email}</span>
-                </div>
-                <div className="flex items-center text-gray-600">
                   <Globe className="h-4 w-4 mr-2" />
                   <span>{shop.website}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Clock className="h-4 w-4 mr-2" />
-                  <span>{shop.openingHours}</span>
+                  <span>Giờ mở cửa</span>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center text-gray-600">
                   <Star className="h-4 w-4 mr-2 text-yellow-500" />
-                  <span>{shop.rating} (120 đánh giá)</span>
+                  <span>{shop.rating_avg.toFixed(1)} ({shop.rating_count} đánh giá)</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>Tham gia: {shop.joinDate}</span>
+                  <span>Tham gia: {new Date(shop.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Coffee className="h-4 w-4 mr-2" />
-                  <span>{shop.totalOrders} đơn đặt</span>
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <Users className="h-4 w-4 mr-2" />
-                  <span>Chủ đề: {shop.theme}</span>
+                  <span>Chủ đề: {shop.theme_ids.map(t => t.name).join(', ')}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <ImageIcon className="h-4 w-4 mr-2" />
-                  <span>12 ảnh</span>
+                  <span>{shop.images?.length || 0} ảnh</span>
                 </div>
               </div>
             </div>
@@ -178,10 +457,22 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
             <div>
               <h3 className="font-medium mb-2">Tiện ích</h3>
               <div className="flex flex-wrap gap-2">
-                {shop.amenities.map((amenity, index) => (
-                  <Badge key={index} variant="secondary">
-                    {amenity}
+                {shop.amenities.map((amenity) => (
+                  <Badge key={amenity._id} variant="secondary">
+                    {amenity.label}
                   </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-2">Giờ hoạt động</h3>
+              <div className="grid gap-2">
+                {Object.entries(shop.formatted_opening_hours).map(([day, hours]) => (
+                  <div key={day} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="font-medium">{day}</span>
+                    <span className="text-sm">{hours}</span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -193,25 +484,41 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
             <CardTitle>Thông tin chủ quán</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Họ tên:</span>
-                <span className="font-medium">{shop.owner.name}</span>
+            {ownerLoading ? (
+              <div className="text-center py-4">Đang tải...</div>
+            ) : owner ? (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={owner.avatar} />
+                    <AvatarFallback>{owner.full_name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{owner.full_name}</p>
+                    <p className="text-sm text-gray-500">{owner.email}</p>
+                  </div>
+                </div>
+                {owner.phone && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Phone className="h-4 w-4 mr-2" />
+                    <span>{owner.phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center text-sm text-gray-600">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span>Tham gia: {new Date(owner.createdAt).toLocaleDateString()}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Số điện thoại:</span>
-                <span className="font-medium">{shop.owner.phone}</span>
+            ) : (
+              <div className="text-center text-gray-500">
+                Không tìm thấy thông tin chủ quán
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Email:</span>
-                <span className="font-medium">{shop.owner.email}</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="verification" className="space-y-4">
+      <Tabs defaultValue="verification" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="verification">Xác minh giấy phép</TabsTrigger>
           <TabsTrigger value="analytics">Thống kê</TabsTrigger>
@@ -227,145 +534,133 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
                   <CardTitle>Giấy phép kinh doanh</CardTitle>
                   <CardDescription>Xem xét và xác minh giấy phép kinh doanh của quán.</CardDescription>
                 </div>
-                {shop.verificationStatus === "pending" && (
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
-                    Đang chờ xác minh
-                  </Badge>
-                )}
-                {shop.verificationStatus === "verified" && (
-                  <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                    Đã xác minh
-                  </Badge>
-                )}
-                {shop.verificationStatus === "rejected" && (
-                  <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
-                    Bị từ chối
-                  </Badge>
-                )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchShopVerifications}
+                  disabled={verificationsLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${verificationsLoading ? 'animate-spin' : ''}`} />
+                  Làm mới
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {verificationsLoading ? (
+                <div className="text-center py-8">Đang tải...</div>
+              ) : verifications.length > 0 ? (
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="font-medium">Thông tin giấy phép</h3>
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Số giấy phép:</span>
-                        <span className="font-medium">{shop.businessLicense.number}</span>
+                  {verifications.map((verification) => (
+                    <div key={verification._id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-gray-500" />
+                          <span className="font-medium">{verification.document_name}</span>
+                        </div>
+                        {getStatusBadge(verification.status)}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Ngày cấp:</span>
-                        <span className="font-medium">{shop.businessLicense.issueDate}</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Ngày nộp:</span>
+                          <span className="ml-2">{new Date(verification.submitted_at).toLocaleDateString()}</span>
+                        </div>
+                        {verification.reviewed_at && (
+                          <div>
+                            <span className="text-gray-500">Ngày duyệt:</span>
+                            <span className="ml-2">{new Date(verification.reviewed_at).toLocaleDateString()}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Cơ quan cấp:</span>
-                        <span className="font-medium">{shop.businessLicense.issuedBy}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Ngày tải lên:</span>
-                        <span className="font-medium">{shop.businessLicense.uploadDate}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {shop.verificationStatus === "pending" && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Quyết định xác minh</h3>
-                      <div className="flex gap-2">
-                        <Button className="flex-1 gap-1 bg-green-600 hover:bg-green-700">
-                          <CheckCircle className="h-4 w-4" /> Xác minh
+                      {verification.notes && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded">
+                          <span className="text-gray-500">Ghi chú:</span>
+                          <p className="mt-1">{verification.notes}</p>
+                        </div>
+                      )}
+                      <div className="flex gap-2 mt-3">
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem
                         </Button>
-                        <Button variant="outline" className="flex-1 gap-1 text-red-500 border-red-200 hover:bg-red-50">
-                          <XCircle className="h-4 w-4" /> Từ chối
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Tải xuống
                         </Button>
                       </div>
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium">Lý do từ chối (nếu từ chối)</h4>
-                        <Textarea placeholder="Nhập lý do từ chối xác minh..." />
-                      </div>
                     </div>
-                  )}
-
-                  {shop.verificationStatus === "verified" && (
-                    <Alert className="bg-green-50 text-green-600 border-green-200">
-                      <CheckCircle className="h-4 w-4" />
-                      <AlertTitle>Đã xác minh</AlertTitle>
-                      <AlertDescription>Quán này đã được xác minh vào ngày 16/05/2025 bởi Admin.</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {shop.verificationStatus === "rejected" && (
-                    <Alert className="bg-red-50 text-red-600 border-red-200">
-                      <XCircle className="h-4 w-4" />
-                      <AlertTitle>Đã từ chối</AlertTitle>
-                      <AlertDescription>
-                        Giấy phép kinh doanh đã hết hạn. Vui lòng cung cấp giấy phép còn hiệu lực.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  ))}
                 </div>
-
-                <div className="space-y-2">
-                  <h3 className="font-medium">Hình ảnh giấy phép</h3>
-                  <div className="border rounded-md overflow-hidden">
-                    <div className="relative h-[400px] w-full">
-                      <Image
-                        src={shop.businessLicense.document || "/placeholder.svg"}
-                        alt="Giấy phép kinh doanh"
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                    <div className="p-2 bg-gray-50 border-t flex justify-between items-center">
-                      <div className="flex items-center">
-                        <FileText className="h-4 w-4 text-gray-500 mr-2" />
-                        <span className="text-sm text-gray-500">GiayPhepKinhDoanh.pdf</span>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Tải xuống
-                      </Button>
-                    </div>
-                  </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  Chưa có giấy phép xác minh nào
                 </div>
-              </div>
+              )}
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline">Quay lại danh sách</Button>
-              <div className="flex gap-2">
-                {shop.verificationStatus === "pending" && (
-                  <>
-                    <Button variant="outline" className="gap-1 text-red-500 border-red-200 hover:bg-red-50">
-                      <XCircle className="h-4 w-4" /> Từ chối
-                    </Button>
-                    <Button className="gap-1 bg-green-600 hover:bg-green-700">
-                      <CheckCircle className="h-4 w-4" /> Xác minh
-                    </Button>
-                  </>
-                )}
-                {shop.verificationStatus === "verified" && (
-                  <Button variant="outline" className="gap-1 text-red-500 border-red-200 hover:bg-red-50">
-                    <XCircle className="h-4 w-4" /> Hủy xác minh
-                  </Button>
-                )}
-                {shop.verificationStatus === "rejected" && (
-                  <Button className="gap-1 bg-green-600 hover:bg-green-700">
-                    <CheckCircle className="h-4 w-4" /> Xác minh lại
-                  </Button>
-                )}
-              </div>
-            </CardFooter>
           </Card>
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Thống kê hoạt động</CardTitle>
-              <CardDescription>Xem thống kê hoạt động của quán cà phê.</CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Thống kê hoạt động</CardTitle>
+                  <CardDescription>Xem thống kê hoạt động của quán cà phê.</CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchShopStats}
+                  disabled={statsLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${statsLoading ? 'animate-spin' : ''}`} />
+                  Làm mới
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="h-[400px] flex items-center justify-center">
-              <p className="text-gray-500">Biểu đồ thống kê sẽ hiển thị ở đây</p>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-center py-8">Đang tải...</div>
+              ) : stats ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {stats?.statistics?.reviews?.total || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Đánh giá</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Trung bình: {stats?.statistics?.reviews?.averageRating?.toFixed(1) || '0.0'} ⭐
+                    </div>
+                    {stats?.statistics?.reviews?.periodTotal > 0 && (
+                      <div className="text-xs text-blue-500 mt-1">
+                        {stats.statistics.reviews.periodTotal} trong tháng này
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {stats?.statistics?.reservations?.total || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Đặt bàn</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Trong {stats?.period || 'tháng'} này
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {stats?.statistics?.checkins?.total || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Check-in</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Trong {stats?.period || 'tháng'} này
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  Không có dữ liệu thống kê
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -373,11 +668,86 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
         <TabsContent value="reviews" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Đánh giá từ khách hàng</CardTitle>
-              <CardDescription>Xem đánh giá của khách hàng về quán cà phê.</CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Đánh giá từ khách hàng</CardTitle>
+                  <CardDescription>Xem đánh giá của khách hàng về quán cà phê.</CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fetchShopReviews()}
+                  disabled={reviewsLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${reviewsLoading ? 'animate-spin' : ''}`} />
+                  Làm mới
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="h-[400px] flex items-center justify-center">
-              <p className="text-gray-500">Danh sách đánh giá sẽ hiển thị ở đây</p>
+            <CardContent>
+              {reviewsLoading ? (
+                <div className="text-center py-8">Đang tải...</div>
+              ) : reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review._id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={review.user_id.avatar} />
+                            <AvatarFallback>{review.user_id.full_name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{review.user_id.full_name}</p>
+                            <div className="flex items-center mt-1">
+                              {renderStars(review.rating)}
+                              <span className="ml-2 text-sm text-gray-500">{review.rating}/5</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-gray-700">{review.comment}</p>
+                      )}
+                      {review.reservation_id && (
+                        <div className="mt-2 text-sm text-gray-500">
+                          Đặt bàn ngày: {new Date(review.reservation_id.booking_date).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {reviewsPagination.totalPages > 1 && (
+                    <div className="flex justify-center gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchShopReviews(reviewsPagination.page - 1)}
+                        disabled={reviewsPagination.page === 1}
+                      >
+                        Trước
+                      </Button>
+                      <span className="flex items-center px-3 text-sm">
+                        Trang {reviewsPagination.page} / {reviewsPagination.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchShopReviews(reviewsPagination.page + 1)}
+                        disabled={reviewsPagination.page === reviewsPagination.totalPages}
+                      >
+                        Sau
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  Chưa có đánh giá nào
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -385,11 +755,52 @@ export default function ShopDetailPage({ params }: { params: { id: string } }) {
         <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Lịch sử hoạt động</CardTitle>
-              <CardDescription>Xem lịch sử hoạt động và thay đổi của quán cà phê.</CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Lịch sử hoạt động</CardTitle>
+                  <CardDescription>Xem lịch sử hoạt động và thay đổi của quán cà phê.</CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchShopActivities}
+                  disabled={activitiesLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${activitiesLoading ? 'animate-spin' : ''}`} />
+                  Làm mới
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="h-[400px] flex items-center justify-center">
-              <p className="text-gray-500">Lịch sử hoạt động sẽ hiển thị ở đây</p>
+            <CardContent>
+              {activitiesLoading ? (
+                <div className="text-center py-8">Đang tải...</div>
+              ) : activities.length > 0 ? (
+                <div className="space-y-3">
+                  {activities.map((activity) => (
+                    <div key={activity._id} className="flex items-start space-x-3 p-3 border rounded-lg">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{activity.action}</p>
+                          <span className="text-sm text-gray-500">
+                            {new Date(activity.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                        {activity.user_id && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Bởi: {activity.user_id.full_name} ({activity.user_id.email})
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  Chưa có lịch sử hoạt động
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

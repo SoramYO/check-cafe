@@ -8,6 +8,8 @@ const bcrypt = require("bcryptjs");
 const { createTokenPair } = require("../auth/authUtils");
 const crypto = require("crypto");
 const KeyTokenService = require("./keyToken.service");
+const mongoose = require('mongoose');
+const reviewModel = require("../models/review.model");
 
 class AdminService {
   // Auth
@@ -239,6 +241,388 @@ class AdminService {
           total: totalBookings,
           completed: completedBookings,
           cancelled: cancelledBookings,
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Enhanced booking statistics by time period
+  getBookingStatsByPeriod = async ({ period = 'day', shopId = null, startDate = null, endDate = null }) => {
+    try {
+      const now = new Date();
+      let start, end, groupBy;
+
+      // Set date range based on period
+      switch (period) {
+        case 'day':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = endDate ? new Date(endDate) : new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" }, 
+            day: { $dayOfMonth: "$createdAt" } 
+          };
+          break;
+        case 'week':
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - now.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          start = startDate ? new Date(startDate) : weekStart;
+          end = endDate ? new Date(endDate) : new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            week: { $week: "$createdAt" } 
+          };
+          break;
+        case 'month':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+          end = endDate ? new Date(endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" } 
+          };
+          break;
+        default:
+          start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" }, 
+            day: { $dayOfMonth: "$createdAt" } 
+          };
+      }
+
+      // Build match conditions
+      const matchConditions = {
+        createdAt: { $gte: start, $lt: end }
+      };
+
+      if (shopId) {
+        // Convert shopId to ObjectId for proper comparison
+        matchConditions.shop_id = new mongoose.Types.ObjectId(shopId);
+      }
+
+      // Aggregate pipeline for booking statistics
+      const bookingStats = await reservationModel.aggregate([
+        { $match: matchConditions },
+        {
+          $group: {
+            _id: groupBy,
+            totalBookings: { $sum: 1 },
+            completedBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] }
+            },
+            cancelledBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] }
+            },
+            pendingBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] }
+            },
+            confirmedBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] }
+            },
+            totalPeople: { $sum: "$number_of_people" },
+            avgPeoplePerBooking: { $avg: "$number_of_people" }
+          }
+        },
+        { $sort: { "_id": 1 } }
+      ]);
+
+      // Get shop information if shopId is provided
+      let shopInfo = null;
+      if (shopId) {
+        shopInfo = await shopModel.findById(shopId).select('name address owner_id').lean();
+      }
+
+      // Calculate summary statistics
+      const summary = {
+        totalBookings: bookingStats.reduce((sum, stat) => sum + stat.totalBookings, 0),
+        completedBookings: bookingStats.reduce((sum, stat) => sum + stat.completedBookings, 0),
+        cancelledBookings: bookingStats.reduce((sum, stat) => sum + stat.cancelledBookings, 0),
+        pendingBookings: bookingStats.reduce((sum, stat) => sum + stat.pendingBookings, 0),
+        confirmedBookings: bookingStats.reduce((sum, stat) => sum + stat.confirmedBookings, 0),
+        totalPeople: bookingStats.reduce((sum, stat) => sum + stat.totalPeople, 0),
+        avgPeoplePerBooking: bookingStats.length > 0 ? 
+          bookingStats.reduce((sum, stat) => sum + stat.avgPeoplePerBooking, 0) / bookingStats.length : 0
+      };
+
+      // Calculate completion rate
+      summary.completionRate = summary.totalBookings > 0 ? 
+        (summary.completedBookings / summary.totalBookings * 100) : 0;
+
+      return {
+        code: "200",
+        metadata: {
+          period,
+          startDate: start,
+          endDate: end,
+          shopInfo,
+          summary,
+          breakdown: bookingStats,
+          totalPeriods: bookingStats.length
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get booking statistics for all shops
+  getShopBookingStats = async ({ period = 'day', startDate = null, endDate = null, limit = 10 }) => {
+    try {
+      const now = new Date();
+      let start, end;
+
+      // Set date range based on period
+      switch (period) {
+        case 'day':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = endDate ? new Date(endDate) : new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          break;
+        case 'week':
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - now.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          start = startDate ? new Date(startDate) : weekStart;
+          end = endDate ? new Date(endDate) : new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+          end = endDate ? new Date(endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          break;
+        default:
+          start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+      }
+
+      // Aggregate pipeline for shop booking statistics
+      const shopStats = await reservationModel.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: start, $lt: end }
+          }
+        },
+        {
+          $lookup: {
+            from: "shops",
+            localField: "shop_id",
+            foreignField: "_id",
+            as: "shop"
+          }
+        },
+        {
+          $unwind: "$shop"
+        },
+        {
+          $group: {
+            _id: "$shop_id",
+            shopName: { $first: "$shop.name" },
+            shopAddress: { $first: "$shop.address" },
+            ownerId: { $first: "$shop.owner_id" },
+            totalBookings: { $sum: 1 },
+            completedBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] }
+            },
+            cancelledBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] }
+            },
+            pendingBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] }
+            },
+            confirmedBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] }
+            },
+            totalPeople: { $sum: "$number_of_people" },
+            avgPeoplePerBooking: { $avg: "$number_of_people" }
+          }
+        },
+        {
+          $addFields: {
+            completionRate: {
+              $cond: [
+                { $gt: ["$totalBookings", 0] },
+                { $multiply: [{ $divide: ["$completedBookings", "$totalBookings"] }, 100] },
+                0
+              ]
+            }
+          }
+        },
+        {
+          $sort: { totalBookings: -1 }
+        },
+        {
+          $limit: limit
+        }
+      ]);
+
+      // Get owner information for each shop
+      const shopStatsWithOwners = await Promise.all(
+        shopStats.map(async (stat) => {
+          const owner = await userModel.findById(stat.ownerId).select('full_name email').lean();
+          return {
+            ...stat,
+            owner: owner || { full_name: 'Unknown', email: 'Unknown' }
+          };
+        })
+      );
+
+      return {
+        code: "200",
+        metadata: {
+          period,
+          startDate: start,
+          endDate: end,
+          totalShops: shopStatsWithOwners.length,
+          shops: shopStatsWithOwners,
+          summary: {
+            totalBookings: shopStatsWithOwners.reduce((sum, shop) => sum + shop.totalBookings, 0),
+            totalCompleted: shopStatsWithOwners.reduce((sum, shop) => sum + shop.completedBookings, 0),
+            totalCancelled: shopStatsWithOwners.reduce((sum, shop) => sum + shop.cancelledBookings, 0),
+            totalPeople: shopStatsWithOwners.reduce((sum, shop) => sum + shop.totalPeople, 0),
+            avgCompletionRate: shopStatsWithOwners.length > 0 ? 
+              shopStatsWithOwners.reduce((sum, shop) => sum + shop.completionRate, 0) / shopStatsWithOwners.length : 0
+          }
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get detailed booking timeline for a specific shop
+  getShopBookingTimeline = async ({ shopId, period = 'day', startDate = null, endDate = null }) => {
+    try {
+      const now = new Date();
+      let start, end, groupBy;
+
+      // Set date range based on period
+      switch (period) {
+        case 'day':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = endDate ? new Date(endDate) : new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" }, 
+            day: { $dayOfMonth: "$createdAt" },
+            hour: { $hour: "$createdAt" }
+          };
+          break;
+        case 'week':
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - now.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          start = startDate ? new Date(startDate) : weekStart;
+          end = endDate ? new Date(endDate) : new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" }, 
+            day: { $dayOfMonth: "$createdAt" }
+          };
+          break;
+        case 'month':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+          end = endDate ? new Date(endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" }, 
+            day: { $dayOfMonth: "$createdAt" }
+          };
+          break;
+        default:
+          start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          groupBy = { 
+            year: { $year: "$createdAt" }, 
+            month: { $month: "$createdAt" }, 
+            day: { $dayOfMonth: "$createdAt" },
+            hour: { $hour: "$createdAt" }
+          };
+      }
+
+      // Get shop information
+      const shop = await shopModel.findById(shopId).select('name address owner_id').lean();
+      if (!shop) {
+        return {
+          code: "404",
+          message: "Shop not found",
+          status: "error",
+        };
+      }
+
+      // Aggregate pipeline for booking timeline
+      const timeline = await reservationModel.aggregate([
+        {
+          $match: {
+            shop_id: new mongoose.Types.ObjectId(shopId),
+            createdAt: { $gte: start, $lt: end }
+          }
+        },
+        {
+          $group: {
+            _id: groupBy,
+            totalBookings: { $sum: 1 },
+            completedBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] }
+            },
+            cancelledBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] }
+            },
+            pendingBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] }
+            },
+            confirmedBookings: {
+              $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] }
+            },
+            totalPeople: { $sum: "$number_of_people" },
+            avgPeoplePerBooking: { $avg: "$number_of_people" },
+            revenue: { $sum: { $ifNull: ["$total_amount", 0] } }
+          }
+        },
+        {
+          $addFields: {
+            completionRate: {
+              $cond: [
+                { $gt: ["$totalBookings", 0] },
+                { $multiply: [{ $divide: ["$completedBookings", "$totalBookings"] }, 100] },
+                0
+              ]
+            }
+          }
+        },
+        { $sort: { "_id": 1 } }
+      ]);
+
+      return {
+        code: "200",
+        metadata: {
+          shop,
+          period,
+          startDate: start,
+          endDate: end,
+          timeline,
+          summary: {
+            totalBookings: timeline.reduce((sum, item) => sum + item.totalBookings, 0),
+            totalCompleted: timeline.reduce((sum, item) => sum + item.completedBookings, 0),
+            totalCancelled: timeline.reduce((sum, item) => sum + item.cancelledBookings, 0),
+            totalPeople: timeline.reduce((sum, item) => sum + item.totalPeople, 0),
+            totalRevenue: timeline.reduce((sum, item) => sum + item.revenue, 0),
+            avgCompletionRate: timeline.length > 0 ? 
+              timeline.reduce((sum, item) => sum + item.completionRate, 0) / timeline.length : 0
+          }
         },
       };
     } catch (error) {
@@ -833,8 +1217,120 @@ class AdminService {
 
   getUserById = async (id) => {
     try {
-      const user = await userModel.findById(id);
-      return user;
+      const mongoose = require('mongoose');
+      
+      // Get user basic info
+      const user = await userModel.findById(id).lean();
+      if (!user) {
+        return {
+          code: "404",
+          message: "User not found",
+          status: "error",
+        };
+      }
+
+      // Get user's reservations
+      const reservations = await reservationModel.find({ user_id: id })
+        .populate([
+          { path: "shop_id", select: "_id name address" },
+          { path: "seat_id", select: "_id seat_name capacity" },
+          { path: "time_slot_id", select: "_id start_time end_time" }
+        ])
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+
+      // Get user's reviews
+      const reviews = await reviewModel.find({ user_id: id })
+        .populate([
+          { path: "shop_id", select: "_id name address" }
+        ])
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+
+      // Get check-ins (completed reservations)
+      const checkins = await reservationModel.find({ 
+        user_id: id, 
+        status: "COMPLETED" 
+      })
+        .populate([
+          { path: "shop_id", select: "_id name address" },
+          { path: "seat_id", select: "_id seat_name capacity" },
+          { path: "time_slot_id", select: "_id start_time end_time" }
+        ])
+        .sort({ updatedAt: -1 })
+        .limit(10)
+        .lean();
+
+      // Calculate statistics
+      const totalReservations = await reservationModel.countDocuments({ user_id: id });
+      const totalCheckins = await reservationModel.countDocuments({ user_id: id, status: "COMPLETED" });
+      const totalReviews = await reviewModel.countDocuments({ user_id: id });
+      
+      // Get recent activity (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentReservations = await reservationModel.countDocuments({
+        user_id: id,
+        createdAt: { $gte: thirtyDaysAgo }
+      });
+      
+      const recentCheckins = await reservationModel.countDocuments({
+        user_id: id,
+        status: "COMPLETED",
+        updatedAt: { $gte: thirtyDaysAgo }
+      });
+      
+      const recentReviews = await reviewModel.countDocuments({
+        user_id: id,
+        createdAt: { $gte: thirtyDaysAgo }
+      });
+
+      // Get reservation status breakdown
+      const reservationStats = await reservationModel.aggregate([
+        { $match: { user_id: new mongoose.Types.ObjectId(id) } },
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 }
+          }
+        }
+      ]);
+
+      const statusBreakdown = {
+        PENDING: 0,
+        CONFIRMED: 0,
+        COMPLETED: 0,
+        CANCELLED: 0
+      };
+
+      reservationStats.forEach(stat => {
+        statusBreakdown[stat._id] = stat.count;
+      });
+
+      return {
+        ...user,
+        activities: {
+          reservations: reservations,
+          reviews: reviews,
+          checkins: checkins
+        },
+        statistics: {
+          total: {
+            reservations: totalReservations,
+            checkins: totalCheckins,
+            reviews: totalReviews
+          },
+          recent: {
+            reservations: recentReservations,
+            checkins: recentCheckins,
+            reviews: recentReviews
+          },
+          statusBreakdown: statusBreakdown
+        }
+      };
     } catch (error) {
       return {
         code: "500",
@@ -1573,6 +2069,408 @@ class AdminService {
       };
     } catch (error) {
       throw new Error(`Failed to get revenue reports: ${error.message}`);
+    }
+  };
+
+  // ===== SHOP DETAILED INFORMATION SERVICES =====
+  
+  // Get shop reviews
+  getShopReviews = async ({ shopId, page = 1, limit = 10, rating, sortBy = 'createdAt', sortOrder = 'desc' }) => {
+    try {
+      const query = { shop_id: shopId };
+      if (rating) {
+        query.rating = rating;
+      }
+
+      const sortOptions = {};
+      sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+      const reviews = await reviewModel
+        .find(query)
+        .populate('user_id', 'full_name avatar')
+        .sort(sortOptions)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+      const total = await reviewModel.countDocuments(query);
+
+      // Calculate average rating
+      const avgRatingResult = await reviewModel.aggregate([
+        { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+        { $group: { _id: null, avgRating: { $avg: '$rating' }, totalReviews: { $sum: 1 } } }
+      ]);
+
+      const avgRating = avgRatingResult.length > 0 ? avgRatingResult[0].avgRating : 0;
+      const totalReviews = avgRatingResult.length > 0 ? avgRatingResult[0].totalReviews : 0;
+
+      return {
+        code: "200",
+        metadata: {
+          reviews,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+          summary: {
+            averageRating: Math.round(avgRating * 10) / 10,
+            totalReviews,
+            ratingDistribution: await this.getRatingDistribution(shopId)
+          }
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get rating distribution for a shop
+  getRatingDistribution = async (shopId) => {
+    const distribution = await reviewModel.aggregate([
+      { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+      { $group: { _id: '$rating', count: { $sum: 1 } } },
+      { $sort: { _id: -1 } }
+    ]);
+
+    const result = {};
+    for (let i = 1; i <= 5; i++) {
+      const found = distribution.find(d => d._id === i);
+      result[i] = found ? found.count : 0;
+    }
+    return result;
+  };
+
+  // Get shop detailed statistics
+  getShopDetailedStats = async ({ shopId, period = 'month', startDate, endDate }) => {
+    try {
+      const shop = await shopModel.findById(shopId).lean();
+      if (!shop) {
+        return {
+          code: "xxx",
+          message: "Shop not found",
+          status: "error",
+        };
+      }
+
+      // Set date range for period-specific stats
+      let dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter = {
+          createdAt: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate)
+          }
+        };
+      } else {
+        const now = new Date();
+        let start;
+        switch (period) {
+          case 'week':
+            start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'month':
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+          case 'quarter':
+            start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+            break;
+          case 'year':
+            start = new Date(now.getFullYear(), 0, 1);
+            break;
+          default:
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+        dateFilter = { createdAt: { $gte: start, $lte: now } };
+      }
+
+      // Get total reviews stats (all time)
+      const totalReviewsStats = await reviewModel.aggregate([
+        { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+        { $group: { _id: null, totalReviews: { $sum: 1 }, avgRating: { $avg: '$rating' } } }
+      ]);
+
+      // Get period-specific reviews stats
+      const periodReviewsStats = await reviewModel.aggregate([
+        { $match: { shop_id: new mongoose.Types.ObjectId(shopId), ...dateFilter } },
+        { $group: { _id: null, periodReviews: { $sum: 1 } } }
+      ]);
+
+      // Get reservations stats
+      const reservationsStats = await reservationModel.aggregate([
+        { $match: { shop_id: new mongoose.Types.ObjectId(shopId), ...dateFilter } },
+        { $group: { _id: null, totalReservations: { $sum: 1 } } }
+      ]);
+
+      // Get checkins stats (assuming checkin model exists)
+      const checkinsStats = await reservationModel.aggregate([
+        { $match: { shop_id: new mongoose.Types.ObjectId(shopId), status: 'completed', ...dateFilter } },
+        { $group: { _id: null, totalCheckins: { $sum: 1 } } }
+      ]);
+
+      return {
+        code: "200",
+        metadata: {
+          shop: {
+            _id: shop._id,
+            name: shop.name,
+            address: shop.address,
+            rating_avg: shop.rating_avg,
+            rating_count: shop.rating_count,
+            is_open: shop.is_open,
+            vip_status: shop.vip_status
+          },
+          statistics: {
+            reviews: {
+              total: totalReviewsStats.length > 0 ? totalReviewsStats[0].totalReviews : 0,
+              averageRating: totalReviewsStats.length > 0 ? Math.round(totalReviewsStats[0].avgRating * 10) / 10 : 0,
+              periodTotal: periodReviewsStats.length > 0 ? periodReviewsStats[0].periodReviews : 0
+            },
+            reservations: {
+              total: reservationsStats.length > 0 ? reservationsStats[0].totalReservations : 0
+            },
+            checkins: {
+              total: checkinsStats.length > 0 ? checkinsStats[0].totalCheckins : 0
+            }
+          },
+          period,
+          dateRange: {
+            start: dateFilter.createdAt?.$gte || new Date(),
+            end: dateFilter.createdAt?.$lte || new Date()
+          }
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get shop verification documents
+  getShopVerifications = async ({ shopId, status, page = 1, limit = 10 }) => {
+    try {
+      const query = { shop_id: shopId };
+      if (status) {
+        query.status = status;
+      }
+
+      // Assuming verification model exists
+      const verificationModel = require("../models/verification.model");
+      
+      const verifications = await verificationModel
+        .find(query)
+        .populate('shop_id', 'name address')
+        .populate('user_id', 'full_name email')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+      const total = await verificationModel.countDocuments(query);
+
+      return {
+        code: "200",
+        metadata: {
+          verifications,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get shop activity history
+  getShopActivityHistory = async ({ shopId, action, page = 1, limit = 20, startDate, endDate }) => {
+    try {
+      const query = { shop_id: shopId };
+      if (action) {
+        query.action = action;
+      }
+      if (startDate && endDate) {
+        query.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        };
+      }
+
+      // Assuming activity log model exists
+      const activityLogModel = require("../models/activityLog.model");
+      
+      const activities = await activityLogModel
+        .find(query)
+        .populate('user_id', 'full_name email')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+      const total = await activityLogModel.countDocuments(query);
+
+      return {
+        code: "200",
+        metadata: {
+          activities,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get shop owner information
+  getShopOwnerInfo = async (shopId) => {
+    try {
+      const shop = await shopModel.findById(shopId)
+        .populate('owner_id', 'full_name email phone avatar createdAt')
+        .lean();
+
+      if (!shop) {
+        return {
+          code: "xxx",
+          message: "Shop not found",
+          status: "error",
+        };
+      }
+
+      return {
+        code: "200",
+        metadata: {
+          owner: shop.owner_id,
+          shopInfo: {
+            _id: shop._id,
+            name: shop.name,
+            address: shop.address,
+            phone: shop.phone,
+            website: shop.website
+          }
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get shop checkins
+  getShopCheckins = async ({ shopId, page = 1, limit = 20, startDate, endDate }) => {
+    try {
+      const query = { shop_id: shopId };
+      if (startDate && endDate) {
+        query.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        };
+      }
+
+      // Assuming checkin model exists
+      const checkinModel = require("../models/checkin.model");
+      
+      const checkins = await checkinModel
+        .find(query)
+        .populate('user_id', 'full_name avatar')
+        .populate('shop_id', 'name address')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+      const total = await checkinModel.countDocuments(query);
+
+      return {
+        code: "200",
+        metadata: {
+          checkins,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  // Get shop reservations
+  getShopReservations = async ({ shopId, status, page = 1, limit = 20, startDate, endDate }) => {
+    try {
+      const query = { shop_id: shopId };
+      if (status) {
+        query.status = status;
+      }
+      if (startDate && endDate) {
+        query.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        };
+      }
+
+      const reservations = await reservationModel
+        .find(query)
+        .populate('user_id', 'full_name email phone')
+        .populate('shop_id', 'name address')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+      const total = await reservationModel.countDocuments(query);
+
+      return {
+        code: "200",
+        metadata: {
+          reservations,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        code: "xxx",
+        message: error.message,
+        status: "error",
+      };
     }
   };
 }

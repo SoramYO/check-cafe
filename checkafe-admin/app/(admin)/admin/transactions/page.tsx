@@ -141,7 +141,6 @@ export default function UserTransactionsPage() {
                   <TableHead>Thời lượng</TableHead>
                   <TableHead>Ngày mua</TableHead>
                   <TableHead>Số tiền thanh toán</TableHead>
-                  <TableHead>Phương thức</TableHead>
                   <TableHead>Trạng thái</TableHead>
                 </TableRow>
               </TableHeader>
@@ -169,7 +168,6 @@ export default function UserTransactionsPage() {
                       <TableCell>{up.package_id?.duration} ngày</TableCell>
                       <TableCell>{new Date(up.createdAt).toLocaleString()}</TableCell>
                       <TableCell>{up.payment_id?.amount ? up.payment_id.amount.toLocaleString() + 'đ' : ''}</TableCell>
-                      <TableCell>{up.payment_id?.method || ''}</TableCell>
                       <TableCell>{up.payment_id?.status || ''}</TableCell>
                     </TableRow>
                   ))
