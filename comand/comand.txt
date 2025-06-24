@@ -6,36 +6,97 @@
 # Windows:
 backup_to_github.bat
 
+# Ubuntu/Linux:
+chmod +x backup_to_github.sh
+./backup_to_github.sh
+
 # ===== RESTORE DATABASE =====
 
 # Cách 1: Sử dụng script tự động (KHUYẾN NGHỊ)
 # Windows:
 restore_from_github.bat
 
+# Ubuntu/Linux:
+chmod +x restore_from_github.sh
+./restore_from_github.sh
+
+# Restore từ file .gz có sẵn:
+docker compose exec -T mongodb mongorestore --uri="mongodb://admin:adminPassword123@localhost:27017/checkafe?authSource=admin" --archive --gzip --drop < comand/mongodb_backup/checkafe_backup.gz
+
+# ===== AUTO DEPLOY WEBHOOK =====
+
+# Cài đặt webhook server:
+chmod +x setup_webhook.sh
+./setup_webhook.sh
+
+# Chạy auto deploy thủ công:
+chmod +x auto_deploy.sh
+./auto_deploy.sh
+
+# Quản lý webhook service:
+sudo systemctl start webhook
+sudo systemctl stop webhook
+sudo systemctl restart webhook
+sudo systemctl status webhook
+
+# Test webhook:
+curl -X POST http://160.30.21.17:9000/hooks/deploy-checkcafe
+
+# ===== DOCKER COMMANDS =====
 
 # Xem status tất cả services
-docker-compose ps
+docker compose ps
 
 # Xem logs realtime  
-docker-compose logs -f
+docker compose logs -f
 
 # Restart specific service
-docker-compose restart [service_name]
+docker compose restart [service_name]
 
 # Stop all
-docker-compose down
+docker compose down
 
 # Start all
-docker-compose up -d
-Build APK
-./gradlew assembleRelease
-Build aab
-./gradlew bundleRelease
+docker compose up -d
 
-Build 
-npx expo prebuild --clear
-
-
+# Build without cache
 docker compose build --no-cache
 
-docker-compose up -d --build
+# Rebuild and start
+docker compose up -d --build
+
+# ===== MOBILE APP BUILD =====
+
+# Build APK
+./gradlew assembleRelease
+
+# Build AAB
+./gradlew bundleRelease
+
+# Build Expo
+npx expo prebuild --clear
+
+# ===== VPS CONNECTION =====
+
+# SSH to VPS
+ssh root@160.30.21.17
+
+# Upload file to VPS
+scp check-cafe.zip root@160.30.21.17:/root/
+
+# ===== WEBHOOK SETUP =====
+
+# Webhook URL: http://160.30.21.17:9000/hooks/deploy-checkcafe
+# Test webhook manually:
+curl -X POST http://160.30.21.17:9000/hooks/deploy-checkcafe \
+  -H "Content-Type: application/json" \
+  -d '{"ref":"refs/heads/main"}'
+
+# ===== GITHUB WEBHOOK CONFIGURATION =====
+
+# 1. Vào repository settings → Webhooks
+# 2. Add webhook với URL: http://160.30.21.17:9000/hooks/deploy-checkcafe
+# 3. Content type: application/json
+# 4. Events: Just the push event
+# 5. Active: ✓
+# 6. Secret: (tùy chọn, nếu dùng thì update trong hooks.json)
