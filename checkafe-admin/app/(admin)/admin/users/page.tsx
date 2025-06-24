@@ -13,26 +13,7 @@ import authorizedAxiosInstance from "@/lib/axios"
 import { User, UserResponse, FilterParams } from "./types"
 import { UserTable } from "./components/UserTable"
 import { UserFilters } from "./components/UserFilters"
-import { UserDetailModal } from "./components/UserDetailModal"
-import { CreateUserModal } from "./components/CreateUserModal"
-import { EditUserModal } from "./components/EditUserModal"
 import { toast } from "sonner"
-
-const users = [
-  {
-    id: "67f7ff997ebf7a4c4f4fe126",
-    full_name: "John Updated",
-    email: "admin@gmail.com",
-    role: "ADMIN",
-    points: 0,
-    vip_status: false,
-    is_active: true,
-    createdAt: "2025-04-10T17:27:53.273+00:00",
-    phone: "+84912345678",
-    avatar: "https://res.cloudinary.com/dqpe1pisz/image/upload/v1744379061/checkafe…",
-  },
-  // Add more mock users here if needed
-]
 
 export default function UsersPage() {
   const router = useRouter()
@@ -40,9 +21,6 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const [editUserId, setEditUserId] = useState<string | null>(null)
   const [metadata, setMetadata] = useState({
     total: 0,
     page: 1,
@@ -150,14 +128,12 @@ export default function UsersPage() {
     }))
   }
 
-  const handleCreateSuccess = () => {
-    setShowCreateModal(false)
-    fetchUsers()
+  const handleViewDetails = (userId: string) => {
+    router.push(`/admin/users/${userId}`)
   }
 
-  const handleEditSuccess = () => {
-    setEditUserId(null)
-    fetchUsers()
+  const handleEditUser = (userId: string) => {
+    router.push(`/admin/users/${userId}/edit`)
   }
 
   const handleDeleteUser = async (userId: string) => {
@@ -182,7 +158,9 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold tracking-tight">Quản lý người dùng</h1>
           <p className="text-gray-500">Quản lý tất cả người dùng trên hệ thống ChecKafe.</p>
         </div>
-        <Button className="bg-primary hover:bg-primary-dark" onClick={() => setShowCreateModal(true)}>
+        <Button 
+          onClick={() => router.push('/admin/users/create')}
+        >
           <UserPlus className="mr-2 h-4 w-4" />
           Thêm người dùng mới
         </Button>
@@ -200,8 +178,8 @@ export default function UsersPage() {
       ) : (
         <UserTable 
           users={users}
-          onViewDetails={setSelectedUserId}
-          onEditUser={setEditUserId}
+          onViewDetails={handleViewDetails}
+          onEditUser={handleEditUser}
           onDeleteUser={handleDeleteUser}
         />
       )}
@@ -235,25 +213,6 @@ export default function UsersPage() {
           </div>
         </div>
       )}
-
-      {/* Modals */}
-      <CreateUserModal 
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleCreateSuccess}
-      />
-
-      <UserDetailModal 
-        userId={selectedUserId}
-        onClose={() => setSelectedUserId(null)}
-      />
-
-      <EditUserModal 
-        userId={editUserId}
-        open={!!editUserId}
-        onClose={() => setEditUserId(null)}
-        onSuccess={handleEditSuccess}
-      />
     </div>
   )
 }

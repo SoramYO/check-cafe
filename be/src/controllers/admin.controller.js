@@ -100,6 +100,52 @@ class AdminController {
     }
   };
 
+  // Enhanced booking statistics by time period
+  getBookingStatsByPeriod = async (req, res, next) => {
+    try {
+      const { period, shopId, startDate, endDate } = req.query;
+      res.status(200).json(await adminService.getBookingStatsByPeriod({ 
+        period, 
+        shopId, 
+        startDate, 
+        endDate 
+      }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get booking statistics for all shops
+  getShopBookingStats = async (req, res, next) => {
+    try {
+      const { period, startDate, endDate, limit } = req.query;
+      res.status(200).json(await adminService.getShopBookingStats({ 
+        period, 
+        startDate, 
+        endDate, 
+        limit: limit ? parseInt(limit) : 10 
+      }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get detailed booking timeline for a specific shop
+  getShopBookingTimeline = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { period, startDate, endDate } = req.query;
+      res.status(200).json(await adminService.getShopBookingTimeline({ 
+        shopId, 
+        period, 
+        startDate, 
+        endDate 
+      }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getShopStats = async (req, res, next) => {
     try {
       res.status(200).json(await adminService.getShopStats());
@@ -190,6 +236,163 @@ class AdminController {
     try {
       const result = await adminService.deleteUserById(req.params.id);
       res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ===== SHOP DETAILED INFORMATION APIs =====
+  
+  // Get shop reviews
+  getShopReviews = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { page = 1, limit = 10, rating, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+      
+      const result = await adminService.getShopReviews({
+        shopId,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        rating: rating ? parseInt(rating) : null,
+        sortBy,
+        sortOrder
+      });
+      
+      new OK({ 
+        message: "Get shop reviews successfully", 
+        data: result 
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get shop statistics
+  getShopDetailedStats = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { period = 'month', startDate, endDate } = req.query;
+      
+      const result = await adminService.getShopDetailedStats({
+        shopId,
+        period,
+        startDate,
+        endDate
+      });
+      
+      new OK({ 
+        message: "Get shop detailed statistics successfully", 
+        data: result 
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get shop verification documents
+  getShopVerifications = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { status, page = 1, limit = 10 } = req.query;
+      
+      const result = await adminService.getShopVerifications({
+        shopId,
+        status,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      });
+      
+      new OK({ 
+        message: "Get shop verification documents successfully", 
+        data: result 
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get shop activity history
+  getShopActivityHistory = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { action, page = 1, limit = 20, startDate, endDate } = req.query;
+      
+      const result = await adminService.getShopActivityHistory({
+        shopId,
+        action,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        startDate,
+        endDate
+      });
+      
+      new OK({ 
+        message: "Get shop activity history successfully", 
+        data: result 
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get shop owner information
+  getShopOwnerInfo = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      
+      const result = await adminService.getShopOwnerInfo(shopId);
+      
+      new OK({ 
+        message: "Get shop owner information successfully", 
+        data: result 
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get shop checkins
+  getShopCheckins = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { page = 1, limit = 20, startDate, endDate } = req.query;
+      
+      const result = await adminService.getShopCheckins({
+        shopId,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        startDate,
+        endDate
+      });
+      
+      new OK({ 
+        message: "Get shop checkins successfully", 
+        data: result 
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get shop reservations
+  getShopReservations = async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { status, page = 1, limit = 20, startDate, endDate } = req.query;
+      
+      const result = await adminService.getShopReservations({
+        shopId,
+        status,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        startDate,
+        endDate
+      });
+      
+      new OK({ 
+        message: "Get shop reservations successfully", 
+        data: result 
+      }).send(res);
     } catch (error) {
       next(error);
     }

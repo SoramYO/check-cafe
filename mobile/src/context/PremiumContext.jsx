@@ -25,24 +25,34 @@ export const PremiumProvider = ({ children }) => {
 
       setLoading(true);
       const response = await userPackageAPI.HandleUserPackage('/my-packages');
-      const activePackage = response.data.find(pkg => pkg.status === 'active');
+      console.log('Premium API response:', response);
+      
+      // Backend trả về { data: result }, nên truy cập response.data
+      const packages = response.data || [];
+      console.log('Packages found:', packages);
+      
+      const activePackage = packages.find(pkg => pkg.status === 'active');
+      console.log('Active package:', activePackage);
       
       let newPremiumStatus = false;
       if (activePackage) {
         const endDate = new Date(activePackage.end_date);
         const now = new Date();
         newPremiumStatus = endDate > now;
+        console.log('Package end date:', endDate, 'Current time:', now, 'Is premium:', newPremiumStatus);
       }
 
       // Chỉ cập nhật nếu status thay đổi
       if (newPremiumStatus !== isPremium) {
         setIsPremium(newPremiumStatus);
+        console.log('Premium status updated to:', newPremiumStatus);
       }
 
       setLastChecked(Date.now());
       return newPremiumStatus;
     } catch (error) {
       console.error('Error checking premium status:', error);
+      console.error('Error details:', error.response?.data || error.message);
       return false;
     } finally {
       setLoading(false);

@@ -30,6 +30,14 @@ router.get("/reports/shops", adminController.getShopReports);
 router.get("/reports/orders", adminController.getOrderReports);
 router.get("/reports/revenue", adminController.getRevenueReports);
 
+// ===== SHOP DETAILED INFORMATION ROUTES =====
+router.get("/shops/:shopId/reviews", adminController.getShopReviews);
+router.get("/shops/:shopId/statistics", adminController.getShopDetailedStats);
+router.get("/shops/:shopId/verifications", adminController.getShopVerifications);
+router.get("/shops/:shopId/activity-history", adminController.getShopActivityHistory);
+router.get("/shops/:shopId/owner", adminController.getShopOwnerInfo);
+router.get("/shops/:shopId/checkins", adminController.getShopCheckins);
+router.get("/shops/:shopId/reservations", adminController.getShopReservations);
 
 // Shop management by admin
 const shopController = require("../../controllers/shop.controller");
@@ -52,7 +60,10 @@ router.get(
   adminController.getOverviewStats
 );
 
-
+// Enhanced Booking Statistics
+router.get("/statistics/bookings/period", checkAdmin, adminController.getBookingStatsByPeriod);
+router.get("/statistics/bookings/shops", checkAdmin, adminController.getShopBookingStats);
+router.get("/statistics/bookings/shops/:shopId/timeline", checkAdmin, adminController.getShopBookingTimeline);
 
 // Account Management
 router.get("/accounts", checkAdmin, adminController.getAccounts);

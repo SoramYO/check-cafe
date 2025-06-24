@@ -21,6 +21,7 @@ import {
   Bell,
   ShoppingCart,
   TrendingUp,
+  Calendar,
 } from "lucide-react"
 import { title } from "process"
 
@@ -74,6 +75,11 @@ const adminNavItems = [
     title: "Phân tích người dùng",
     href: "/admin/analytics",
     icon: TrendingUp,
+  },
+  {
+    title: "Thống kê đặt chỗ",
+    href: "/admin/booking-statistics",
+    icon: Calendar,
   },
   {
     title: "Thông báo",

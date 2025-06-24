@@ -9,10 +9,9 @@ import { Shop } from "../types"
 
 interface ShopTableProps {
   shops: Shop[]
-  onViewDetails: (shopId: string) => void
 }
 
-export function ShopTable({ shops, onViewDetails }: ShopTableProps) {
+export function ShopTable({ shops }: ShopTableProps) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -87,15 +86,11 @@ export function ShopTable({ shops, onViewDetails }: ShopTableProps) {
                     size="icon" 
                     variant="ghost" 
                     className="h-8 w-8"
-                    onClick={() => onViewDetails(shop._id)}
+                    asChild
                   >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500">
-                    <Trash2 className="h-4 w-4" />
+                    <Link href={`/admin/shops/${shop._id}`}>
+                      <Eye className="h-4 w-4" />
+                    </Link>
                   </Button>
                 </div>
               </TableCell>

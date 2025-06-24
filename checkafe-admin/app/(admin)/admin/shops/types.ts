@@ -78,6 +78,11 @@ export interface Shop {
     max_premium_reservations: number
     is_active: boolean
   }>
+  verifications: Array<{
+    _id: string
+    status: string
+    created_at: string
+  }>
 }
 
 export interface ShopResponse {
