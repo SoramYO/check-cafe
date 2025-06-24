@@ -100,3 +100,6 @@ curl -X POST http://160.30.21.17:9000/hooks/deploy-checkcafe \
 # 4. Events: Just the push event
 # 5. Active: ✓
 # 6. Secret: (tùy chọn, nếu dùng thì update trong hooks.json)
+
+# Xem logs webhook tiếp tục
+sudo journalctl -u webhook -f
