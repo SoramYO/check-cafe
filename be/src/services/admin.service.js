@@ -378,7 +378,7 @@ class AdminService {
   };
 
   // Get booking statistics for all shops
-  getShopBookingStats = async ({ period = 'day', startDate = null, endDate = null, limit = 10 }) => {
+  getShopBookingStats = async ({ period = 'day', startDate = null, endDate = null }) => {
     try {
       const now = new Date();
       let start, end;
@@ -461,7 +461,7 @@ class AdminService {
           $sort: { totalBookings: -1 }
         },
         {
-          $limit: limit
+          $limit: 10
         }
       ]);
 
@@ -1504,8 +1504,6 @@ class AdminService {
         adminUsers,
         vipUsers,
         previousPeriodUsers,
-        usersByRegion,
-        usersByAge,
         userGrowthData
       ] = await Promise.all([
         userModel.countDocuments(),
@@ -1521,15 +1519,7 @@ class AdminService {
             $lt: start 
           } 
         }),
-        // User by region (mock data - would need location field)
-        userModel.aggregate([
-          { $group: { _id: "$role", count: { $sum: 1 } } }
-        ]),
-        // User by age (mock data - would need birthdate field)
-        userModel.aggregate([
-          { $group: { _id: "$role", count: { $sum: 1 } } }
-        ]),
-        // User growth over time
+        // User growth over time - format for charts
         userModel.aggregate([
           {
             $match: { createdAt: { $gte: start, $lt: end } }
@@ -1541,7 +1531,7 @@ class AdminService {
                 month: { $month: "$createdAt" },
                 day: { $dayOfMonth: "$createdAt" }
               },
-              count: { $sum: 1 }
+              newUsers: { $sum: 1 }
             }
           },
           { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
@@ -1561,6 +1551,13 @@ class AdminService {
         return Math.round(value * 10) / 10;
       };
 
+      // Format chart data for frontend
+      const chartData = userGrowthData.map(item => ({
+        month: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
+        newUsers: item.newUsers,
+        totalUsers: totalUsers // This would need cumulative calculation for better accuracy
+      }));
+
       return {
         summary: {
           totalUsers: totalUsers || 0,
@@ -1576,9 +1573,8 @@ class AdminService {
           vipUsers: vipUsers || 0
         },
         charts: {
-          userGrowthOverTime: userGrowthData,
-          usersByRegion: usersByRegion,
-          usersByAge: usersByAge
+          userGrowth: chartData,
+          timeline: chartData // Alternative key for compatibility
         },
         period: { start, end, period }
       };
@@ -1592,15 +1588,43 @@ class AdminService {
       const now = new Date();
       let start, end;
 
-      // Same date calculation logic as getUserReports
+      // Calculate date range based on period
       switch (period) {
         case 'today':
           start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
           break;
+        case 'yesterday':
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case 'this-week':
+          const dayOfWeek = now.getDay();
+          start = new Date(now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
+          start.setHours(0, 0, 0, 0);
+          end = new Date();
+          break;
+        case 'last-week':
+          const lastWeekEnd = new Date(now.getTime() - now.getDay() * 24 * 60 * 60 * 1000);
+          lastWeekEnd.setHours(0, 0, 0, 0);
+          start = new Date(lastWeekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+          end = lastWeekEnd;
+          break;
         case 'this-month':
           start = new Date(now.getFullYear(), now.getMonth(), 1);
           end = new Date();
+          break;
+        case 'last-month':
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          end = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'this-year':
+          start = new Date(now.getFullYear(), 0, 1);
+          end = new Date();
+          break;
+        case 'custom':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+          end = endDate ? new Date(endDate) : new Date();
           break;
         default:
           start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1616,8 +1640,6 @@ class AdminService {
         rejectedShops,
         previousPeriodShops,
         averageRating,
-        shopsByRegion,
-        shopsByCategory,
         shopGrowthData
       ] = await Promise.all([
         shopModel.countDocuments(),
@@ -1635,39 +1657,38 @@ class AdminService {
         shopModel.aggregate([
           { $group: { _id: null, avgRating: { $avg: "$rating_avg" } } }
         ]),
-        shopModel.aggregate([
-          { $group: { _id: "$city", count: { $sum: 1 } } },
-          { $sort: { count: -1 } },
-          { $limit: 10 }
-        ]),
-        shopModel.aggregate([
-          {
-            $lookup: {
-              from: "shopcategories",
-              localField: "category_id",
-              foreignField: "_id",
-              as: "category"
-            }
-          },
-          { $unwind: "$category" },
-          { $group: { _id: "$category.name", count: { $sum: 1 } } },
-          { $sort: { count: -1 } }
-        ]),
+        // Shop growth over time - format for charts based on period
         shopModel.aggregate([
           {
             $match: { createdAt: { $gte: start, $lt: end } }
           },
           {
             $group: {
-              _id: {
+              _id: period === 'today' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" },
+                day: { $dayOfMonth: "$createdAt" },
+                hour: { $hour: "$createdAt" }
+              } : period === 'this-week' || period === 'last-week' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" },
+                day: { $dayOfMonth: "$createdAt" }
+              } : period === 'this-month' || period === 'last-month' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" },
+                day: { $dayOfMonth: "$createdAt" }
+              } : period === 'this-year' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" }
+              } : {
                 year: { $year: "$createdAt" },
                 month: { $month: "$createdAt" },
                 day: { $dayOfMonth: "$createdAt" }
               },
-              count: { $sum: 1 }
+              newShops: { $sum: 1 }
             }
           },
-          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } }
         ])
       ]);
 
@@ -1682,6 +1703,28 @@ class AdminService {
         if (isNaN(value) || value === null || value === undefined) return 0;
         return Math.round(value * 10) / 10;
       };
+
+      // Format chart data for frontend based on period
+      const chartData = shopGrowthData.map(item => {
+        let dateKey;
+        if (period === 'today') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')} ${String(item._id.hour).padStart(2, '0')}:00`;
+        } else if (period === 'this-week' || period === 'last-week') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        } else if (period === 'this-month' || period === 'last-month') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        } else if (period === 'this-year') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
+        } else {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        }
+
+        return {
+          month: dateKey,
+          newShops: item.newShops,
+          totalShops: totalShops // This would need cumulative calculation for better accuracy
+        };
+      });
 
       return {
         summary: {
@@ -1699,9 +1742,8 @@ class AdminService {
           vipShops: vipShops || 0
         },
         charts: {
-          shopGrowthOverTime: shopGrowthData,
-          shopsByRegion: shopsByRegion,
-          shopsByCategory: shopsByCategory
+          shopGrowth: chartData,
+          timeline: chartData // Alternative key for compatibility
         },
         period: { start, end, period }
       };
@@ -1715,14 +1757,43 @@ class AdminService {
       const now = new Date();
       let start, end;
 
+      // Calculate date range based on period
       switch (period) {
         case 'today':
           start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
           break;
+        case 'yesterday':
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case 'this-week':
+          const dayOfWeek = now.getDay();
+          start = new Date(now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
+          start.setHours(0, 0, 0, 0);
+          end = new Date();
+          break;
+        case 'last-week':
+          const lastWeekEnd = new Date(now.getTime() - now.getDay() * 24 * 60 * 60 * 1000);
+          lastWeekEnd.setHours(0, 0, 0, 0);
+          start = new Date(lastWeekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+          end = lastWeekEnd;
+          break;
         case 'this-month':
           start = new Date(now.getFullYear(), now.getMonth(), 1);
           end = new Date();
+          break;
+        case 'last-month':
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          end = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'this-year':
+          start = new Date(now.getFullYear(), 0, 1);
+          end = new Date();
+          break;
+        case 'custom':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+          end = endDate ? new Date(endDate) : new Date();
           break;
         default:
           start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1736,10 +1807,7 @@ class AdminService {
         cancelledOrders,
         pendingOrders,
         yesterdayOrders,
-        ordersByHour,
-        ordersByDay,
-        orderGrowthData,
-        averageBookingTime
+        orderGrowthData
       ] = await Promise.all([
         reservationModel.countDocuments(),
         reservationModel.countDocuments({
@@ -1754,63 +1822,38 @@ class AdminService {
             $lt: start 
           }
         }),
+        // Order growth over time - format for charts based on period
         reservationModel.aggregate([
           {
             $match: { createdAt: { $gte: start, $lt: end } }
           },
           {
             $group: {
-              _id: { $hour: "$createdAt" },
-              count: { $sum: 1 }
-            }
-          },
-          { $sort: { "_id": 1 } }
-        ]),
-        reservationModel.aggregate([
-          {
-            $match: { createdAt: { $gte: start, $lt: end } }
-          },
-          {
-            $group: {
-              _id: { $dayOfWeek: "$createdAt" },
-              count: { $sum: 1 }
-            }
-          },
-          { $sort: { "_id": 1 } }
-        ]),
-        reservationModel.aggregate([
-          {
-            $match: { createdAt: { $gte: start, $lt: end } }
-          },
-          {
-            $group: {
-              _id: {
+              _id: period === 'today' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" },
+                day: { $dayOfMonth: "$createdAt" },
+                hour: { $hour: "$createdAt" }
+              } : period === 'this-week' || period === 'last-week' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" },
+                day: { $dayOfMonth: "$createdAt" }
+              } : period === 'this-month' || period === 'last-month' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" },
+                day: { $dayOfMonth: "$createdAt" }
+              } : period === 'this-year' ? {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" }
+              } : {
                 year: { $year: "$createdAt" },
                 month: { $month: "$createdAt" },
                 day: { $dayOfMonth: "$createdAt" }
               },
-              count: { $sum: 1 }
+              orders: { $sum: 1 }
             }
           },
-          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
-        ]),
-        reservationModel.aggregate([
-          {
-            $project: {
-              timeDiff: {
-                $divide: [
-                  { $subtract: ["$reservation_date", "$createdAt"] },
-                  1000 * 60 * 60 // Convert to hours
-                ]
-              }
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              avgBookingTime: { $avg: "$timeDiff" }
-            }
-          }
+          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } }
         ])
       ]);
 
@@ -1818,9 +1861,6 @@ class AdminService {
       const orderGrowth = yesterdayOrders > 0 ? 
         ((todayOrders - yesterdayOrders) / yesterdayOrders * 100) : 
         (todayOrders > 0 ? 100 : 0);
-
-      const avgBookingTime = averageBookingTime.length > 0 && averageBookingTime[0].avgBookingTime ? 
-        averageBookingTime[0].avgBookingTime : 0;
 
       // Safe rounding function to prevent NaN
       const safeRound = (value) => {
@@ -1832,6 +1872,27 @@ class AdminService {
       const ordersInPeriod = todayOrders || 0;
       const daysInPeriod = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) || 1;
       const avgOrdersPerDay = ordersInPeriod / daysInPeriod;
+
+      // Format chart data for frontend based on period
+      const chartData = orderGrowthData.map(item => {
+        let dateKey;
+        if (period === 'today') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')} ${String(item._id.hour).padStart(2, '0')}:00`;
+        } else if (period === 'this-week' || period === 'last-week') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        } else if (period === 'this-month' || period === 'last-month') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        } else if (period === 'this-year') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
+        } else {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        }
+
+        return {
+          date: dateKey,
+          orders: item.orders
+        };
+      });
 
       return {
         summary: {
@@ -1847,9 +1908,8 @@ class AdminService {
           pending: pendingOrders || 0
         },
         charts: {
-          orderGrowthOverTime: orderGrowthData,
-          ordersByHour: ordersByHour,
-          ordersByDay: ordersByDay
+          orderTimeline: chartData,
+          dailyOrders: chartData // Alternative key for compatibility
         },
         period: { start, end, period }
       };
@@ -1863,14 +1923,43 @@ class AdminService {
       const now = new Date();
       let start, end;
 
+      // Calculate date range based on period
       switch (period) {
         case 'today':
           start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
           break;
+        case 'yesterday':
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case 'this-week':
+          const dayOfWeek = now.getDay();
+          start = new Date(now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
+          start.setHours(0, 0, 0, 0);
+          end = new Date();
+          break;
+        case 'last-week':
+          const lastWeekEnd = new Date(now.getTime() - now.getDay() * 24 * 60 * 60 * 1000);
+          lastWeekEnd.setHours(0, 0, 0, 0);
+          start = new Date(lastWeekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+          end = lastWeekEnd;
+          break;
         case 'this-month':
           start = new Date(now.getFullYear(), now.getMonth(), 1);
           end = new Date();
+          break;
+        case 'last-month':
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          end = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'this-year':
+          start = new Date(now.getFullYear(), 0, 1);
+          end = new Date();
+          break;
+        case 'custom':
+          start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+          end = endDate ? new Date(endDate) : new Date();
           break;
         default:
           start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1887,9 +1976,7 @@ class AdminService {
         todayRevenue,
         lastMonthRevenue,
         averageOrderValue,
-        revenueBySource,
-        revenueGrowthData,
-        topShopsByRevenue
+        revenueGrowthData
       ] = await Promise.all([
         paymentModel.aggregate([
           {
@@ -1973,30 +2060,7 @@ class AdminService {
             }
           }
         ]),
-        paymentModel.aggregate([
-          {
-            $lookup: {
-              from: "packages",
-              localField: "package_id",
-              foreignField: "_id", 
-              as: "package"
-            }
-          },
-          { $unwind: "$package" },
-          {
-            $match: { 
-              status: "COMPLETED",
-              created_at: { $gte: start, $lt: end }
-            }
-          },
-          {
-            $group: {
-              _id: "$package.type",
-              total: { $sum: "$amount" },
-              count: { $sum: 1 }
-            }
-          }
-        ]),
+        // Revenue growth over time - format for charts based on period
         paymentModel.aggregate([
           {
             $match: { 
@@ -2006,7 +2070,23 @@ class AdminService {
           },
           {
             $group: {
-              _id: {
+              _id: period === 'today' ? {
+                year: { $year: "$created_at" },
+                month: { $month: "$created_at" },
+                day: { $dayOfMonth: "$created_at" },
+                hour: { $hour: "$created_at" }
+              } : period === 'this-week' || period === 'last-week' ? {
+                year: { $year: "$created_at" },
+                month: { $month: "$created_at" },
+                day: { $dayOfMonth: "$created_at" }
+              } : period === 'this-month' || period === 'last-month' ? {
+                year: { $year: "$created_at" },
+                month: { $month: "$created_at" },
+                day: { $dayOfMonth: "$created_at" }
+              } : period === 'this-year' ? {
+                year: { $year: "$created_at" },
+                month: { $month: "$created_at" }
+              } : {
                 year: { $year: "$created_at" },
                 month: { $month: "$created_at" },
                 day: { $dayOfMonth: "$created_at" }
@@ -2015,18 +2095,7 @@ class AdminService {
               count: { $sum: 1 }
             }
           },
-          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
-        ]),
-        // Mock top shops by revenue
-        shopModel.aggregate([
-          { $sample: { size: 10 } },
-          {
-            $project: {
-              name: 1,
-              revenue: { $multiply: [Math.random() * 1000000, 1] }
-            }
-          },
-          { $sort: { revenue: -1 } }
+          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } }
         ])
       ]);
 
@@ -2048,6 +2117,29 @@ class AdminService {
         return Math.round(value * 10) / 10;
       };
 
+      // Format chart data for frontend based on period
+      const chartData = revenueGrowthData.map(item => {
+        let dateKey;
+        if (period === 'today') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')} ${String(item._id.hour).padStart(2, '0')}:00`;
+        } else if (period === 'this-week' || period === 'last-week') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        } else if (period === 'this-month' || period === 'last-month') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        } else if (period === 'this-year') {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
+        } else {
+          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
+        }
+
+        return {
+          month: dateKey,
+          vip: Math.round((vipRev / totalRev) * item.total) || 0,
+          commission: Math.round((commissionRev / totalRev) * item.total) || 0,
+          other: Math.round(((totalRev - vipRev - commissionRev) / totalRev) * item.total) || 0
+        };
+      });
+
       return {
         summary: {
           totalRevenue: totalRev || 0,
@@ -2061,9 +2153,8 @@ class AdminService {
           otherRevenue: Math.max(0, (totalRev || 0) - (vipRev || 0) - (commissionRev || 0))
         },
         charts: {
-          revenueGrowthOverTime: revenueGrowthData,
-          revenueBySource: revenueBySource,
-          topShopsByRevenue: topShopsByRevenue
+          revenueTimeline: chartData,
+          dailyRevenue: chartData // Alternative key for compatibility
         },
         period: { start, end, period }
       };
