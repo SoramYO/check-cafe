@@ -150,16 +150,17 @@ class ReviewService {
             const { shopId } = req.params;
             const reviewDocs = await reviewModel.find({ shop_id: shopId })
                 .populate([
-                    { path: "user_id", select: "_id full_name avatar" },
+                    { path: "user_id", select: "_id full_name avatar vip_status" },
+                    { path: "shop_reply.replied_by", select: "_id full_name" }
                 ])
                 .select(getSelectData([
-                    "_id", "shop_id", "user_id", "rating", "comment", "images", "createdAt", "updatedAt"
+                    "_id", "shop_id", "user_id", "rating", "comment", "images", "shop_reply", "createdAt", "updatedAt"
                 ]))
                 .sort({ createdAt: -1 });
 
             const reviews = reviewDocs.map((review)  =>
                 getInfoData({
-                    fields: ["_id", "shop_id", "user_id", "rating", "comment", "images", "createdAt", "updatedAt"],
+                    fields: ["_id", "shop_id", "user_id", "rating", "comment", "images", "shop_reply", "createdAt", "updatedAt"],
                     object: review,
                 })
             );

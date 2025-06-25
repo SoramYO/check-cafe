@@ -28,20 +28,11 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/icon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/icon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
     ],
     apple: [
       { url: '/logo.png', sizes: '180x180', type: 'image/png' },
     ],
-    other: [
-      {
-        rel: 'mask-icon',
-        url: '/safari-pinned-tab.svg',
-        color: '#7a5545'
-      }
-    ]
   },
   manifest: '/manifest.json',
   openGraph: {
@@ -52,9 +43,9 @@ export const metadata: Metadata = {
     description: 'Quản lý quán cà phê, đặt chỗ, nhân viên, ưu đãi, menu và khu vực',
     siteName: 'ChecKafe',
     images: [{
-      url: '/og-image.jpg',
-      width: 1200,
-      height: 630,
+      url: '/logo.png',
+      width: 180,
+      height: 180,
       alt: 'ChecKafe Admin Dashboard'
     }],
   },
@@ -62,7 +53,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'ChecKafe - Quản lý cà phê',
     description: 'Hệ thống quản lý đặt chỗ quán cà phê',
-    images: ['/twitter-image.jpg'],
+    images: ['/logo.png'],
   },
   appleWebApp: {
     title: 'ChecKafe Admin',

@@ -8,7 +8,7 @@ const shopModel = require("../models/shop.model");
 const shopSeatModel = require("../models/shopSeat.model");
 const shopTimeSlotModel = require("../models/shopTimeSlot.model");
 const { RESERVATION_STATUS, RESERVATION_TYPE, NOTIFICATION_TYPE } = require("../constants/enum");
-const { getInfoData, getSelectData, getUnselectData } = require("../configs/success.response");
+const { getInfoData, getSelectData } = require("../utils");
 const { getPaginatedData } = require("../helpers/mongooseHelper");
 const { isValidObjectId } = mongoose;
 const pointModel = require("../models/point.model");
@@ -1142,6 +1142,10 @@ const getShopReservations = async (req) => {
       sortOrder = "desc",
       status,
       reservation_date,
+      start_time,
+      end_time,
+      date_from,
+      date_to,
     } = req.query;
 
     const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
@@ -1151,9 +1155,13 @@ const getShopReservations = async (req) => {
       throw new NotFoundError("Shop not found");
     }
     const query = { shop_id: shop._id };
+    
+    // Lọc theo status
     if (status && Object.values(RESERVATION_STATUS).includes(status)) {
       query.status = status;
     }
+    
+    // Lọc theo ngày cụ thể
     if (reservation_date) {
       const date = new Date(reservation_date);
       if (isNaN(date.getTime())) {
@@ -1162,6 +1170,38 @@ const getShopReservations = async (req) => {
       const startDate = new Date(date.setHours(0, 0, 0, 0));
       const endDate = new Date(date.setHours(23, 59, 59, 999));
       query.reservation_date = { $gte: startDate, $lte: endDate };
+    }
+    
+    // Lọc theo khoảng ngày
+    if (date_from || date_to) {
+      const dateFilter = {};
+      if (date_from) {
+        const fromDate = new Date(date_from);
+        if (isNaN(fromDate.getTime())) {
+          throw new BadRequestError("Invalid date_from format");
+        }
+        dateFilter.$gte = fromDate;
+      }
+      if (date_to) {
+        const toDate = new Date(date_to);
+        if (isNaN(toDate.getTime())) {
+          throw new BadRequestError("Invalid date_to format");
+        }
+        toDate.setHours(23, 59, 59, 999);
+        dateFilter.$lte = toDate;
+      }
+      query.reservation_date = dateFilter;
+    }
+    
+    // Lọc theo giờ (cần populate time_slot_id trước)
+    let timeFilter = {};
+    if (start_time || end_time) {
+      if (start_time) {
+        timeFilter.$gte = start_time;
+      }
+      if (end_time) {
+        timeFilter.$lte = end_time;
+      }
     }
 
     const paginateOptions = {
@@ -1194,7 +1234,23 @@ const getShopReservations = async (req) => {
 
     const result = await getPaginatedData(paginateOptions);
 
-    const reservations = result.data.map((reservation) =>
+    // Lọc theo giờ sau khi có dữ liệu
+    let filteredReservations = result.data;
+    if (Object.keys(timeFilter).length > 0) {
+      filteredReservations = result.data.filter(reservation => {
+        if (!reservation.time_slot_id) return false;
+        
+        const startTime = reservation.time_slot_id.start_time;
+        const endTime = reservation.time_slot_id.end_time;
+        
+        if (timeFilter.$gte && startTime < timeFilter.$gte) return false;
+        if (timeFilter.$lte && endTime > timeFilter.$lte) return false;
+        
+        return true;
+      });
+    }
+
+    const reservations = filteredReservations.map((reservation) =>
       getInfoData({
         fields: [
           "_id",
@@ -1218,10 +1274,10 @@ const getShopReservations = async (req) => {
     return {
       reservations,
       metadata: {
-        totalItems: result.metadata.total,
-        totalPages: result.metadata.totalPages,
-        currentPage: result.metadata.page,
-        limit: result.metadata.limit,
+        totalItems: filteredReservations.length,
+        totalPages: Math.ceil(filteredReservations.length / limit),
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
       },
       message: reservations.length === 0 ? "No reservations found" : undefined,
     };

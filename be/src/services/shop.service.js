@@ -24,6 +24,9 @@ const shopAmenityModel = require("../models/shopAmenity.model");
 const { calculateDistance, getDistanceFromLatLonInKm } = require("../utils/distanceCaculate");
 const userModel = require("../models/user.model");
 const { signUp } = require("./access.service");
+const reviewModel = require("../models/review.model");
+const reservationModel = require("../models/reservation.model");
+const paymentModel = require("../models/payment.model");
 
 const getAllPublicShops = async (req) => {
   try {
@@ -1691,10 +1694,6 @@ const getShopStats = async (req) => {
       throw new ForbiddenError("You are not authorized to view this shop's stats");
     }
 
-    // Import models cần thiết
-    const reservationModel = require("../models/reservation.model");
-    const reviewModel = require("../models/review.model");
-
     // Thống kê tổng quan
     const totalReservations = await reservationModel.countDocuments({ shop_id: shopId });
     const totalReviews = await reviewModel.countDocuments({ shop_id: shopId });
@@ -2276,6 +2275,1314 @@ const updateStaff = async (req) => {
   }
 }
 
+// ===== SHOP FEEDBACK/REVIEWS MANAGEMENT =====
+const getShopFeedback = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      rating,
+      hasReply,
+      search
+    } = req.query;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's feedback");
+    }
+
+    // Xây dựng query
+    const query = { shop_id: shopId };
+
+    if (rating) {
+      query.rating = parseInt(rating);
+    }
+
+    if (hasReply === "true") {
+      query["shop_reply.reply"] = { $exists: true, $ne: null };
+    } else if (hasReply === "false") {
+      query["shop_reply.reply"] = { $exists: false };
+    }
+
+    if (search) {
+      query.$or = [
+        { comment: { $regex: search, $options: "i" } },
+        { "shop_reply.reply": { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // Xây dựng sort
+    const validSortFields = [
+      "createdAt",
+      "updatedAt",
+      "rating",
+      "shop_reply.replied_at"
+    ];
+    if (sortBy && !validSortFields.includes(sortBy)) {
+      throw new BadRequestError(
+        `Invalid sortBy. Must be one of: ${validSortFields.join(", ")}`
+      );
+    }
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    // Cấu hình cho getPaginatedData
+    const paginateOptions = {
+      model: reviewModel,
+      query,
+      page,
+      limit,
+      select: getSelectData([
+        "_id",
+        "shop_id",
+        "user_id",
+        "rating",
+        "comment",
+        "images",
+        "shop_reply",
+        "createdAt",
+        "updatedAt"
+      ]),
+      populate: [
+        { path: "user_id", select: "_id full_name avatar vip_status" },
+        { path: "shop_reply.replied_by", select: "_id full_name" }
+      ],
+      search,
+      searchFields: ["comment", "shop_reply.reply"],
+      sort,
+    };
+
+    // Lấy dữ liệu phân trang
+    const result = await getPaginatedData(paginateOptions);
+
+    // Format dữ liệu
+    const reviews = result.data.map((review) =>
+      getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "user_id",
+          "rating",
+          "comment",
+          "images",
+          "shop_reply",
+          "createdAt",
+          "updatedAt"
+        ],
+        object: review,
+      })
+    );
+
+    return {
+      reviews,
+      metadata: {
+        totalItems: result.metadata.total,
+        totalPages: result.metadata.totalPages,
+        currentPage: result.metadata.page,
+        limit: result.metadata.limit,
+      },
+      message: reviews.length === 0 ? "No reviews found" : undefined,
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop feedback");
+  }
+};
+
+const getShopFeedbackStats = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's feedback stats");
+    }
+
+    // Thống kê tổng quan
+    const totalReviews = await reviewModel.countDocuments({ shop_id: shopId });
+    const repliedReviews = await reviewModel.countDocuments({ 
+      shop_id: shopId,
+      "shop_reply.reply": { $exists: true, $ne: null }
+    });
+    const pendingReplies = totalReviews - repliedReviews;
+
+    // Thống kê đánh giá theo sao
+    const ratingStats = await reviewModel.aggregate([
+      { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+      {
+        $group: {
+          _id: null,
+          avgRating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 },
+          ratings: { $push: "$rating" }
+        }
+      }
+    ]);
+
+    // Phân bố đánh giá theo sao
+    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    if (ratingStats.length > 0) {
+      ratingStats[0].ratings.forEach(rating => {
+        const star = Math.round(rating);
+        if (ratingDistribution[star] !== undefined) {
+          ratingDistribution[star]++;
+        }
+      });
+    }
+
+    // Thống kê đánh giá 30 ngày gần đây
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentReviews = await reviewModel.countDocuments({
+      shop_id: shopId,
+      createdAt: { $gte: thirtyDaysAgo }
+    });
+
+    // Thống kê đánh giá theo tháng (12 tháng gần đây)
+    const monthlyReviews = await reviewModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Top reviewers (users who reviewed most)
+    const topReviewers = await reviewModel.aggregate([
+      { $match: { shop_id: new mongoose.Types.ObjectId(shopId) } },
+      {
+        $group: {
+          _id: "$user_id",
+          reviewCount: { $sum: 1 },
+          avgRating: { $avg: "$rating" }
+        }
+      },
+      { $sort: { reviewCount: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $project: {
+          user: { $arrayElemAt: ["$user", 0] },
+          reviewCount: 1,
+          avgRating: 1
+        }
+      }
+    ]);
+
+    return {
+      overview: {
+        totalReviews,
+        repliedReviews,
+        pendingReplies,
+        recentReviews,
+        avgRating: ratingStats.length > 0 ? Math.round(ratingStats[0].avgRating * 10) / 10 : 0,
+        satisfactionRate: totalReviews > 0 ? Math.round((ratingStats.length > 0 ? ratingStats[0].avgRating : 0) / 5 * 100) : 0
+      },
+      ratingDistribution,
+      monthlyReviews,
+      topReviewers: topReviewers.map(reviewer => ({
+        user: getInfoData({
+          fields: ["_id", "full_name", "avatar", "vip_status"],
+          object: reviewer.user
+        }),
+        reviewCount: reviewer.reviewCount,
+        avgRating: Math.round(reviewer.avgRating * 10) / 10
+      }))
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop feedback stats");
+  }
+};
+
+const replyToReview = async (req) => {
+  try {
+    const { shopId, reviewId } = req.params;
+    const { userId } = req.user;
+    const { reply } = req.body;
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to reply to reviews for this shop");
+    }
+
+    // Kiểm tra review tồn tại
+    const review = await reviewModel.findOne({ _id: reviewId, shop_id: shopId });
+    if (!review) {
+      throw new NotFoundError("Review not found");
+    }
+
+    // Kiểm tra đã reply chưa
+    if (review.shop_reply && review.shop_reply.reply) {
+      throw new BadRequestError("You have already replied to this review");
+    }
+
+    // Validate reply
+    if (!reply || reply.trim().length === 0) {
+      throw new BadRequestError("Reply content is required");
+    }
+
+    if (reply.length > 1000) {
+      throw new BadRequestError("Reply cannot exceed 1000 characters");
+    }
+
+    // Cập nhật review với reply
+    const updatedReview = await reviewModel.findByIdAndUpdate(
+      reviewId,
+      {
+        shop_reply: {
+          reply: reply.trim(),
+          replied_by: userId,
+          replied_at: new Date()
+        }
+      },
+      { new: true }
+    ).populate([
+      { path: "user_id", select: "_id full_name avatar vip_status" },
+      { path: "shop_reply.replied_by", select: "_id full_name" }
+    ]);
+
+    return {
+      review: getInfoData({
+        fields: [
+          "_id",
+          "shop_id",
+          "user_id",
+          "rating",
+          "comment",
+          "images",
+          "shop_reply",
+          "createdAt",
+          "updatedAt"
+        ],
+        object: updatedReview,
+      }),
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError || error instanceof BadRequestError
+      ? error
+      : new BadRequestError(error.message || "Failed to reply to review");
+  }
+};
+
+// ===== SHOP ANALYTICS SERVICES =====
+const getShopAnalyticsOverview = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const { period = "30" } = req.query; // days
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's analytics");
+    }
+
+    const days = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Thống kê tổng quan
+    const totalReservations = await reservationModel.countDocuments({ 
+      shop_id: shopId,
+      createdAt: { $gte: startDate }
+    });
+
+    const totalCustomers = await reservationModel.distinct("user_id", {
+      shop_id: shopId,
+      createdAt: { $gte: startDate }
+    });
+
+    const totalRevenue = await paymentModel.aggregate([
+      {
+        $match: {
+          user_id: { $in: totalCustomers },
+          status: "success",
+          created_at: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" }
+        }
+      }
+    ]);
+
+    const avgRating = await reviewModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgRating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // So sánh với kỳ trước
+    const previousStartDate = new Date(startDate);
+    previousStartDate.setDate(previousStartDate.getDate() - days);
+
+    const previousReservations = await reservationModel.countDocuments({
+      shop_id: shopId,
+      createdAt: { $gte: previousStartDate, $lt: startDate }
+    });
+
+    const previousCustomers = await reservationModel.distinct("user_id", {
+      shop_id: shopId,
+      createdAt: { $gte: previousStartDate, $lt: startDate }
+    });
+
+    const previousRevenue = await paymentModel.aggregate([
+      {
+        $match: {
+          user_id: { $in: previousCustomers },
+          status: "success",
+          created_at: { $gte: previousStartDate, $lt: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" }
+        }
+      }
+    ]);
+
+    // Tính phần trăm thay đổi
+    const reservationChange = previousReservations > 0 
+      ? ((totalReservations - previousReservations) / previousReservations * 100).toFixed(1)
+      : totalReservations > 0 ? 100 : 0;
+
+    const customerChange = previousCustomers.length > 0
+      ? ((totalCustomers.length - previousCustomers.length) / previousCustomers.length * 100).toFixed(1)
+      : totalCustomers.length > 0 ? 100 : 0;
+
+    const revenueChange = previousRevenue.length > 0 && previousRevenue[0].total > 0
+      ? ((totalRevenue.length > 0 ? totalRevenue[0].total : 0) - previousRevenue[0].total) / previousRevenue[0].total * 100
+      : totalRevenue.length > 0 ? 100 : 0;
+
+    return {
+      overview: {
+        totalReservations,
+        totalCustomers: totalCustomers.length,
+        totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+        avgRating: avgRating.length > 0 ? Math.round(avgRating[0].avgRating * 10) / 10 : 0,
+        totalReviews: avgRating.length > 0 ? avgRating[0].totalReviews : 0
+      },
+      changes: {
+        reservations: {
+          current: totalReservations,
+          previous: previousReservations,
+          change: parseFloat(reservationChange),
+          trend: parseFloat(reservationChange) >= 0 ? "up" : "down"
+        },
+        customers: {
+          current: totalCustomers.length,
+          previous: previousCustomers.length,
+          change: parseFloat(customerChange),
+          trend: parseFloat(customerChange) >= 0 ? "up" : "down"
+        },
+        revenue: {
+          current: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+          previous: previousRevenue.length > 0 ? previousRevenue[0].total : 0,
+          change: parseFloat(revenueChange.toFixed(1)),
+          trend: revenueChange >= 0 ? "up" : "down"
+        }
+      },
+      period: {
+        days,
+        startDate,
+        endDate: new Date()
+      }
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop analytics overview");
+  }
+};
+
+const getShopRevenueAnalytics = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const { period = "6" } = req.query; // months
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's revenue analytics");
+    }
+
+    const months = parseInt(period);
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+
+    // Lấy tất cả user đã đặt chỗ tại shop này
+    const shopCustomers = await reservationModel.distinct("user_id", {
+      shop_id: shopId,
+      createdAt: { $gte: startDate }
+    });
+
+    // Thống kê doanh thu theo tháng
+    const monthlyRevenue = await paymentModel.aggregate([
+      {
+        $match: {
+          user_id: { $in: shopCustomers },
+          status: "success",
+          created_at: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$created_at" },
+            month: { $month: "$created_at" }
+          },
+          revenue: { $sum: "$amount" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Thống kê doanh thu theo ngày (30 ngày gần đây)
+    const dailyRevenue = await paymentModel.aggregate([
+      {
+        $match: {
+          user_id: { $in: shopCustomers },
+          status: "success",
+          created_at: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$created_at" },
+            month: { $month: "$created_at" },
+            day: { $dayOfMonth: "$created_at" }
+          },
+          revenue: { $sum: "$amount" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+    ]);
+
+    // Thống kê doanh thu theo loại gói
+    const revenueByPackage = await paymentModel.aggregate([
+      {
+        $match: {
+          user_id: { $in: shopCustomers },
+          status: "success",
+          created_at: { $gte: startDate }
+        }
+      },
+      {
+        $lookup: {
+          from: "packages",
+          localField: "package_id",
+          foreignField: "_id",
+          as: "package"
+        }
+      },
+      {
+        $unwind: "$package"
+      },
+      {
+        $group: {
+          _id: "$package.name",
+          revenue: { $sum: "$amount" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { revenue: -1 } }
+    ]);
+
+    // Tổng doanh thu
+    const totalRevenue = await paymentModel.aggregate([
+      {
+        $match: {
+          user_id: { $in: shopCustomers },
+          status: "success",
+          created_at: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return {
+      monthlyRevenue: monthlyRevenue.map(item => ({
+        month: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`,
+        revenue: item.revenue,
+        count: item.count
+      })),
+      dailyRevenue: dailyRevenue.map(item => ({
+        date: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}-${item._id.day.toString().padStart(2, '0')}`,
+        revenue: item.revenue,
+        count: item.count
+      })),
+      revenueByPackage,
+      summary: {
+        totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+        totalTransactions: totalRevenue.length > 0 ? totalRevenue[0].count : 0,
+        avgTransactionValue: totalRevenue.length > 0 && totalRevenue[0].count > 0 
+          ? totalRevenue[0].total / totalRevenue[0].count 
+          : 0
+      },
+      period: {
+        months,
+        startDate,
+        endDate: new Date()
+      }
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop revenue analytics");
+  }
+};
+
+const getShopCustomerAnalytics = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const { period = "30" } = req.query; // days
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's customer analytics");
+    }
+
+    const days = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Lấy tất cả khách hàng đã đặt chỗ
+    const customerReservations = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: "$user_id",
+          reservationCount: { $sum: 1 },
+          totalPeople: { $sum: "$number_of_people" },
+          firstVisit: { $min: "$createdAt" },
+          lastVisit: { $max: "$createdAt" }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $unwind: "$user"
+      }
+    ]);
+
+    // Phân loại khách hàng
+    const customerSegments = {
+      new: 0, // Khách mới (1 lần đặt chỗ)
+      returning: 0, // Khách quay lại (2-5 lần)
+      loyal: 0, // Khách trung thành (6+ lần)
+      vip: 0 // Khách VIP
+    };
+
+    customerReservations.forEach(customer => {
+      if (customer.user.vip_status) {
+        customerSegments.vip++;
+      } else if (customer.reservationCount >= 6) {
+        customerSegments.loyal++;
+      } else if (customer.reservationCount >= 2) {
+        customerSegments.returning++;
+      } else {
+        customerSegments.new++;
+      }
+    });
+
+    // Thống kê khách hàng theo tháng
+    const monthlyCustomers = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: new Date(Date.now() - 12 * 30 * 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          uniqueCustomers: { $addToSet: "$user_id" }
+        }
+      },
+      {
+        $project: {
+          month: { $concat: [{ $toString: "$_id.year" }, "-", { $toString: "$_id.month" }] },
+          customerCount: { $size: "$uniqueCustomers" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Top khách hàng
+    const topCustomers = customerReservations
+      .sort((a, b) => b.reservationCount - a.reservationCount)
+      .slice(0, 10)
+      .map(customer => ({
+        user: getInfoData({
+          fields: ["_id", "full_name", "email", "avatar", "vip_status"],
+          object: customer.user
+        }),
+        reservationCount: customer.reservationCount,
+        totalPeople: customer.totalPeople,
+        firstVisit: customer.firstVisit,
+        lastVisit: customer.lastVisit
+      }));
+
+    return {
+      summary: {
+        totalCustomers: customerReservations.length,
+        totalReservations: customerReservations.reduce((sum, c) => sum + c.reservationCount, 0),
+        totalPeople: customerReservations.reduce((sum, c) => sum + c.totalPeople, 0),
+        avgReservationsPerCustomer: customerReservations.length > 0 
+          ? (customerReservations.reduce((sum, c) => sum + c.reservationCount, 0) / customerReservations.length).toFixed(1)
+          : 0
+      },
+      segments: customerSegments,
+      monthlyCustomers,
+      topCustomers,
+      period: {
+        days,
+        startDate,
+        endDate: new Date()
+      }
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop customer analytics");
+  }
+};
+
+const getShopReservationAnalytics = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const { period = "30" } = req.query; // days
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's reservation analytics");
+    }
+
+    const days = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Thống kê đặt chỗ theo trạng thái
+    const reservationsByStatus = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Thống kê đặt chỗ theo loại
+    const reservationsByType = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: "$reservation_type",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Thống kê đặt chỗ theo ngày trong tuần
+    const reservationsByDayOfWeek = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $dayOfWeek: "$reservation_date" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Thống kê đặt chỗ theo giờ
+    const reservationsByHour = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $hour: "$reservation_date" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Thống kê đặt chỗ theo tháng
+    const monthlyReservations = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: new Date(Date.now() - 12 * 30 * 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Thống kê ghế được sử dụng nhiều nhất
+    const popularSeats = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: "$seat_id",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: "shopseats",
+          localField: "_id",
+          foreignField: "_id",
+          as: "seat"
+        }
+      },
+      {
+        $unwind: "$seat"
+      },
+      {
+        $project: {
+          seatName: "$seat.seat_name",
+          count: 1
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    return {
+      summary: {
+        totalReservations: await reservationModel.countDocuments({
+          shop_id: shopId,
+          createdAt: { $gte: startDate }
+        }),
+        confirmedReservations: await reservationModel.countDocuments({
+          shop_id: shopId,
+          status: "Confirmed",
+          createdAt: { $gte: startDate }
+        }),
+        completedReservations: await reservationModel.countDocuments({
+          shop_id: shopId,
+          status: "Completed",
+          createdAt: { $gte: startDate }
+        }),
+        cancelledReservations: await reservationModel.countDocuments({
+          shop_id: shopId,
+          status: "Cancelled",
+          createdAt: { $gte: startDate }
+        })
+      },
+      byStatus: reservationsByStatus,
+      byType: reservationsByType,
+      byDayOfWeek: reservationsByDayOfWeek.map(item => ({
+        day: item._id,
+        dayName: ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"][item._id - 1],
+        count: item.count
+      })),
+      byHour: reservationsByHour,
+      monthly: monthlyReservations.map(item => ({
+        month: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`,
+        count: item.count
+      })),
+      popularSeats,
+      period: {
+        days,
+        startDate,
+        endDate: new Date()
+      }
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop reservation analytics");
+  }
+};
+
+const getShopPopularItemsAnalytics = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const { period = "30" } = req.query; // days
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's popular items analytics");
+    }
+
+    const days = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Lấy tất cả menu items của shop
+    const menuItems = await shopMenuItemModel.find({ shop_id: shopId })
+      .populate("category", "name")
+      .select("name description price category images is_available")
+      .lean();
+
+    // Thống kê đánh giá theo menu item (nếu có)
+    const itemReviews = await reviewModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgRating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Top menu items theo đánh giá (giả sử có liên kết giữa review và menu item)
+    const popularItemsByRating = menuItems
+      .filter(item => item.is_available)
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 10)
+      .map(item => ({
+        item: getInfoData({
+          fields: ["_id", "name", "description", "price", "category", "images"],
+          object: item
+        }),
+        rating: item.rating || 0,
+        reviewCount: item.reviewCount || 0
+      }));
+
+    // Thống kê theo danh mục
+    const itemsByCategory = await shopMenuItemModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          is_available: true
+        }
+      },
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 },
+          avgPrice: { $avg: "$price" }
+        }
+      },
+      {
+        $lookup: {
+          from: "menuitemcategories",
+          localField: "_id",
+          foreignField: "_id",
+          as: "category"
+        }
+      },
+      {
+        $unwind: "$category"
+      },
+      {
+        $project: {
+          categoryName: "$category.name",
+          count: 1,
+          avgPrice: { $round: ["$avgPrice", 2] }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Thống kê giá trung bình
+    const priceStats = await shopMenuItemModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          is_available: true
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgPrice: { $avg: "$price" },
+          minPrice: { $min: "$price" },
+          maxPrice: { $max: "$price" },
+          totalItems: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return {
+      summary: {
+        totalItems: menuItems.length,
+        availableItems: menuItems.filter(item => item.is_available).length,
+        avgRating: itemReviews.length > 0 ? Math.round(itemReviews[0].avgRating * 10) / 10 : 0,
+        totalReviews: itemReviews.length > 0 ? itemReviews[0].totalReviews : 0
+      },
+      popularItemsByRating,
+      itemsByCategory,
+      priceStats: priceStats.length > 0 ? {
+        avgPrice: Math.round(priceStats[0].avgPrice * 100) / 100,
+        minPrice: priceStats[0].minPrice,
+        maxPrice: priceStats[0].maxPrice,
+        totalItems: priceStats[0].totalItems
+      } : null,
+      period: {
+        days,
+        startDate,
+        endDate: new Date()
+      }
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop popular items analytics");
+  }
+};
+
+const getShopTimeBasedAnalytics = async (req) => {
+  try {
+    const { shopId } = req.params;
+    const { userId, role } = req.user;
+    const { period = "30" } = req.query; // days
+
+    // Kiểm tra shop tồn tại và quyền truy cập
+    const shop = await shopModel.findById(shopId);
+    if (!shop) {
+      throw new NotFoundError("Shop not found");
+    }
+
+    if (role !== "ADMIN" && shop.owner_id.toString() !== userId) {
+      throw new ForbiddenError("You are not authorized to view this shop's time-based analytics");
+    }
+
+    const days = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Thống kê đặt chỗ theo giờ trong ngày
+    const hourlyReservations = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $hour: "$reservation_date" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Lấy time slots thực tế của shop
+    const shopTimeSlots = await shopTimeSlotModel.find({ 
+      shop_id: shopId, 
+      is_active: true 
+    }).select('day_of_week start_time end_time').lean();
+
+    // Tạo các khoảng thời gian từ time slots thực tế
+    const timeSlots = [];
+    const processedSlots = new Set();
+
+    shopTimeSlots.forEach(slot => {
+      const startHour = parseInt(slot.start_time.split(':')[0]);
+      const endHour = parseInt(slot.end_time.split(':')[0]);
+      
+      // Tạo key để tránh duplicate
+      const slotKey = `${startHour}-${endHour}`;
+      if (!processedSlots.has(slotKey)) {
+        processedSlots.add(slotKey);
+        timeSlots.push({
+          range: `${startHour}-${endHour}h`,
+          start: startHour,
+          end: endHour,
+          label: `${slot.start_time} - ${slot.end_time}`
+        });
+      }
+    });
+
+    // Nếu không có time slots, sử dụng khoảng mặc định
+    if (timeSlots.length === 0) {
+      timeSlots.push(
+        { range: "7-9h", start: 7, end: 9, label: "7:00 - 9:00" },
+        { range: "9-11h", start: 9, end: 11, label: "9:00 - 11:00" },
+        { range: "11-13h", start: 11, end: 13, label: "11:00 - 13:00" },
+        { range: "13-15h", start: 13, end: 15, label: "13:00 - 15:00" },
+        { range: "15-17h", start: 15, end: 17, label: "15:00 - 17:00" },
+        { range: "17-19h", start: 17, end: 19, label: "17:00 - 19:00" },
+        { range: "19-21h", start: 19, end: 21, label: "19:00 - 21:00" },
+        { range: "21-23h", start: 21, end: 23, label: "21:00 - 23:00" }
+      );
+    }
+
+    // Sắp xếp time slots theo giờ bắt đầu
+    timeSlots.sort((a, b) => a.start - b.start);
+
+    const groupedHourlyData = timeSlots.map(slot => {
+      const count = hourlyReservations
+        .filter(item => item._id >= slot.start && item._id < slot.end)
+        .reduce((sum, item) => sum + item.count, 0);
+      
+      return {
+        hour: slot.range,
+        label: slot.label,
+        count: count
+      };
+    });
+
+    // Thống kê đặt chỗ theo ngày trong tuần
+    const dailyReservations = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $dayOfWeek: "$reservation_date" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Thống kê đặt chỗ theo tháng
+    const monthlyReservations = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: new Date(Date.now() - 12 * 30 * 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Thống kê đặt chỗ theo ngày (30 ngày gần đây)
+    const dailyTrend = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            day: { $dayOfMonth: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+    ]);
+
+    // Thống kê thời gian đặt chỗ trước
+    const advanceBookingStats = await reservationModel.aggregate([
+      {
+        $match: {
+          shop_id: new mongoose.Types.ObjectId(shopId),
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $project: {
+          advanceDays: {
+            $ceil: {
+              $divide: [
+                { $subtract: ["$reservation_date", "$createdAt"] },
+                1000 * 60 * 60 * 24
+              ]
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgAdvanceDays: { $avg: "$advanceDays" },
+          minAdvanceDays: { $min: "$advanceDays" },
+          maxAdvanceDays: { $max: "$advanceDays" }
+        }
+      }
+    ]);
+
+    return {
+      hourly: groupedHourlyData,
+      daily: dailyReservations.map(item => ({
+        day: item._id,
+        dayName: ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"][item._id - 1],
+        count: item.count
+      })),
+      monthly: monthlyReservations.map(item => ({
+        month: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`,
+        count: item.count
+      })),
+      dailyTrend: dailyTrend.map(item => ({
+        date: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}-${item._id.day.toString().padStart(2, '0')}`,
+        count: item.count
+      })),
+      advanceBooking: advanceBookingStats.length > 0 ? {
+        avgAdvanceDays: Math.round(advanceBookingStats[0].avgAdvanceDays * 10) / 10,
+        minAdvanceDays: advanceBookingStats[0].minAdvanceDays,
+        maxAdvanceDays: advanceBookingStats[0].maxAdvanceDays
+      } : null,
+      period: {
+        days,
+        startDate,
+        endDate: new Date()
+      }
+    };
+  } catch (error) {
+    throw error instanceof NotFoundError || error instanceof ForbiddenError
+      ? error
+      : new BadRequestError(error.message || "Failed to get shop time-based analytics");
+  }
+};
+
 module.exports = {
   createShop,
   updateShop,
@@ -2302,5 +3609,14 @@ module.exports = {
   getStaffList,
   getStaffById,
   createStaff,
-  updateStaff
+  updateStaff,
+  getShopFeedback,
+  getShopFeedbackStats,
+  replyToReview,
+  getShopAnalyticsOverview,
+  getShopRevenueAnalytics,
+  getShopCustomerAnalytics,
+  getShopReservationAnalytics,
+  getShopPopularItemsAnalytics,
+  getShopTimeBasedAnalytics
 };
