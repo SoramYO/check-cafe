@@ -55,24 +55,9 @@ const shopNavItems = [
     icon: Users,
   },
   {
-    title: "Khuyến mãi",
-    href: "/dashboard/promotions",
-    icon: Tag,
-  },
-  {
-    title: "Gói VIP",
-    href: "/dashboard/vip",
-    icon: Crown,
-  },
-  {
     title: "Thống kê",
     href: "/dashboard/analytics",
     icon: BarChart,
-  },
-  {
-    title: "Quản lý ảnh",
-    href: "/dashboard/gallery",
-    icon: ImageIcon,
   },
   {
     title: "Phản hồi khách",

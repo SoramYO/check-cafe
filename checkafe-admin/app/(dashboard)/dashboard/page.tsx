@@ -50,6 +50,7 @@ import { toast } from "sonner"
 import Image from "next/image"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
+import { useShop } from "@/context/ShopContext"
 
 interface ShopData {
   _id: string
@@ -59,7 +60,8 @@ interface ShopData {
   phone: string
   website: string
   location: {
-    coordinates: [number, number]
+    type: string
+    coordinates: number[]
   }
   owner_id: {
     _id: string
@@ -82,8 +84,24 @@ interface ShopData {
     icon: string
     label: string
   }>
-  opening_hours: any[]
+  opening_hours: Array<{
+    day: number
+    is_closed: boolean
+    hours: Array<{
+      open: string
+      close: string
+      _id: string
+      id: string
+    }>
+    _id: string
+    id: string
+  }>
+  formatted_opening_hours: {
+    [key: string]: string
+  }
+  is_open: boolean
   images: Array<{
+    _id: string
     url: string
     caption?: string
     created_at: string
@@ -106,13 +124,15 @@ interface ShopData {
       _id: string
       name: string
     }
+    is_available: boolean
     images: Array<{
       url: string
       publicId: string
+      _id: string
     }>
-    is_available: boolean
   }>
   timeSlots: Array<{
+    _id: string
     day_of_week: number
     start_time: string
     end_time: string
@@ -127,6 +147,8 @@ interface ShopData {
     reviewed_at?: string
     reason?: string
   }>
+  createdAt: string
+  updatedAt: string
 }
 
 interface StatsData {
@@ -199,65 +221,44 @@ interface Category {
 }
 
 export default function DashboardPage() {
-  const [shopData, setShopData] = useState<ShopData | null>(null)
   const [statsData, setStatsData] = useState<StatsData | null>(null)
   const [seats, setSeats] = useState<Seat[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [statsLoading, setStatsLoading] = useState(false)
-  const [seatsLoading, setSeatsLoading] = useState(false)
-  const [menuLoading, setMenuLoading] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedShop, setEditedShop] = useState<Partial<ShopData>>({})
-  const [isSaving, setIsSaving] = useState(false)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [seatsLoading, setSeatsLoading] = useState(true)
+  const [menuLoading, setMenuLoading] = useState(true)
+  const [editingShop, setEditingShop] = useState(false)
+  const [editedShop, setEditedShop] = useState<ShopData | null>(null)
+  const [savingShop, setSavingShop] = useState(false)
+  const [seatDialogOpen, setSeatDialogOpen] = useState(false)
+  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null)
+  const [menuDialogOpen, setMenuDialogOpen] = useState(false)
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null)
 
-  // Modal states
-  const [seatModalOpen, setSeatModalOpen] = useState(false)
-  const [menuModalOpen, setMenuModalOpen] = useState(false)
-  const [editingSeat, setEditingSeat] = useState<Seat | null>(null)
-  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null)
-
-  useEffect(() => {
-    fetchShopData()
-    fetchCategories()
-  }, [])
+  const { shopData, shopId, loading: shopLoading, refreshShopData } = useShop()
 
   useEffect(() => {
-    if (shopData) {
+    if (shopId && !shopLoading) {
       fetchStatsData()
       fetchSeats()
       fetchMenuItems()
+      fetchCategories()
     }
-  }, [shopData])
-
-  const fetchShopData = async () => {
-    try {
-      setLoading(true)
-      const response = await authorizedAxiosInstance.get('/v1/shops/my-shop')
-      if (response.data.status === 200) {
-        setShopData(response.data.data.shop)
-        setEditedShop(response.data.data.shop)
-      }
-    } catch (error) {
-      console.error('Error fetching shop data:', error)
-      toast.error('Không thể tải thông tin quán')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [shopId, shopLoading])
 
   const fetchStatsData = async () => {
-    if (!shopData) return
+    if (!shopId) return
     
     try {
       setStatsLoading(true)
-      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopData._id}/stats`)
+      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopId}/stats`)
       if (response.data.status === 200) {
         setStatsData(response.data.data)
       }
     } catch (error) {
-      console.error('Error fetching stats data:', error)
+      console.error('Error fetching stats:', error)
       toast.error('Không thể tải thống kê')
     } finally {
       setStatsLoading(false)
@@ -265,11 +266,11 @@ export default function DashboardPage() {
   }
 
   const fetchSeats = async () => {
-    if (!shopData) return
+    if (!shopId) return
     
     try {
       setSeatsLoading(true)
-      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopData._id}/seats`)
+      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopId}/seats`)
       if (response.data.status === 200) {
         setSeats(response.data.data.seats)
       }
@@ -282,17 +283,17 @@ export default function DashboardPage() {
   }
 
   const fetchMenuItems = async () => {
-    if (!shopData) return
+    if (!shopId) return
     
     try {
       setMenuLoading(true)
-      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopData._id}/menu-items`)
+      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopId}/menu-items`)
       if (response.data.status === 200) {
         setMenuItems(response.data.data.menuItems)
       }
     } catch (error) {
       console.error('Error fetching menu items:', error)
-      toast.error('Không thể tải danh sách menu')
+      toast.error('Không thể tải danh sách món ăn')
     } finally {
       setMenuLoading(false)
     }
@@ -310,32 +311,32 @@ export default function DashboardPage() {
   }
 
   const handleSaveShop = async () => {
-    if (!shopData) return
+    if (!shopId || !editedShop) return
     
     try {
-      setIsSaving(true)
-      const response = await authorizedAxiosInstance.patch(`/v1/shops/${shopData._id}`, editedShop)
+      setSavingShop(true)
+      const response = await authorizedAxiosInstance.put(`/v1/shops/${shopId}`, editedShop)
       if (response.data.status === 200) {
-        setShopData({ ...shopData, ...editedShop })
-        setIsEditing(false)
         toast.success('Cập nhật thông tin quán thành công')
+        setEditingShop(false)
+        refreshShopData() // Refresh shop data from context
       }
     } catch (error) {
       console.error('Error updating shop:', error)
       toast.error('Không thể cập nhật thông tin quán')
     } finally {
-      setIsSaving(false)
+      setSavingShop(false)
     }
   }
 
   const handleDeleteSeat = async (seatId: string) => {
-    if (!shopData) return
+    if (!shopId) return
     
     try {
-      const response = await authorizedAxiosInstance.delete(`/v1/shops/${shopData._id}/seats/${seatId}`)
+      const response = await authorizedAxiosInstance.delete(`/v1/shops/${shopId}/seats/${seatId}`)
       if (response.data.status === 200) {
-        setSeats(seats.filter(seat => seat._id !== seatId))
         toast.success('Xóa chỗ ngồi thành công')
+        fetchSeats()
       }
     } catch (error) {
       console.error('Error deleting seat:', error)
@@ -344,13 +345,13 @@ export default function DashboardPage() {
   }
 
   const handleDeleteMenuItem = async (itemId: string) => {
-    if (!shopData) return
+    if (!shopId) return
     
     try {
-      const response = await authorizedAxiosInstance.delete(`/v1/shops/${shopData._id}/menu-items/${itemId}`)
+      const response = await authorizedAxiosInstance.delete(`/v1/shops/${shopId}/menu-items/${itemId}`)
       if (response.data.status === 200) {
-        setMenuItems(menuItems.filter(item => item._id !== itemId))
         toast.success('Xóa món ăn thành công')
+        fetchMenuItems()
       }
     } catch (error) {
       console.error('Error deleting menu item:', error)
@@ -384,61 +385,77 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading) {
+  // Show loading if shop is still loading
+  if (shopLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 animate-spin" />
-          <span>Đang tải thông tin quán...</span>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Tổng quan về hoạt động của quán
+          </p>
         </div>
+        <Card>
+          <CardContent className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="text-gray-500 mt-4">Đang tải thông tin quán...</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
-  if (!shopData) {
+  // Show placeholder if no shop data
+  if (!shopData || !shopId) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Store className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Chưa có quán cà phê</h3>
-          <p className="text-gray-500 mb-4">Bạn chưa có quán cà phê nào. Hãy tạo quán đầu tiên của bạn.</p>
-          <Button>Tạo quán cà phê</Button>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Tổng quan về hoạt động của quán
+          </p>
         </div>
+        <Card>
+          <CardContent className="text-center py-8">
+            <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">Không tìm thấy thông tin quán</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Quản lý quán cà phê {shopData.name}</p>
+          <p className="text-muted-foreground">
+            Tổng quan về hoạt động của quán
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={fetchStatsData} disabled={statsLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </Button>
-          {isEditing ? (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => {
-                setIsEditing(false)
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditingShop(!editingShop)
+              if (!editingShop) {
                 setEditedShop(shopData)
-              }}>
-                <X className="mr-2 h-4 w-4" />
-                Hủy
-              </Button>
-              <Button onClick={handleSaveShop} disabled={isSaving}>
-                <Save className="mr-2 h-4 w-4" />
-                {isSaving ? 'Đang lưu...' : 'Lưu'}
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={() => setIsEditing(true)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Chỉnh sửa
+              }
+            }}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            {editingShop ? 'Hủy chỉnh sửa' : 'Chỉnh sửa'}
+          </Button>
+          {editingShop && (
+            <Button
+              size="sm"
+              onClick={handleSaveShop}
+              disabled={savingShop}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {savingShop ? 'Đang lưu...' : 'Lưu thay đổi'}
             </Button>
           )}
         </div>
@@ -447,7 +464,7 @@ export default function DashboardPage() {
       {/* Shop Info Card */}
       <Card className="overflow-hidden">
         <div className="relative h-32 bg-gradient-to-r from-blue-500 to-purple-600">
-          {shopData.images.length > 0 && (
+          {shopData.images && shopData.images.length > 0 && shopData.images[0] && (
             <Image
               src={shopData.images[0].url}
               alt="Shop cover"
@@ -460,29 +477,29 @@ export default function DashboardPage() {
         <CardContent className="relative -mt-16 pb-6">
           <div className="flex items-start gap-4">
             <Avatar className="h-24 w-24 border-4 border-white bg-white">
-              <AvatarImage src={shopData.images[0]?.url} />
+              <AvatarImage src={shopData.images?.[0]?.url || undefined} />
               <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                 {shopData.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 pt-8">
-              {isEditing ? (
+              {editingShop ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">Tên quán</Label>
                       <Input
                         id="name"
-                        value={editedShop.name || ''}
-                        onChange={(e) => setEditedShop({ ...editedShop, name: e.target.value })}
+                        value={editedShop?.name || ''}
+                        onChange={(e) => setEditedShop(prev => prev ? { ...prev, name: e.target.value } : null)}
                       />
                     </div>
                     <div>
                       <Label htmlFor="phone">Số điện thoại</Label>
                       <Input
                         id="phone"
-                        value={editedShop.phone || ''}
-                        onChange={(e) => setEditedShop({ ...editedShop, phone: e.target.value })}
+                        value={editedShop?.phone || ''}
+                        onChange={(e) => setEditedShop(prev => prev ? { ...prev, phone: e.target.value } : null)}
                       />
                     </div>
                   </div>
@@ -490,8 +507,8 @@ export default function DashboardPage() {
                     <Label htmlFor="description">Mô tả</Label>
                     <Textarea
                       id="description"
-                      value={editedShop.description || ''}
-                      onChange={(e) => setEditedShop({ ...editedShop, description: e.target.value })}
+                      value={editedShop?.description || ''}
+                      onChange={(e) => setEditedShop(prev => prev ? { ...prev, description: e.target.value } : null)}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -499,16 +516,16 @@ export default function DashboardPage() {
                       <Label htmlFor="address">Địa chỉ</Label>
                       <Input
                         id="address"
-                        value={editedShop.address || ''}
-                        onChange={(e) => setEditedShop({ ...editedShop, address: e.target.value })}
+                        value={editedShop?.address || ''}
+                        onChange={(e) => setEditedShop(prev => prev ? { ...prev, address: e.target.value } : null)}
                       />
                     </div>
                     <div>
                       <Label htmlFor="website">Website</Label>
                       <Input
                         id="website"
-                        value={editedShop.website || ''}
-                        onChange={(e) => setEditedShop({ ...editedShop, website: e.target.value })}
+                        value={editedShop?.website || ''}
+                        onChange={(e) => setEditedShop(prev => prev ? { ...prev, website: e.target.value } : null)}
                       />
                     </div>
                   </div>
@@ -688,27 +705,27 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold">Quản lý chỗ ngồi</h2>
               <p className="text-muted-foreground">Quản lý các chỗ ngồi trong quán</p>
             </div>
-            <Dialog open={seatModalOpen} onOpenChange={setSeatModalOpen}>
+            <Dialog open={seatDialogOpen} onOpenChange={setSeatDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={() => setEditingSeat(null)}>
+                <Button onClick={() => setSelectedSeat(null)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Thêm chỗ ngồi
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>{editingSeat ? 'Chỉnh sửa chỗ ngồi' : 'Thêm chỗ ngồi mới'}</DialogTitle>
+                  <DialogTitle>{selectedSeat ? 'Chỉnh sửa chỗ ngồi' : 'Thêm chỗ ngồi mới'}</DialogTitle>
                   <DialogDescription>
-                    {editingSeat ? 'Cập nhật thông tin chỗ ngồi' : 'Tạo chỗ ngồi mới cho quán'}
+                    {selectedSeat ? 'Cập nhật thông tin chỗ ngồi' : 'Tạo chỗ ngồi mới cho quán'}
                   </DialogDescription>
                 </DialogHeader>
                 <SeatForm 
-                  seat={editingSeat} 
+                  seat={selectedSeat} 
                   onSuccess={() => {
-                    setSeatModalOpen(false)
+                    setSeatDialogOpen(false)
                     fetchSeats()
                   }}
-                  shopId={shopData._id}
+                  shopId={shopId}
                 />
               </DialogContent>
             </Dialog>
@@ -763,8 +780,8 @@ export default function DashboardPage() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => {
-                          setEditingSeat(seat)
-                          setSeatModalOpen(true)
+                          setSelectedSeat(seat)
+                          setSeatDialogOpen(true)
                         }}
                       >
                         <Edit className="w-4 h-4 mr-1" />
@@ -793,28 +810,28 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold">Quản lý Menu</h2>
               <p className="text-muted-foreground">Quản lý các món ăn và đồ uống</p>
             </div>
-            <Dialog open={menuModalOpen} onOpenChange={setMenuModalOpen}>
+            <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={() => setEditingMenuItem(null)}>
+                <Button onClick={() => setSelectedMenuItem(null)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Thêm món mới
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>{editingMenuItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới'}</DialogTitle>
+                  <DialogTitle>{selectedMenuItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới'}</DialogTitle>
                   <DialogDescription>
-                    {editingMenuItem ? 'Cập nhật thông tin món ăn' : 'Tạo món ăn mới cho menu'}
+                    {selectedMenuItem ? 'Cập nhật thông tin món ăn' : 'Tạo món ăn mới cho menu'}
                   </DialogDescription>
                 </DialogHeader>
                 <MenuItemForm 
-                  menuItem={editingMenuItem} 
+                  menuItem={selectedMenuItem} 
                   categories={categories}
                   onSuccess={() => {
-                    setMenuModalOpen(false)
+                    setMenuDialogOpen(false)
                     fetchMenuItems()
                   }}
-                  shopId={shopData._id}
+                  shopId={shopId}
                 />
               </DialogContent>
             </Dialog>
@@ -864,8 +881,8 @@ export default function DashboardPage() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => {
-                          setEditingMenuItem(item)
-                          setMenuModalOpen(true)
+                          setSelectedMenuItem(item)
+                          setMenuDialogOpen(true)
                         }}
                       >
                         <Edit className="w-4 h-4 mr-1" />

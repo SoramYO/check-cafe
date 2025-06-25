@@ -11,6 +11,7 @@ import { StaffDetailModal } from "./components/StaffDetailModal"
 import { CreateStaffModal } from "./components/CreateStaffModal"
 import { EditStaffModal } from "./components/EditStaffModal"
 import { toast } from "sonner"
+import { useShop } from "@/context/ShopContext"
 
 interface Shop {
   _id: string
@@ -20,9 +21,10 @@ interface Shop {
 
 export default function StaffPage() {
   const router = useRouter()
+  const { shopData } = useShop()
+  const shopId = shopData?._id
   const searchParams = useSearchParams()
   const [staff, setStaff] = useState<Staff[]>([])
-  const [shop, setShop] = useState<Shop | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -57,30 +59,21 @@ export default function StaffPage() {
 
   // Fetch shop on component mount
   useEffect(() => {
-    fetchShop()
-  }, [])
+    if (shopId) {
+      fetchStaff()
+    }
+  }, [shopId])
 
   // Fetch staff when filters change or shop is loaded
   useEffect(() => {
-    if (shop) {
+    if (shopId) {
       fetchStaff()
     }
-  }, [filters, shop])
+  }, [filters, shopId])
 
-  const fetchShop = async () => {
-    try {
-      const responseShop = await authorizedAxiosInstance.get('/v1/shops/my-shop')
-      if (responseShop.data.status === 200) {
-        setShop(responseShop.data.data.shop)
-      }
-    } catch (error) {
-      console.error('Error fetching shop:', error)
-      setError('Không thể tải thông tin cửa hàng')
-    }
-  }
 
   const fetchStaff = async () => {
-    if (!shop) return
+    if (!shopId) return
 
     try {
       setLoading(true)
@@ -102,7 +95,7 @@ export default function StaffPage() {
         queryParams.set('sortOrder', filters.sortOrder)
       }
       
-      const responseStaff = await authorizedAxiosInstance.get(`/v1/shops/${shop._id}/staff?${queryParams.toString()}`)
+      const responseStaff = await authorizedAxiosInstance.get(`/v1/shops/${shopId}/staff?${queryParams.toString()}`)
       if (responseStaff.data.status === 200) {
         console.log(responseStaff.data.data)
         const staffData = responseStaff.data.data.data || []
@@ -110,8 +103,8 @@ export default function StaffPage() {
         // Add shop information to each staff member
         const staffWithShopInfo = staffData.map((staffMember: any) => ({
           ...staffMember,
-          shop_id: shop._id,
-          shop_name: shop.name
+          shop_id: shopId,
+          shop_name: shopId
         }))
 
         // Apply filters - Remove local filtering since backend now handles search
@@ -169,7 +162,7 @@ export default function StaffPage() {
 
   }
 
-  if (!shop && !error) {
+  if (!shopId && !error) {
     return (
       <div className="py-8 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -183,7 +176,7 @@ export default function StaffPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Quản lý nhân viên{shop && ` - ${shop.name}`}
+            Quản lý nhân viên{shopData && ` - ${shopData.name}`}
           </h1>
           <p className="text-gray-500">Quản lý nhân viên trong cửa hàng của bạn.</p>
         </div>
@@ -196,7 +189,7 @@ export default function StaffPage() {
       <StaffFilters 
         filters={filters}
         onFilterChange={handleFilterChange}
-        shops={shop ? [shop] : []}
+        shops={shopData ? [shopData] : []}
       />
 
       {loading ? (

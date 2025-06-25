@@ -217,6 +217,80 @@ class ShopController {
       data: result,
     }).send(res);
   });
+
+  // ===== SHOP FEEDBACK/REVIEWS MANAGEMENT =====
+  getShopFeedback = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopFeedback(req);
+    new OK({
+      message: "Get shop feedback successfully",
+      data: result,
+    }).send(res);
+  });
+
+  getShopFeedbackStats = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopFeedbackStats(req);
+    new OK({
+      message: "Get shop feedback statistics successfully",
+      data: result,
+    }).send(res);
+  });
+
+  replyToReview = asyncHandler(async (req, res) => {
+    const result = await shopService.replyToReview(req);
+    new OK({
+      message: "Reply to review successfully",
+      data: result,
+    }).send(res);
+  });
+
+  // ===== SHOP ANALYTICS CONTROLLERS =====
+  getShopAnalyticsOverview = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopAnalyticsOverview(req);
+    new OK({
+      message: "Get shop analytics overview successfully",
+      data: result,
+    }).send(res);
+  });
+
+  getShopRevenueAnalytics = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopRevenueAnalytics(req);
+    new OK({
+      message: "Get shop revenue analytics successfully",
+      data: result,
+    }).send(res);
+  });
+
+  getShopCustomerAnalytics = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopCustomerAnalytics(req);
+    new OK({
+      message: "Get shop customer analytics successfully",
+      data: result,
+    }).send(res);
+  });
+
+  getShopReservationAnalytics = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopReservationAnalytics(req);
+    new OK({
+      message: "Get shop reservation analytics successfully",
+      data: result,
+    }).send(res);
+  });
+
+  getShopPopularItemsAnalytics = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopPopularItemsAnalytics(req);
+    new OK({
+      message: "Get shop popular items analytics successfully",
+      data: result,
+    }).send(res);
+  });
+
+  getShopTimeBasedAnalytics = asyncHandler(async (req, res) => {
+    const result = await shopService.getShopTimeBasedAnalytics(req);
+    new OK({
+      message: "Get shop time-based analytics successfully",
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new ShopController();

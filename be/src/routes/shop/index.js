@@ -16,11 +16,30 @@ router.use(checkAuth);
 // Get my shop (for shop owner) - MUST be before /:shopId
 router.get("/my-shop", checkRole([USER_ROLE.SHOP_OWNER]), shopController.getMyShop);
 
-// Get shop details - MUST be after /my-shop
-router.get("/:shopId", shopController.getShop);
-
 // Get shop stats (for shop owner)
 router.get("/:shopId/stats", checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN]), shopController.getShopStats);
+
+// ===== SHOP ANALYTICS ROUTES =====
+// Get shop analytics overview
+router.get("/:shopId/analytics/overview", shopController.getShopAnalyticsOverview);
+
+// Get shop revenue analytics
+router.get("/:shopId/analytics/revenue", shopController.getShopRevenueAnalytics);
+
+// Get shop customer analytics
+router.get("/:shopId/analytics/customers", shopController.getShopCustomerAnalytics);
+
+// Get shop reservation analytics
+router.get("/:shopId/analytics/reservations", shopController.getShopReservationAnalytics);
+
+// Get shop popular items analytics
+router.get("/:shopId/analytics/popular-items", shopController.getShopPopularItemsAnalytics);
+
+// Get shop time-based analytics
+router.get("/:shopId/analytics/time-based", shopController.getShopTimeBasedAnalytics);
+
+// Get shop details - MUST be after /my-shop
+router.get("/:shopId", shopController.getShop);
 
 router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN, USER_ROLE.STAFF]));
 
@@ -37,6 +56,16 @@ router.get("/:shopId/staff/:staffId", shopController.getStaffById);
 router.post("/:shopId/staff", shopController.createStaff);
 
 router.patch("/:shopId/staff/:staffId", shopController.updateStaff);
+
+// ===== SHOP FEEDBACK/REVIEWS ROUTES =====
+// Get shop feedback/reviews
+router.get("/:shopId/feedback", shopController.getShopFeedback);
+
+// Get shop feedback statistics
+router.get("/:shopId/feedback/stats", shopController.getShopFeedbackStats);
+
+// Reply to a review
+router.post("/:shopId/feedback/:reviewId/reply", shopController.replyToReview);
 
 // Update shop
 router.patch("/:shopId", shopController.updateShop);

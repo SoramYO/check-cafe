@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useShop } from "@/context/ShopContext"
 
 interface Seat {
   _id: string
@@ -35,8 +36,9 @@ interface ShopData {
 }
 
 export default function SeatingPage() {
+  const { shopData } = useShop()
+  const shopId = shopData?._id
   const [seats, setSeats] = useState<Seat[]>([])
-  const [shopData, setShopData] = useState<ShopData | null>(null)
   const [loading, setLoading] = useState(true)
   const [seatModalOpen, setSeatModalOpen] = useState(false)
   const [editingSeat, setEditingSeat] = useState<Seat | null>(null)
@@ -47,33 +49,18 @@ export default function SeatingPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'unavailable'>('all')
 
   useEffect(() => {
-    fetchShopData()
-  }, [])
-
-  useEffect(() => {
     if (shopData) {
       fetchSeats()
     }
-  }, [shopData])
+  }, [shopData, shopId])
 
-  const fetchShopData = async () => {
-    try {
-      const response = await authorizedAxiosInstance.get('/v1/shops/my-shop')
-      if (response.data.status === 200) {
-        setShopData(response.data.data.shop)
-      }
-    } catch (error) {
-      console.error('Error fetching shop data:', error)
-      toast.error('Không thể tải thông tin quán')
-    }
-  }
 
   const fetchSeats = async () => {
     if (!shopData) return
     
     try {
       setLoading(true)
-      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopData._id}/seats`)
+      const response = await authorizedAxiosInstance.get(`/v1/shops/${shopId}/seats`)
       if (response.data.status === 200) {
         setSeats(response.data.data.seats)
       }
@@ -89,7 +76,7 @@ export default function SeatingPage() {
     if (!shopData) return
     
     try {
-      const response = await authorizedAxiosInstance.delete(`/v1/shops/${shopData._id}/seats/${seatId}`)
+      const response = await authorizedAxiosInstance.delete(`/v1/shops/${shopId}/seats/${seatId}`)
       if (response.data.status === 200) {
         setSeats(seats.filter(seat => seat._id !== seatId))
         toast.success('Xóa chỗ ngồi thành công')
@@ -163,7 +150,7 @@ export default function SeatingPage() {
                   setSeatModalOpen(false)
                   fetchSeats()
                 }}
-                shopId={shopData?._id || ''}
+                shopId={shopId || ''}
               />
             </DialogContent>
           </Dialog>
