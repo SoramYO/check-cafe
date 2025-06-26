@@ -11,28 +11,59 @@ const reviewModel = require("../models/review.model");
 
 class AdminService {
 
-  changePassword = async (user, { currentPassword, newPassword }) => {
+  changePassword = async (req) => {
     try {
-      const admin = await userModel.findById(user._id);
-      const match = await bcrypt.compare(currentPassword, admin.password);
-      if (!match) {
+      const userId = req.params.id;
+      const { newPassword } = req.body;
+      
+      // Validate input
+      if (!userId) {
         return {
-          code: "xxx",
-          message: "Current password is incorrect",
+          code: "400",
+          message: "User ID is required",
+          status: "error",
+        };
+      }
+      
+      if (!newPassword || newPassword.length < 6) {
+        return {
+          code: "400",
+          message: "New password must be at least 6 characters",
           status: "error",
         };
       }
 
+      // Check if user exists
+      const user = await userModel.findById(userId);
+      if (!user) {
+        return {
+          code: "404",
+          message: "User not found",
+          status: "error",
+        };
+      }
+
+      // Hash new password
       const passwordHash = await bcrypt.hash(newPassword, 10);
-      await userModel.findByIdAndUpdate(user._id, { password: passwordHash });
+      
+      // Update user password
+      await userModel.findByIdAndUpdate(userId, { 
+        password: passwordHash,
+        updatedAt: new Date()
+      });
 
       return {
         code: "200",
         message: "Password changed successfully",
+        metadata: {
+          userId: user._id,
+          email: user.email,
+          full_name: user.full_name
+        }
       };
     } catch (error) {
       return {
-        code: "xxx",
+        code: "500",
         message: error.message,
         status: "error",
       };
