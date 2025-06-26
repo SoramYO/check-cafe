@@ -27,7 +27,7 @@ const { signUp } = require("./access.service");
 const reviewModel = require("../models/review.model");
 const reservationModel = require("../models/reservation.model");
 const paymentModel = require("../models/payment.model");
-
+const bcrypt = require("bcryptjs");
 const getAllPublicShops = async (req) => {
   try {
     const {
@@ -2177,12 +2177,13 @@ const createStaff = async (req) => {
     if (existingUser) {
       throw new BadRequestError("Email already exists");
     }
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // Create staff user
     const staffData = {
       full_name,
       email,
-      password,
+      password: passwordHash,
       phone,
       role: 'STAFF'
     };
