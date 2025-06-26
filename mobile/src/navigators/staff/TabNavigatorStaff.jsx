@@ -16,12 +16,10 @@ const TabNavigatorStaff = () => {
         tabBarIcon: ({ focused, color, size }) => {
             let iconName = "home";
           
-            if (route.name === "BookingRequests") {
+            if (route.name === "Bookings") {
               iconName = focused ? "calendar-check" : "calendar-check-outline";
             } else if (route.name === "ScanQR") {
-              iconName = focused ? "map" : "map-outline";
-            } else if (route.name === "Bookings") {
-              iconName = focused ? "calendar-check" : "calendar-check-outline";
+              iconName = focused ? "qrcode-scan" : "qrcode-scan";
             } else if (route.name === "Profile") {
               iconName = focused ? "account" : "account-outline";
             }

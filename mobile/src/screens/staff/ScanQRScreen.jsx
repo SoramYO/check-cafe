@@ -115,51 +115,52 @@ export default function ScanQRScreen({ navigation }) {
         }}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         flash={flashMode}
-      >
-        <View style={styles.overlay}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => navigation.goBack()}
-            >
-              <MaterialCommunityIcons name="close" size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.title}>Quét mã QR</Text>
-            <TouchableOpacity style={styles.flashButton} onPress={toggleFlash}>
-              <MaterialCommunityIcons
-                name={flashMode === "off" ? "flash-off" : "flash"}
-                size={24}
-                color="white"
-              />
-            </TouchableOpacity>
-          </View>
+      />
+      
+      {/* Overlay UI - tách ra khỏi CameraView để tránh warning */}
+      <View style={styles.overlay}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialCommunityIcons name="close" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Quét mã QR</Text>
+          <TouchableOpacity style={styles.flashButton} onPress={toggleFlash}>
+            <MaterialCommunityIcons
+              name={flashMode === "off" ? "flash-off" : "flash"}
+              size={24}
+              color="white"
+            />
+          </TouchableOpacity>
+        </View>
 
-          {/* Scan Area */}
-          <View style={styles.scanArea}>
-            <View style={styles.scanFrame}>
-              {/* Corner indicators */}
-              <View style={[styles.corner, styles.topLeft]} />
-              <View style={[styles.corner, styles.topRight]} />
-              <View style={[styles.corner, styles.bottomLeft]} />
-              <View style={[styles.corner, styles.bottomRight]} />
-            </View>
-          </View>
-
-          {/* Instructions */}
-          <View style={styles.instructions}>
-            <Text style={styles.instructionText}>
-              Đặt mã QR trong khung hình để check-in
-            </Text>
-            {isProcessing && (
-              <View style={styles.processingContainer}>
-                <ActivityIndicator size="small" color="white" />
-                <Text style={styles.processingText}>Đang xử lý...</Text>
-              </View>
-            )}
+        {/* Scan Area */}
+        <View style={styles.scanArea}>
+          <View style={styles.scanFrame}>
+            {/* Corner indicators */}
+            <View style={[styles.corner, styles.topLeft]} />
+            <View style={[styles.corner, styles.topRight]} />
+            <View style={[styles.corner, styles.bottomLeft]} />
+            <View style={[styles.corner, styles.bottomRight]} />
           </View>
         </View>
-      </CameraView>
+
+        {/* Instructions */}
+        <View style={styles.instructions}>
+          <Text style={styles.instructionText}>
+            Đặt mã QR trong khung hình để check-in
+          </Text>
+          {isProcessing && (
+            <View style={styles.processingContainer}>
+              <ActivityIndicator size="small" color="white" />
+              <Text style={styles.processingText}>Đang xử lý...</Text>
+            </View>
+          )}
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
