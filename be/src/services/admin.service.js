@@ -278,16 +278,16 @@ class AdminService {
             _id: groupBy,
             totalBookings: { $sum: 1 },
             completedBookings: {
-              $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] }
             },
             cancelledBookings: {
-              $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ["$status", "Cancelled"] }, 1, 0] }
             },
             pendingBookings: {
-              $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] }
             },
             confirmedBookings: {
-              $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ["$status", "Confirmed"] }, 1, 0] }
             },
             totalPeople: { $sum: "$number_of_people" },
             avgPeoplePerBooking: { $avg: "$number_of_people" }
