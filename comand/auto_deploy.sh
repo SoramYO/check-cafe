@@ -47,4 +47,15 @@ docker compose ps
 echo "✅ Auto deploy completed at $(date)"
 echo "🌟 All services are now running with latest code!"
 echo "📊 Admin Panel: http://localhost:3002"
-echo "🔧 Backend API: http://localhost:3000" 
+echo "🔧 Backend API: http://localhost:3000"
+
+# Fix file permissions for shell scripts
+echo "🔧 Fixing file permissions..."
+chmod +x comand/*.sh
+
+# Restart Docker services
+echo "🐳 Restarting Docker services..."
+docker compose down
+docker compose up -d --build
+
+echo "✅ Deploy completed successfully!" 
