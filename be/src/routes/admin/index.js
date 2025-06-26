@@ -18,6 +18,9 @@ router.put("/users/:id", adminController.updateUserById);
 router.delete("/users/:id", adminController.deleteUserById);
 router.post("/users", adminController.createUser);
 
+// Admin change user password
+router.patch("/users/:id/password", adminController.changePassword);
+
 // Dashboard Stats
 router.get("/stats", adminController.getDashboardStats);
 

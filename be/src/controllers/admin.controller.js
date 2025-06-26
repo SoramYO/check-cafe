@@ -27,7 +27,7 @@ class AdminController {
     try {
       res
         .status(200)
-        .json(await adminService.changePassword(req.user, req.body));
+        .json(await adminService.changePassword(req));
     } catch (error) {
       next(error);
     }

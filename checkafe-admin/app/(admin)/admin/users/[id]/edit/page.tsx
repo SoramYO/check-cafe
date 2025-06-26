@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, Shield, Coffee, ArrowLeft, Save, UserCheck } from "lucide-react"
+import { User, Shield, Coffee, ArrowLeft, Save, UserCheck, Eye, EyeOff, Key } from "lucide-react"
 import authorizedAxiosInstance from "@/lib/axios"
 import { UserDetailResponse } from "../../types"
 
@@ -57,6 +57,14 @@ export default function EditUserPage() {
     is_active: true,
     phone: ""
   })
+
+  // Password change states
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     if (userId) {
@@ -133,6 +141,39 @@ export default function EditUserPage() {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật người dùng')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Mật khẩu phải có ít nhất 6 ký tự')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp')
+      return
+    }
+
+    try {
+      setChangingPassword(true)
+      const response = await authorizedAxiosInstance.patch(`/v1/admin/users/${userId}/password`, {
+        newPassword
+      })
+      
+      if (response.data.code === "200") {
+        toast.success('Đổi mật khẩu thành công')
+        setShowPasswordModal(false)
+        setNewPassword('')
+        setConfirmPassword('')
+      } else {
+        toast.error(response.data.message || 'Có lỗi xảy ra khi đổi mật khẩu')
+      }
+    } catch (err: any) {
+      console.error('Error changing password:', err)
+      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu')
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -340,6 +381,16 @@ export default function EditUserPage() {
                 <Save className="h-4 w-4 mr-2" />
                 {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
               </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPasswordModal(true)}
+                className="w-full"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Đổi mật khẩu
+              </Button>
+              
               <Button 
                 variant="outline" 
                 onClick={() => router.back()}
@@ -351,6 +402,98 @@ export default function EditUserPage() {
           </Card>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Đổi mật khẩu người dùng
+              </CardTitle>
+              <CardDescription>
+                Đặt mật khẩu mới cho {userEmail}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Mật khẩu mới</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu mới"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">Mật khẩu phải có ít nhất 6 ký tự</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Xác nhận mật khẩu</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Nhập lại mật khẩu mới"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  onClick={handleChangePassword}
+                  disabled={changingPassword || !newPassword || !confirmPassword}
+                  className="flex-1"
+                >
+                  {changingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowPasswordModal(false)
+                    setNewPassword('')
+                    setConfirmPassword('')
+                  }}
+                  disabled={changingPassword}
+                >
+                  Hủy
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 } 
