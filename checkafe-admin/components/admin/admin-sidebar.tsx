@@ -22,6 +22,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Calendar,
+  Package,
 } from "lucide-react"
 import { title } from "process"
 
@@ -42,9 +43,9 @@ const adminNavItems = [
     icon: Users,
   },
   {
-    title: "Quản lí giao dịch",
-    href: "/admin/transactions",
-    icon: ShoppingCart,
+    title: "Quản lí gói dịch vụ",
+    href: "/admin/packages",
+    icon: Package,
   },
   {
     title: "Kiểm duyệt",
