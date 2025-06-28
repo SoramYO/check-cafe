@@ -1,147 +1,141 @@
 "use client"
 
-import { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Star, Package as PackageIcon } from "lucide-react"
+import { useForm } from "react-hook-form"
 import authorizedAxiosInstance from "@/lib/axios"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { Textarea } from "@/components/ui/textarea"
+import { Plus, X, GripVertical } from "lucide-react"
 
 interface ModalCreatePackageProps {
   open: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess?: () => void
 }
 
+interface PackageForm {
+  name: string
+  description: string[]
+  price: number
+  duration: number
+  icon?: string
+}
+
+interface DynamicInputListProps {
+  value: string[];
+  onChange: (val: string[]) => void;
+  placeholder?: string;
+}
+
+const DynamicInputList = ({ value = [], onChange, placeholder = "Nhập mô tả..." }: DynamicInputListProps) => {
+  const handleAdd = () => {
+    onChange([...value, ""]);
+  };
+  const handleRemove = (index: number) => {
+    onChange(value.filter((_, i) => i !== index));
+  };
+  const handleChange = (index: number, newValue: string) => {
+    const updated = [...value];
+    updated[index] = newValue;
+    onChange(updated);
+  };
+  return (
+    <div className="space-y-2">
+      {value.map((item, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2">
+            <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+            <input
+              type="text"
+              value={item}
+              onChange={(e) => handleChange(index, e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => handleRemove(index)}
+            className="p-1 text-red-500 hover:bg-red-50 rounded"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={handleAdd}
+        className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-dashed border-blue-300"
+      >
+        <Plus className="w-4 h-4" />
+        Thêm mô tả
+      </button>
+    </div>
+  );
+};
+
 export default function ModalCreatePackage({ open, onClose, onSuccess }: ModalCreatePackageProps) {
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    name: "",
-    icon: "package",
-    description: "",
-    price: "",
-    duration: ""
+  const { register, handleSubmit, reset, formState: { isSubmitting }, setValue, watch } = useForm<PackageForm>({
+    defaultValues: {
+      name: "",
+      description: [],
+      price: 0,
+      duration: 1,
+      icon: "",
+    }
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const descriptionValue = watch("description") as string[] | string;
 
+  const onSubmit = async (data: PackageForm) => {
     try {
-      const descriptions = formData.description.split("\n").filter(desc => desc.trim())
-      await authorizedAxiosInstance.post("/v1/packages", {
-        ...formData,
-        description: descriptions,
-        price: Number(formData.price),
-        duration: Number(formData.duration)
-      })
-      onSuccess()
+      await authorizedAxiosInstance.post("/v1/packages", data)
+      toast.success("Tạo gói thành công!")
+      reset()
       onClose()
-    } catch (err) {
-      // handle error
-    } finally {
-      setLoading(false)
+      onSuccess?.()
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Tạo gói thất bại")
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tạo gói dịch vụ mới</DialogTitle>
+          <DialogTitle>Tạo gói mới</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label>Tên gói</Label>
-              <Input
-                required
-                value={formData.name}
-                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Nhập tên gói dịch vụ..."
-              />
-            </div>
-
-            <div>
-              <Label>Icon</Label>
-              <Select
-                value={formData.icon}
-                onValueChange={value => setFormData(prev => ({ ...prev, icon: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="star">
-                    <div className="flex items-center gap-2">
-                      <Star className="w-4 h-4" />
-                      <span>Star</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="package">
-                    <div className="flex items-center gap-2">
-                      <PackageIcon className="w-4 h-4" />
-                      <span>Package</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Mô tả (mỗi dòng là một điểm mô tả)</Label>
-              <Textarea
-                required
-                value={formData.description}
-                onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Nhập mô tả gói dịch vụ..."
-                rows={5}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Giá (VNĐ)</Label>
-                <Input
-                  required
-                  type="number"
-                  min="0"
-                  value={formData.price}
-                  onChange={e => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder="Nhập giá..."
-                />
-              </div>
-
-              <div>
-                <Label>Thời hạn (ngày)</Label>
-                <Input
-                  required
-                  type="number"
-                  min="1"
-                  value={formData.duration}
-                  onChange={e => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                  placeholder="Nhập số ngày..."
-                />
-              </div>
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <label className="block font-medium">Tên gói <span className="text-red-500">*</span></label>
+            <Input {...register("name", { required: true })} placeholder="Nhập tên gói" />
           </div>
-
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Hủy
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Đang tạo..." : "Tạo mới"}
-            </Button>
+          <div>
+            <label className="block font-medium">Mô tả <span className="text-red-500">*</span></label>
+            <DynamicInputList
+              value={Array.isArray(descriptionValue) ? descriptionValue : []}
+              onChange={(val: string[]) => setValue("description", val)}
+              placeholder="Nhập mô tả..."
+            />
           </div>
+          <div>
+            <label className="block font-medium">Giá <span className="text-red-500">*</span></label>
+            <Input {...register("price", { valueAsNumber: true })} type="number" placeholder="Giá gói (VNĐ)" />
+          </div>
+          <div>
+            <label className="block font-medium">Thời lượng (ngày) <span className="text-red-500">*</span></label>
+            <Input {...register("duration", { valueAsNumber: true })} type="number" placeholder="Số ngày sử dụng" />
+          </div>
+          <div>
+            <label className="block font-medium">Icon (URL)</label>
+            <Input {...register("icon")} placeholder="Tên icon" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Hủy</Button>
+            <Button type="submit" disabled={isSubmitting} className="bg-primary text-white">Tạo mới</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
