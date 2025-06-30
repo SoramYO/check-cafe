@@ -72,11 +72,11 @@ const adminNavItems = [
     href: "/admin/reports",
     icon: BarChart,
   },
-  {
-    title: "Phân tích người dùng",
-    href: "/admin/analytics",
-    icon: TrendingUp,
-  },
+  // {
+  //   title: "Phân tích người dùng",
+  //   href: "/admin/analytics",
+  //   icon: TrendingUp,
+  // },
   {
     title: "Thống kê đặt chỗ",
     href: "/admin/booking-statistics",
