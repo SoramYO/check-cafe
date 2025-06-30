@@ -4,6 +4,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "./providers"
+import { StagewiseToolbar } from "@stagewise/toolbar-next"
+import { ReactPlugin } from "@stagewise-plugins/react"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -80,6 +82,11 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
+        <StagewiseToolbar 
+          config={{
+            plugins: [ReactPlugin],
+          }}
+        />
         <Providers>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             {children}
