@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useDispatch, useSelector } from "react-redux"
@@ -10,252 +10,89 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { register } from "@/lib/store/slices/authSlice"
 import { AppDispatch, RootState } from "@/lib/store"
 import { toast } from "sonner"
+import { MapPin, Phone, Globe } from "lucide-react"
 
 interface RegisterFormData {
-  shopName: string
-  ownerName: string
+  name: string
+  description: string
+  address: string
+  phone: string
+  website: string
+  latitude: number | string
+  longitude: number | string
+  owner_name: string
   email: string
   password: string
   confirmPassword: string
-  phone: string
-  address: string
   city: string
-  cityCode: string
+  city_code: string
   district: string
-  districtCode: string
+  district_code: string
   ward: string
-  description: string
   category: string
+  amenities: string[]
+  theme_ids: string[]
+  opening_hours: {
+    day: number
+    is_closed: boolean
+    hours?: { open: string; close: string }[]
+  }[]
   agreeTerms: boolean
 }
 
-interface Province {
-  _id: string
-  name: string
-  name_with_type: string
-  code: string
-}
-
-interface District {
-  _id: string
-  name: string
-  name_with_type: string
-  code: string
-  parent_code: string
-}
-
-interface Ward {
-  _id: string
-  name: string
-  name_with_type: string
-  code: string
-  parent_code: string
-}
+const defaultOpeningHours = [
+  { day: 0, is_closed: true },
+  { day: 1, is_closed: false, hours: [{ open: "08:00", close: "22:00" }] },
+  { day: 2, is_closed: false, hours: [{ open: "08:00", close: "22:00" }] },
+  { day: 3, is_closed: false, hours: [{ open: "08:00", close: "22:00" }] },
+  { day: 4, is_closed: false, hours: [{ open: "08:00", close: "22:00" }] },
+  { day: 5, is_closed: false, hours: [{ open: "08:00", close: "22:00" }] },
+  { day: 6, is_closed: false, hours: [{ open: "08:00", close: "22:00" }] }
+]
 
 export default function RegisterPage() {
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
   const { loading } = useSelector((state: RootState) => state.auth)
   const [formData, setFormData] = useState<RegisterFormData>({
-    shopName: '',
-    ownerName: '',
+    name: '',
+    description: '',
+    address: '',
+    phone: '',
+    website: '',
+    latitude: '',
+    longitude: '',
+    owner_name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    phone: '',
-    address: '',
     city: '',
-    cityCode: '',
+    city_code: '',
     district: '',
-    districtCode: '',
+    district_code: '',
     ward: '',
-    description: '',
     category: '',
+    amenities: ["6820f0e5628427b63b334ad3", "6820f0e5628427b63b334ad7"],
+    theme_ids: ["682074de420997d7051394ba"],
+    opening_hours: defaultOpeningHours,
     agreeTerms: false
   })
 
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof RegisterFormData, string>>>({})
-  
-  // Address data states
-  const [provinces, setProvinces] = useState<Province[]>([])
-  const [districts, setDistricts] = useState<District[]>([])
-  const [wards, setWards] = useState<Ward[]>([])
-  
-  // Loading states for address
-  const [loadingProvinces, setLoadingProvinces] = useState(false)
-  const [loadingDistricts, setLoadingDistricts] = useState(false)
-  const [loadingWards, setLoadingWards] = useState(false)
-
-  // Helper functions for localStorage
-  const getStoredData = (key: string) => {
-    if (typeof window === 'undefined') return null
-    try {
-      const stored = localStorage.getItem(key)
-      if (!stored) return null
-      
-      const parsed = JSON.parse(stored)
-      // Check if data is expired (7 days)
-      const now = new Date().getTime()
-      if (now - parsed.timestamp > 7 * 24 * 60 * 60 * 1000) {
-        localStorage.removeItem(key)
-        return null
-      }
-      return parsed.data
-    } catch (error) {
-      console.error('Error reading from localStorage:', error)
-      return null
-    }
-  }
-
-  const setStoredData = (key: string, data: any) => {
-    if (typeof window === 'undefined') return
-    try {
-      const toStore = {
-        data,
-        timestamp: new Date().getTime()
-      }
-      localStorage.setItem(key, JSON.stringify(toStore))
-    } catch (error) {
-      console.error('Error writing to localStorage:', error)
-    }
-  }
-
-  const clearAddressCache = () => {
-    if (typeof window === 'undefined') return
-    try {
-      // Clear all address-related cache
-      const keys = Object.keys(localStorage).filter(key => key.startsWith('checkafe_'))
-      keys.forEach(key => localStorage.removeItem(key))
-      console.log('Address cache cleared')
-    } catch (error) {
-      console.error('Error clearing cache:', error)
-    }
-  }
-
-  // API functions for address data with localStorage caching
-  const fetchProvinces = async () => {
-    // Check localStorage first
-    const cachedProvinces = getStoredData('checkafe_provinces')
-    if (cachedProvinces) {
-      setProvinces(cachedProvinces)
-      return
-    }
-
-    setLoadingProvinces(true)
-    try {
-      const response = await fetch('https://vn-public-apis.fpo.vn/provinces/getAll?limit=-1')
-      const data = await response.json()
-      if (data.exitcode === 1 && data.data?.data) {
-        setProvinces(data.data.data)
-        // Cache to localStorage
-        setStoredData('checkafe_provinces', data.data.data)
-      }
-    } catch (error) {
-      console.error('Error fetching provinces:', error)
-      toast.error('Lỗi khi tải danh sách tỉnh/thành phố')
-    } finally {
-      setLoadingProvinces(false)
-    }
-  }
-
-  const fetchDistricts = async (provinceCode: string) => {
-    if (!provinceCode) return
-    
-    // Check localStorage first
-    const cacheKey = `checkafe_districts_${provinceCode}`
-    const cachedDistricts = getStoredData(cacheKey)
-    if (cachedDistricts) {
-      setDistricts(cachedDistricts)
-      return
-    }
-
-    setLoadingDistricts(true)
-    try {
-      const response = await fetch(`https://vn-public-apis.fpo.vn/districts/getByProvince?provinceCode=${provinceCode}&limit=-1`)
-      const data = await response.json()
-      if (data.exitcode === 1 && data.data?.data) {
-        setDistricts(data.data.data)
-        // Cache to localStorage
-        setStoredData(cacheKey, data.data.data)
-      }
-    } catch (error) {
-      console.error('Error fetching districts:', error)
-      toast.error('Lỗi khi tải danh sách quận/huyện')
-    } finally {
-      setLoadingDistricts(false)
-    }
-  }
-
-  const fetchWards = async (districtCode: string) => {
-    if (!districtCode) return
-    
-    // Check localStorage first
-    const cacheKey = `checkafe_wards_${districtCode}`
-    const cachedWards = getStoredData(cacheKey)
-    if (cachedWards) {
-      setWards(cachedWards)
-      return
-    }
-
-    setLoadingWards(true)
-    try {
-      const response = await fetch(`https://vn-public-apis.fpo.vn/wards/getByDistrict?districtCode=${districtCode}&limit=-1`)
-      const data = await response.json()
-      if (data.exitcode === 1 && data.data?.data) {
-        setWards(data.data.data)
-        // Cache to localStorage
-        setStoredData(cacheKey, data.data.data)
-      }
-    } catch (error) {
-      console.error('Error fetching wards:', error)
-      toast.error('Lỗi khi tải danh sách phường/xã')
-    } finally {
-      setLoadingWards(false)
-    }
-  }
-
-  // Load provinces on component mount
-  useEffect(() => {
-    fetchProvinces()
-  }, [])
-
-  // Load districts when city changes
-  useEffect(() => {
-    if (formData.cityCode) {
-      fetchDistricts(formData.cityCode)
-      // Reset district and ward when city changes
-      setFormData(prev => ({ ...prev, district: '', districtCode: '', ward: '' }))
-      setWards([])
-    }
-  }, [formData.cityCode])
-
-  // Load wards when district changes
-  useEffect(() => {
-    if (formData.districtCode) {
-      fetchWards(formData.districtCode)
-      // Reset ward when district changes
-      setFormData(prev => ({ ...prev, ward: '' }))
-    } else {
-      // Clear wards if no district selected
-      setWards([])
-      setFormData(prev => ({ ...prev, ward: '' }))
-    }
-  }, [formData.districtCode])
 
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof RegisterFormData, string>> = {}
 
-    if (!formData.shopName.trim()) {
-      errors.shopName = 'Tên shop là bắt buộc'
+    if (!formData.name.trim()) {
+      errors.name = 'Tên shop là bắt buộc'
     }
 
-    if (!formData.ownerName.trim()) {
-      errors.ownerName = 'Tên chủ shop là bắt buộc'
+    if (!formData.owner_name.trim()) {
+      errors.owner_name = 'Tên chủ shop là bắt buộc'
     }
 
     if (!formData.email.trim()) {
@@ -286,12 +123,12 @@ export default function RegisterPage() {
       errors.address = 'Địa chỉ là bắt buộc'
     }
 
-    if (!formData.city || !formData.cityCode) {
-      errors.city = 'Tỉnh/Thành phố là bắt buộc'
+    if (!formData.website.trim()) {
+      errors.website = 'Website là bắt buộc'
     }
 
-    if (!formData.category) {
-      errors.category = 'Loại hình kinh doanh là bắt buộc'
+    if (!formData.latitude || !formData.longitude) {
+      errors.latitude = 'Tọa độ là bắt buộc'
     }
 
     if (!formData.agreeTerms) {
@@ -326,19 +163,25 @@ export default function RegisterPage() {
     }
 
     const registerData = {
-      shop_name: formData.shopName,
-      owner_name: formData.ownerName,
+      name: formData.name,
+      description: formData.description,
+      address: formData.address,
+      phone: formData.phone,
+      website: formData.website,
+      latitude: Number(formData.latitude),
+      longitude: Number(formData.longitude),
+      owner_name: formData.owner_name,
       email: formData.email,
       password: formData.password,
-      phone: formData.phone,
-      address: formData.address,
       city: formData.city,
-      city_code: formData.cityCode,
+      city_code: formData.city_code,
       district: formData.district,
-      district_code: formData.districtCode,
+      district_code: formData.district_code,
       ward: formData.ward,
-      description: formData.description,
-      category: formData.category
+      category: formData.category,
+      amenities: formData.amenities,
+      theme_ids: formData.theme_ids,
+      opening_hours: formData.opening_hours
     }
 
     try {
@@ -352,17 +195,6 @@ export default function RegisterPage() {
       toast.error('Đăng ký thất bại, vui lòng thử lại')
     }
   }
-
-  const categories = [
-    'Cafe & Coffee Shop',
-    'Quán Trà & Nước Uống',
-    'Nhà Hàng',
-    'Quán Ăn Vặt',
-    'Bar & Pub',
-    'Bakery & Dessert',
-    'Fast Food',
-    'Khác'
-  ]
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100 p-4">
@@ -397,36 +229,36 @@ export default function RegisterPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="shopName" className="text-amber-900">
+                  <Label htmlFor="name" className="text-amber-900">
                     Tên Shop <span className="text-red-500">*</span>
                   </Label>
                   <Input 
-                    id="shopName" 
+                    id="name" 
                     type="text" 
                     placeholder="Cafe ABC..."
-                    value={formData.shopName}
-                    onChange={(e) => handleInputChange('shopName', e.target.value)}
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
                     className="border-amber-200 focus:border-amber-500 focus:ring-amber-500"
                   />
-                  {formErrors.shopName && (
-                    <p className="text-sm text-red-500">{formErrors.shopName}</p>
+                  {formErrors.name && (
+                    <p className="text-sm text-red-500">{formErrors.name}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ownerName" className="text-amber-900">
+                  <Label htmlFor="owner_name" className="text-amber-900">
                     Tên chủ shop <span className="text-red-500">*</span>
                   </Label>
                   <Input 
-                    id="ownerName" 
+                    id="owner_name" 
                     type="text" 
                     placeholder="Nguyễn Văn A..."
-                    value={formData.ownerName}
-                    onChange={(e) => handleInputChange('ownerName', e.target.value)}
+                    value={formData.owner_name}
+                    onChange={(e) => handleInputChange('owner_name', e.target.value)}
                     className="border-amber-200 focus:border-amber-500 focus:ring-amber-500"
                   />
-                  {formErrors.ownerName && (
-                    <p className="text-sm text-red-500">{formErrors.ownerName}</p>
+                  {formErrors.owner_name && (
+                    <p className="text-sm text-red-500">{formErrors.owner_name}</p>
                   )}
                 </div>
               </div>
@@ -504,174 +336,99 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Thông tin địa chỉ */}
+            {/* Thông tin quán */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-amber-900 border-b border-amber-200 pb-2">
-                Địa chỉ Shop
+                Thông tin quán
               </h3>
               
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-amber-900">
-                  Địa chỉ cụ thể <span className="text-red-500">*</span>
+                <Label htmlFor="description" className="text-amber-900">
+                  Mô tả <span className="text-red-500">*</span>
                 </Label>
-                <Input 
-                  id="address" 
-                  type="text" 
-                  placeholder="123 Đường ABC, Phường/Xã..."
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
+                <Textarea 
+                  id="description" 
+                  placeholder="Mô tả về quán cà phê"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
                   className="border-amber-200 focus:border-amber-500 focus:ring-amber-500"
+                  rows={3}
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-amber-900">
+                  Địa chỉ <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input 
+                    id="address" 
+                    type="text" 
+                    placeholder="123 Đường ABC, Phường/Xã..."
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    className="border-amber-200 focus:border-amber-500 focus:ring-amber-500 pl-10"
+                  />
+                </div>
                 {formErrors.address && (
                   <p className="text-sm text-red-500">{formErrors.address}</p>
                 )}
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city" className="text-amber-900">
-                    Tỉnh/Thành phố <span className="text-red-500">*</span>
-                  </Label>
-                  <Select 
-                    value={formData.cityCode} 
-                    onValueChange={(value) => {
-                      const selectedProvince = provinces.find(p => p.code === value)
-                      if (selectedProvince) {
-                        setFormData(prev => ({
-                          ...prev,
-                          city: selectedProvince.name_with_type,
-                          cityCode: selectedProvince.code
-                        }))
-                      }
-                    }}
-                    disabled={loadingProvinces}
-                  >
-                    <SelectTrigger className="border-amber-200 focus:border-amber-500 focus:ring-amber-500">
-                      <SelectValue placeholder={loadingProvinces ? "Đang tải..." : "Chọn tỉnh/thành phố"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {provinces.map((province) => (
-                        <SelectItem key={province.code} value={province.code}>
-                          {province.name_with_type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {formErrors.city && (
-                    <p className="text-sm text-red-500">{formErrors.city}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="district" className="text-amber-900">
-                    Quận/Huyện
-                  </Label>
-                  <Select 
-                    value={formData.districtCode} 
-                    onValueChange={(value) => {
-                      const selectedDistrict = districts.find(d => d.code === value)
-                      if (selectedDistrict) {
-                        setFormData(prev => ({
-                          ...prev,
-                          district: selectedDistrict.name_with_type,
-                          districtCode: selectedDistrict.code
-                        }))
-                      }
-                    }}
-                    disabled={loadingDistricts || !formData.cityCode}
-                  >
-                    <SelectTrigger className="border-amber-200 focus:border-amber-500 focus:ring-amber-500">
-                      <SelectValue placeholder={
-                        !formData.cityCode ? "Chọn tỉnh/thành phố trước" :
-                        loadingDistricts ? "Đang tải..." : 
-                        "Chọn quận/huyện"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {districts.map((district) => (
-                        <SelectItem key={district.code} value={district.code}>
-                          {district.name_with_type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ward" className="text-amber-900">
-                  Phường/Xã
-                </Label>
-                <Select 
-                  value={formData.ward} 
-                  onValueChange={(value) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      ward: value
-                    }))
-                  }}
-                  disabled={loadingWards || !formData.districtCode}
-                >
-                  <SelectTrigger className="border-amber-200 focus:border-amber-500 focus:ring-amber-500">
-                    <SelectValue placeholder={
-                      !formData.districtCode ? "Chọn quận/huyện trước" :
-                      loadingWards ? "Đang tải..." : 
-                      "Chọn phường/xã"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {wards.map((ward) => (
-                      <SelectItem key={ward.code} value={ward.name_with_type}>
-                        {ward.name_with_type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Thông tin kinh doanh */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-amber-900 border-b border-amber-200 pb-2">
-                Thông tin kinh doanh
-              </h3>
               
               <div className="space-y-2">
-                <Label htmlFor="category" className="text-amber-900">
-                  Loại hình kinh doanh <span className="text-red-500">*</span>
+                <Label htmlFor="website" className="text-amber-900">
+                  Website <span className="text-red-500">*</span>
                 </Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(value) => handleInputChange('category', value)}
-                >
-                  <SelectTrigger className="border-amber-200 focus:border-amber-500 focus:ring-amber-500">
-                    <SelectValue placeholder="Chọn loại hình kinh doanh" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formErrors.category && (
-                  <p className="text-sm text-red-500">{formErrors.category}</p>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input 
+                    id="website" 
+                    type="url" 
+                    placeholder="https://example.com"
+                    value={formData.website}
+                    onChange={(e) => handleInputChange('website', e.target.value)}
+                    className="border-amber-200 focus:border-amber-500 focus:ring-amber-500 pl-10"
+                  />
+                </div>
+                {formErrors.website && (
+                  <p className="text-sm text-red-500">{formErrors.website}</p>
                 )}
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-amber-900">
-                  Mô tả shop
-                </Label>
-                <Textarea 
-                  id="description" 
-                  placeholder="Mô tả ngắn về shop của bạn..."
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  className="border-amber-200 focus:border-amber-500 focus:ring-amber-500 min-h-[100px]"
-                />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="latitude" className="text-amber-900">
+                    Vĩ độ <span className="text-red-500">*</span>
+                  </Label>
+                  <Input 
+                    id="latitude" 
+                    type="number" 
+                    step="any"
+                    placeholder="10.762622"
+                    value={formData.latitude}
+                    onChange={(e) => handleInputChange('latitude', e.target.value)}
+                    className="border-amber-200 focus:border-amber-500 focus:ring-amber-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="longitude" className="text-amber-900">
+                    Kinh độ <span className="text-red-500">*</span>
+                  </Label>
+                  <Input 
+                    id="longitude" 
+                    type="number" 
+                    step="any"
+                    placeholder="106.660172"
+                    value={formData.longitude}
+                    onChange={(e) => handleInputChange('longitude', e.target.value)}
+                    className="border-amber-200 focus:border-amber-500 focus:ring-amber-500"
+                  />
+                </div>
               </div>
+              {formErrors.latitude && (
+                <p className="text-sm text-red-500">{formErrors.latitude}</p>
+              )}
             </div>
 
             {/* Điều khoản */}
