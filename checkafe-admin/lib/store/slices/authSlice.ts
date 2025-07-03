@@ -71,19 +71,29 @@ export const login = createAsyncThunk(
 export const register = createAsyncThunk(
   'owners/register',
   async (registerData: {
-    shop_name: string;
+    name: string;
+    description: string;
+    address: string;
+    phone: string;
+    website: string;
+    latitude: number;
+    longitude: number;
     owner_name: string;
     email: string;
     password: string;
-    phone: string;
-    address: string;
     city: string;
     city_code: string;
     district?: string;
     district_code?: string;
     ward?: string;
-    description?: string;
     category: string;
+    amenities: string[];
+    theme_ids: string[];
+    opening_hours: {
+      day: number;
+      is_closed: boolean;
+      hours?: { open: string; close: string }[];
+    }[];
   }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post('/v1/owners/register', registerData)

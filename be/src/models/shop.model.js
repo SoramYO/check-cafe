@@ -46,27 +46,21 @@ const shopSchema = new mongoose.Schema(
     category_id: {
       type: Types.ObjectId,
       ref: "ShopCategory",
-      required: true,
     },
     city: {
       type: String,
-      required: true,
     },
     city_code: {
       type: String,
-      required: true,
     },
     district: {
       type: String,
-      required: true,
     },
     district_code: {
       type: String,
-      required: true,
     },
     ward: {
       type: String,
-      required: true,
     },
     staff_ids: [
       {
