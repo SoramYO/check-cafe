@@ -1513,9 +1513,9 @@ class AdminService {
         return Math.round(value * 10) / 10;
       };
 
-      // Format chart data for frontend
+      // Format chart data for frontend (always use 'date' key)
       const chartData = userGrowthData.map(item => ({
-        month: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
+        date: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
         newUsers: item.newUsers,
         totalUsers: totalUsers // This would need cumulative calculation for better accuracy
       }));
@@ -1626,23 +1626,7 @@ class AdminService {
           },
           {
             $group: {
-              _id: period === 'today' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" },
-                day: { $dayOfMonth: "$createdAt" },
-                hour: { $hour: "$createdAt" }
-              } : period === 'this-week' || period === 'last-week' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" },
-                day: { $dayOfMonth: "$createdAt" }
-              } : period === 'this-month' || period === 'last-month' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" },
-                day: { $dayOfMonth: "$createdAt" }
-              } : period === 'this-year' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" }
-              } : {
+              _id: {
                 year: { $year: "$createdAt" },
                 month: { $month: "$createdAt" },
                 day: { $dayOfMonth: "$createdAt" }
@@ -1650,7 +1634,7 @@ class AdminService {
               newShops: { $sum: 1 }
             }
           },
-          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } }
+          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
         ])
       ]);
 
@@ -1666,27 +1650,12 @@ class AdminService {
         return Math.round(value * 10) / 10;
       };
 
-      // Format chart data for frontend based on period
-      const chartData = shopGrowthData.map(item => {
-        let dateKey;
-        if (period === 'today') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')} ${String(item._id.hour).padStart(2, '0')}:00`;
-        } else if (period === 'this-week' || period === 'last-week') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        } else if (period === 'this-month' || period === 'last-month') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        } else if (period === 'this-year') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
-        } else {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        }
-
-        return {
-          month: dateKey,
-          newShops: item.newShops,
-          totalShops: totalShops // This would need cumulative calculation for better accuracy
-        };
-      });
+      // Format chart data for frontend (always use 'date' key)
+      const chartData = shopGrowthData.map(item => ({
+        date: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
+        newShops: item.newShops,
+        totalShops: totalShops // This would need cumulative calculation for better accuracy
+      }));
 
       return {
         summary: {
@@ -1791,23 +1760,7 @@ class AdminService {
           },
           {
             $group: {
-              _id: period === 'today' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" },
-                day: { $dayOfMonth: "$createdAt" },
-                hour: { $hour: "$createdAt" }
-              } : period === 'this-week' || period === 'last-week' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" },
-                day: { $dayOfMonth: "$createdAt" }
-              } : period === 'this-month' || period === 'last-month' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" },
-                day: { $dayOfMonth: "$createdAt" }
-              } : period === 'this-year' ? {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" }
-              } : {
+              _id: {
                 year: { $year: "$createdAt" },
                 month: { $month: "$createdAt" },
                 day: { $dayOfMonth: "$createdAt" }
@@ -1815,7 +1768,7 @@ class AdminService {
               orders: { $sum: 1 }
             }
           },
-          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } }
+          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
         ])
       ]);
 
@@ -1835,26 +1788,11 @@ class AdminService {
       const daysInPeriod = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) || 1;
       const avgOrdersPerDay = ordersInPeriod / daysInPeriod;
 
-      // Format chart data for frontend based on period
-      const chartData = orderGrowthData.map(item => {
-        let dateKey;
-        if (period === 'today') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')} ${String(item._id.hour).padStart(2, '0')}:00`;
-        } else if (period === 'this-week' || period === 'last-week') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        } else if (period === 'this-month' || period === 'last-month') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        } else if (period === 'this-year') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
-        } else {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        }
-
-        return {
-          date: dateKey,
-          orders: item.orders
-        };
-      });
+      // Format chart data for frontend (always use 'date' key)
+      const chartData = orderGrowthData.map(item => ({
+        date: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
+        orders: item.orders
+      }));
 
       return {
         summary: {
@@ -2032,23 +1970,7 @@ class AdminService {
           },
           {
             $group: {
-              _id: period === 'today' ? {
-                year: { $year: "$created_at" },
-                month: { $month: "$created_at" },
-                day: { $dayOfMonth: "$created_at" },
-                hour: { $hour: "$created_at" }
-              } : period === 'this-week' || period === 'last-week' ? {
-                year: { $year: "$created_at" },
-                month: { $month: "$created_at" },
-                day: { $dayOfMonth: "$created_at" }
-              } : period === 'this-month' || period === 'last-month' ? {
-                year: { $year: "$created_at" },
-                month: { $month: "$created_at" },
-                day: { $dayOfMonth: "$created_at" }
-              } : period === 'this-year' ? {
-                year: { $year: "$created_at" },
-                month: { $month: "$created_at" }
-              } : {
+              _id: {
                 year: { $year: "$created_at" },
                 month: { $month: "$created_at" },
                 day: { $dayOfMonth: "$created_at" }
@@ -2057,7 +1979,7 @@ class AdminService {
               count: { $sum: 1 }
             }
           },
-          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } }
+          { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
         ])
       ]);
 
@@ -2079,28 +2001,13 @@ class AdminService {
         return Math.round(value * 10) / 10;
       };
 
-      // Format chart data for frontend based on period
-      const chartData = revenueGrowthData.map(item => {
-        let dateKey;
-        if (period === 'today') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')} ${String(item._id.hour).padStart(2, '0')}:00`;
-        } else if (period === 'this-week' || period === 'last-week') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        } else if (period === 'this-month' || period === 'last-month') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        } else if (period === 'this-year') {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
-        } else {
-          dateKey = `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`;
-        }
-
-        return {
-          month: dateKey,
-          vip: Math.round((vipRev / totalRev) * item.total) || 0,
-          commission: Math.round((commissionRev / totalRev) * item.total) || 0,
-          other: Math.round(((totalRev - vipRev - commissionRev) / totalRev) * item.total) || 0
-        };
-      });
+      // Format chart data for frontend (always use 'date' key)
+      const chartData = revenueGrowthData.map(item => ({
+        date: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
+        vip: Math.round((vipRev / totalRev) * item.total) || 0,
+        commission: Math.round((commissionRev / totalRev) * item.total) || 0,
+        other: Math.round(((totalRev - vipRev - commissionRev) / totalRev) * item.total) || 0
+      }));
 
       return {
         summary: {

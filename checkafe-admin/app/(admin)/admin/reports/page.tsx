@@ -11,6 +11,9 @@ import AdminOrderReportChart from "@/components/admin/admin-order-report-chart"
 import { useState, useEffect } from "react"
 import authorizedAxiosInstance from "@/lib/axios"
 import { toast } from "sonner"
+import { DateRange } from 'react-date-range'
+import 'react-date-range/dist/styles.css'
+import 'react-date-range/dist/theme/default.css'
 
 interface ReportData {
   summary: {
@@ -43,14 +46,22 @@ export default function ReportsPage() {
   const [shopReports, setShopReports] = useState<ReportData | null>(null)
   const [orderReports, setOrderReports] = useState<ReportData | null>(null)
   const [revenueReports, setRevenueReports] = useState<ReportData | null>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [customRange, setCustomRange] = useState<{ startDate: Date, endDate: Date }>({
+    startDate: new Date(),
+    endDate: new Date(),
+  })
 
   const fetchReports = async (reportType: string) => {
     try {
       setLoading(true)
       
-      const response = await authorizedAxiosInstance.get<ReportsResponse>(`/v1/admin/reports/${reportType}`, {
-        params: { period }
-      })
+      const params: any = { period }
+      if (period === 'custom') {
+        params.startDate = customRange.startDate.toISOString()
+        params.endDate = customRange.endDate.toISOString()
+      }
+      const response = await authorizedAxiosInstance.get<ReportsResponse>(`/v1/admin/reports/${reportType}`, { params })
       
       if (response.data.status === 200) {
         // Debug the response data
@@ -164,6 +175,12 @@ export default function ReportsPage() {
     )
   }
 
+  useEffect(() => {
+    if (period === 'custom') {
+      fetchReports(activeTab)
+    }
+  }, [customRange, period, activeTab])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -210,9 +227,38 @@ export default function ReportsPage() {
               <SelectItem value="custom">Tùy chỉnh</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={() => setShowDatePicker(!showDatePicker)}>
             <Calendar className="h-4 w-4" />
           </Button>
+          {showDatePicker && (
+            <div className="absolute z-50 bg-white p-4 rounded shadow">
+              <DateRange
+                ranges={[{
+                  startDate: customRange.startDate,
+                  endDate: customRange.endDate,
+                  key: 'selection'
+                }]}
+                onChange={item => {
+                  setCustomRange({
+                    startDate: item.selection.startDate,
+                    endDate: item.selection.endDate
+                  })
+                }}
+                maxDate={new Date()}
+              />
+              <div className="flex justify-end mt-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setPeriod('custom')
+                    setShowDatePicker(false)
+                  }}
+                >
+                  Áp dụng
+                </Button>
+              </div>
+            </div>
+          )}
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
           </Button>

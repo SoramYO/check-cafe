@@ -41,7 +41,7 @@ export default function AdminShopReportChart({ data, loading }: ShopReportChartP
       <LineChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
-          dataKey="month" 
+          dataKey="date" 
           stroke="#888888" 
           fontSize={12}
           tickFormatter={(value) => {
