@@ -2827,6 +2827,168 @@ class AdminService {
       };
     }
   };
+
+  // Delete shop and all related data
+  deleteShopById = async (shopId) => {
+    try {
+      console.log(`[AdminService] Starting shop deletion for shopId: ${shopId}`);
+      
+      // Check if shop exists
+      const shop = await shopModel.findById(shopId);
+      if (!shop) {
+        console.log(`[AdminService] Shop not found: ${shopId}`);
+        return {
+          code: "404",
+          message: "Shop not found",
+          status: "error",
+        };
+      }
+
+      console.log(`[AdminService] Found shop: ${shop.name}, starting deletion process`);
+
+      // Import all related models
+      const shopImageModel = require("../models/shopImage.model");
+      const shopMenuItemModel = require("../models/shopMenuItem.model");
+      const shopTimeSlotModel = require("../models/shopTimeSlot.model");
+      const shopSeatModel = require("../models/shopSeat.model");
+      const shopAmenityModel = require("../models/shopAmenity.model");
+      const shopThemeModel = require("../models/shopTheme.model");
+      const shopVerificationModel = require("../models/shopVerification.model");
+      const checkinModel = require("../models/checkin.model");
+      const checkinCommentModel = require("../models/checkinComment.model");
+      const checkinLikeModel = require("../models/checkinLike.model");
+      const reviewModel = require("../models/review.model");
+      const reservationModel = require("../models/reservation.model");
+      const paymentModel = require("../models/payment.model");
+      const userPackageModel = require("../models/userPackage.model");
+      const advertisementModel = require("../models/advertisement.model");
+
+      // Start transaction for data consistency
+      const session = await mongoose.startSession();
+      let deletionResults = {};
+
+      try {
+        await session.withTransaction(async () => {
+          console.log(`[AdminService] Starting transaction for shop deletion`);
+
+          // 1. Delete shop images
+          const deletedImages = await shopImageModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedImages.deletedCount} shop images`);
+          deletionResults.images = deletedImages.deletedCount;
+
+          // 2. Delete shop menu items
+          const deletedMenuItems = await shopMenuItemModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedMenuItems.deletedCount} menu items`);
+          deletionResults.menuItems = deletedMenuItems.deletedCount;
+
+          // 3. Delete shop time slots
+          const deletedTimeSlots = await shopTimeSlotModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedTimeSlots.deletedCount} time slots`);
+          deletionResults.timeSlots = deletedTimeSlots.deletedCount;
+
+          // 4. Delete shop seats
+          const deletedSeats = await shopSeatModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedSeats.deletedCount} seats`);
+          deletionResults.seats = deletedSeats.deletedCount;
+
+          // 5. Delete shop amenities (junction table)
+          const deletedAmenities = await shopAmenityModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedAmenities.deletedCount} shop amenities`);
+          deletionResults.amenities = deletedAmenities.deletedCount;
+
+          // 6. Delete shop themes (junction table)
+          const deletedThemes = await shopThemeModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedThemes.deletedCount} shop themes`);
+          deletionResults.themes = deletedThemes.deletedCount;
+
+          // 7. Delete shop verifications
+          const deletedVerifications = await shopVerificationModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedVerifications.deletedCount} verifications`);
+          deletionResults.verifications = deletedVerifications.deletedCount;
+
+          // 8. Delete checkins and related data
+          const deletedCheckins = await checkinModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedCheckins.deletedCount} checkins`);
+          deletionResults.checkins = deletedCheckins.deletedCount;
+
+          // 9. Delete checkin comments
+          const deletedCheckinComments = await checkinCommentModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedCheckinComments.deletedCount} checkin comments`);
+          deletionResults.checkinComments = deletedCheckinComments.deletedCount;
+
+          // 10. Delete checkin likes
+          const deletedCheckinLikes = await checkinLikeModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedCheckinLikes.deletedCount} checkin likes`);
+          deletionResults.checkinLikes = deletedCheckinLikes.deletedCount;
+
+          // 11. Delete reviews
+          const deletedReviews = await reviewModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedReviews.deletedCount} reviews`);
+          deletionResults.reviews = deletedReviews.deletedCount;
+
+          // 12. Get reservation IDs before deleting them
+          const reservationIds = await reservationModel.find({ shop_id: shopId }).distinct('_id', { session });
+          console.log(`[AdminService] Found ${reservationIds.length} reservations to delete`);
+
+          // 13. Delete payments related to this shop's reservations
+          const deletedPayments = await paymentModel.deleteMany({ 
+            reservation_id: { $in: reservationIds }
+          }, { session });
+          console.log(`[AdminService] Deleted ${deletedPayments.deletedCount} payments`);
+          deletionResults.payments = deletedPayments.deletedCount;
+
+          // 14. Delete reservations
+          const deletedReservations = await reservationModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedReservations.deletedCount} reservations`);
+          deletionResults.reservations = deletedReservations.deletedCount;
+
+          // 15. Delete user packages related to this shop
+          const deletedUserPackages = await userPackageModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedUserPackages.deletedCount} user packages`);
+          deletionResults.userPackages = deletedUserPackages.deletedCount;
+
+          // 16. Delete advertisements
+          const deletedAdvertisements = await advertisementModel.deleteMany({ shop_id: shopId }, { session });
+          console.log(`[AdminService] Deleted ${deletedAdvertisements.deletedCount} advertisements`);
+          deletionResults.advertisements = deletedAdvertisements.deletedCount;
+
+          // 17. Finally, delete the shop itself
+          const deletedShop = await shopModel.findByIdAndDelete(shopId, { session });
+          console.log(`[AdminService] Deleted shop: ${deletedShop.name}`);
+          deletionResults.shop = 1;
+
+          console.log(`[AdminService] Shop deletion completed successfully`);
+        });
+
+        console.log(`[AdminService] Transaction completed successfully`);
+
+        return {
+          code: "200",
+          message: "Shop and all related data deleted successfully",
+          metadata: {
+            shopId,
+            shopName: shop.name,
+            deletionSummary: deletionResults,
+            totalDeletedItems: Object.values(deletionResults).reduce((sum, count) => sum + count, 0)
+          }
+        };
+
+      } catch (transactionError) {
+        console.error(`[AdminService] Transaction failed:`, transactionError);
+        throw transactionError;
+      } finally {
+        await session.endSession();
+      }
+
+    } catch (error) {
+      console.error(`[AdminService] Error deleting shop ${shopId}:`, error);
+      return {
+        code: "500",
+        message: `Failed to delete shop: ${error.message}`,
+        status: "error",
+      };
+    }
+  };
 }
 
 module.exports = new AdminService();

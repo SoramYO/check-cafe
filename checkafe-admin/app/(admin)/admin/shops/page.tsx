@@ -112,7 +112,7 @@ export default function ShopsPage() {
       ) : error ? (
         <div className="text-red-500">{error}</div>
       ) : (
-        <ShopTable shops={shops} />
+        <ShopTable shops={shops} onShopDeleted={fetchShops} />
       )}
 
       {/* Pagination */}
