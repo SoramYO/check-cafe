@@ -434,7 +434,7 @@ class userService {
     const body = {
       orderCode: crypto.randomInt(100000, 999999),
       amount: packageVip.price,
-      description: `Mua gói ${packageVip.name}`,
+      description: `${packageVip.name}`,
       cancelUrl: `https://soramyo.id.vn/cancel.html`,
       returnUrl: `https://soramyo.id.vn/success.html`,
     }
