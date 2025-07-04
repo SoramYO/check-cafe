@@ -180,6 +180,12 @@ shopSchema.virtual("formatted_opening_hours").get(function () {
     "Friday",
     "Saturday",
   ];
+  
+  // Safety check for opening_hours
+  if (!this.opening_hours || !Array.isArray(this.opening_hours)) {
+    return {};
+  }
+  
   return this.opening_hours.reduce((acc, entry) => {
     const dayName = days[entry.day];
     if (entry.is_closed) {
@@ -194,6 +200,11 @@ shopSchema.virtual("formatted_opening_hours").get(function () {
 
 // Virtual để kiểm tra trạng thái mở/đóng cửa
 shopSchema.virtual("is_open").get(function () {
+  // Safety check for opening_hours
+  if (!this.opening_hours || !Array.isArray(this.opening_hours)) {
+    return false;
+  }
+  
   const now = new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
   const date = new Date(now);
   const day = date.getDay();

@@ -44,7 +44,8 @@ const getPaginatedData = async ({
     .sort(sort)
     .skip(skip)
     .limit(limitNum)
-    
+    .lean(); // Use lean() to get plain JavaScript objects
+
 
 
 

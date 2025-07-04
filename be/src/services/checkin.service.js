@@ -404,7 +404,7 @@ class CheckinService {
         ]),
         populate: [
           { path: "user_id", select: "full_name avatar" },
-          { path: "cafe_id", select: "name address" }
+          { path: "cafe_id", select: "_id name address" }
         ],
         sort: { createdAt: -1 }
       };
@@ -523,7 +523,7 @@ class CheckinService {
         ]),
         populate: [
           { path: "user_id", select: "full_name avatar" },
-          { path: "cafe_id", select: "name address" }
+          { path: "cafe_id", select: "_id name address" }
         ],
         sort: { createdAt: -1 }
       };
