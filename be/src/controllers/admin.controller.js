@@ -543,6 +543,26 @@ class AdminController {
       next(error);
     }
   };
+
+  // Delete shop and all related data
+  deleteShopById = async (req, res, next) => {
+    try {
+      console.log(`[AdminController] Delete shop request received for shopId: ${req.params.id}`);
+      const result = await adminService.deleteShopById(req.params.id);
+      
+      if (result.code === "200") {
+        new OK({ 
+          message: "Shop deleted successfully", 
+          data: result.metadata 
+        }).send(res);
+      } else {
+        res.status(parseInt(result.code)).json(result);
+      }
+    } catch (error) {
+      console.error(`[AdminController] Error in deleteShopById:`, error);
+      next(error);
+    }
+  };
 }
 
 module.exports = new AdminController();

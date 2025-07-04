@@ -62,6 +62,7 @@ router.get("/shops/:shopId/reservations", adminController.getShopReservations);
 const shopController = require("../../controllers/shop.controller");
 router.post("/shops", shopController.createShopByAdmin);
 router.get("/shops", shopController.getAllPublicShops);
+router.delete("/shops/:id", adminController.deleteShopById);
 
 // Ads Management
 router.get("/ads", checkAdmin, adminController.getAds);

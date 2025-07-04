@@ -6,12 +6,47 @@ import { MapPin, Star, Calendar, Eye, Edit, Trash2, CheckCircle } from "lucide-r
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Shop } from "../types"
+import { useState } from "react"
+import { toast } from "sonner"
+import authorizedAxiosInstance from "@/lib/axios"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface ShopTableProps {
   shops: Shop[]
+  onShopDeleted?: () => void
 }
 
-export function ShopTable({ shops }: ShopTableProps) {
+export function ShopTable({ shops, onShopDeleted }: ShopTableProps) {
+  const [deletingShopId, setDeletingShopId] = useState<string | null>(null)
+
+  const handleDeleteShop = async (shopId: string, shopName: string) => {
+    try {
+      setDeletingShopId(shopId)
+      const response = await authorizedAxiosInstance.delete(`/v1/admin/shops/${shopId}`)
+      
+      if (response.data.status === 200) {
+        toast.success(`Đã xóa quán "${shopName}" thành công`)
+        onShopDeleted?.()
+      } else {
+        toast.error(response.data.message || 'Có lỗi xảy ra khi xóa quán')
+      }
+    } catch (error: any) {
+      console.error('Error deleting shop:', error)
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa quán')
+    } finally {
+      setDeletingShopId(null)
+    }
+  }
   return (
     <div className="rounded-md border">
       <Table>
@@ -92,6 +127,51 @@ export function ShopTable({ shops }: ShopTableProps) {
                       <Eye className="h-4 w-4" />
                     </Link>
                   </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        disabled={deletingShopId === shop._id}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Xác nhận xóa quán</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Bạn có chắc chắn muốn xóa quán "{shop.name}"? 
+                          <br />
+                          <strong className="text-red-600">
+                            Hành động này sẽ xóa vĩnh viễn tất cả dữ liệu liên quan đến quán này bao gồm:
+                          </strong>
+                          <ul className="list-disc list-inside mt-2 text-sm">
+                            <li>Thông tin quán và hình ảnh</li>
+                            <li>Menu và món ăn</li>
+                            <li>Đặt bàn và lịch sử</li>
+                            <li>Đánh giá và bình luận</li>
+                            <li>Check-ins và tương tác</li>
+                            <li>Quảng cáo và gói dịch vụ</li>
+                          </ul>
+                          <br />
+                          <strong className="text-red-600">Hành động này không thể hoàn tác!</strong>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteShop(shop._id, shop.name)}
+                          className="bg-red-600 hover:bg-red-700"
+                          disabled={deletingShopId === shop._id}
+                        >
+                          {deletingShopId === shop._id ? "Đang xóa..." : "Xóa quán"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </TableCell>
             </TableRow>
