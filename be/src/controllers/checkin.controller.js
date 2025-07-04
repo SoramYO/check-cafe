@@ -17,12 +17,30 @@ class CheckinController {
 
   // Lấy feed checkin (bản thân và bạn bè)
   getCheckins = asyncHandler(async (req, res, next) => {
-    const result = await checkinService.getCheckinFeed(req);
+    console.log("=== CONTROLLER GET CHECKINS START ===");
     
-    new OK({
-      message: "Checkins retrieved successfully",
-      data: result,
-    }).send(res);
+    try {
+      console.log("Calling checkinService.getCheckinFeed...");
+      const result = await checkinService.getCheckinFeed(req);
+      console.log("Service returned result:", JSON.stringify(result, null, 2));
+      
+      console.log("Creating OK response...");
+      const response = new OK({
+        message: "Checkins retrieved successfully",
+        data: result,
+      });
+      console.log("Response object created:", JSON.stringify(response, null, 2));
+      
+      console.log("Sending response...");
+      response.send(res);
+      console.log("=== CONTROLLER GET CHECKINS SUCCESS ===");
+    } catch (error) {
+      console.error("=== CONTROLLER GET CHECKINS ERROR ===");
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      throw error;
+    }
   });
 
   // Lấy checkin của một user cụ thể
