@@ -12,31 +12,64 @@ const NotificationHelper = require("../utils/notification.helper");
 
 // Helper function to sanitize MongoDB objects for JSON serialization
 const sanitizeForJSON = (obj) => {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-  
-  if (obj instanceof mongoose.Types.ObjectId) {
-    return obj.toString();
-  }
-  
-  if (obj instanceof Date) {
-    return obj.toISOString();
-  }
-  
-  if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeForJSON(item));
-  }
-  
-  if (typeof obj === 'object' && obj !== null) {
-    const sanitized = {};
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeForJSON(value);
+  try {
+    // First try: Use JSON.parse(JSON.stringify()) to automatically handle MongoDB objects
+    // This converts ObjectIds to strings, Dates to ISO strings, and removes circular references
+    return JSON.parse(JSON.stringify(obj));
+  } catch (error) {
+    console.error("JSON.parse approach failed, trying Mongoose toJSON:", error);
+    
+    try {
+      // Second try: Use Mongoose's toJSON method if available
+      if (obj && typeof obj.toJSON === 'function') {
+        return obj.toJSON();
+      }
+      
+      // Third try: Manual conversion
+      if (obj === null || obj === undefined) {
+        return obj;
+      }
+      
+      if (obj instanceof mongoose.Types.ObjectId) {
+        return obj.toString();
+      }
+      
+      if (obj instanceof Date) {
+        return obj.toISOString();
+      }
+      
+      if (Array.isArray(obj)) {
+        return obj.map(item => {
+          try {
+            return sanitizeForJSON(item);
+          } catch {
+            return '[Error processing item]';
+          }
+        });
+      }
+      
+      if (typeof obj === 'object' && obj !== null) {
+        const sanitized = {};
+        for (const [key, value] of Object.entries(obj)) {
+          // Skip internal MongoDB properties
+          if (key.startsWith('$') || key === '__v') {
+            continue;
+          }
+          try {
+            sanitized[key] = sanitizeForJSON(value);
+          } catch {
+            sanitized[key] = '[Error processing value]';
+          }
+        }
+        return sanitized;
+      }
+      
+      return obj;
+    } catch (fallbackError) {
+      console.error("All sanitization approaches failed:", fallbackError);
+      return { error: "Failed to serialize object" };
     }
-    return sanitized;
   }
-  
-  return obj;
 };
 
 class CheckinService {
@@ -160,7 +193,8 @@ class CheckinService {
         populatedCheckin = await checkinModel
           .findById(newCheckin._id)
           .populate('user_id', 'full_name avatar')
-          .populate('cafe_id', 'name address');
+          .populate('cafe_id', 'name address')
+          .lean();
 
         console.log("Populated checkin:", JSON.stringify(populatedCheckin, null, 2));
       } catch (populateError) {
@@ -171,7 +205,7 @@ class CheckinService {
           checkinId: newCheckin._id
         });
         // Continue with unpopulated data if populate fails
-        populatedCheckin = newCheckin;
+        populatedCheckin = newCheckin.toObject ? newCheckin.toObject() : newCheckin;
       }
 
       // Gửi thông báo cho bạn bè khi checkin (chỉ với visibility friends hoặc public)
@@ -269,13 +303,9 @@ class CheckinService {
         };
       }
 
-      // Sanitize response for JSON serialization
-      const sanitizedResponseData = sanitizeForJSON(responseData);
-      console.log("Sanitized response data:", JSON.stringify(sanitizedResponseData, null, 2));
-
       console.log("=== CREATE CHECKIN SUCCESS ===");
 
-      return sanitizedResponseData;
+      return responseData;
 
     } catch (error) {
       console.error("=== CREATE CHECKIN ERROR ===");
@@ -382,7 +412,8 @@ class CheckinService {
         .populate('cafe_id', 'name address')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limitNum);
+        .limit(limitNum)
+        .lean();
 
       console.log("Found checkins count:", checkins.length);
 
@@ -404,14 +435,10 @@ class CheckinService {
         }
       };
 
-      // Sanitize response for JSON serialization
-      const sanitizedResponse = sanitizeForJSON(response);
-      console.log("Sanitized response:", JSON.stringify(sanitizedResponse, null, 2));
-
-      console.log("Response pagination:", JSON.stringify(sanitizedResponse.pagination, null, 2));
+      console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
       console.log("=== GET CHECKIN FEED SUCCESS ===");
 
-      return sanitizedResponse;
+      return response;
 
     } catch (error) {
       console.error("=== GET CHECKIN FEED ERROR ===");
