@@ -10,6 +10,35 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require("../configs/e
 const mongoose = require("mongoose");
 const NotificationHelper = require("../utils/notification.helper");
 
+// Helper function to sanitize MongoDB objects for JSON serialization
+const sanitizeForJSON = (obj) => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (obj instanceof mongoose.Types.ObjectId) {
+    return obj.toString();
+  }
+  
+  if (obj instanceof Date) {
+    return obj.toISOString();
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeForJSON(item));
+  }
+  
+  if (typeof obj === 'object' && obj !== null) {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeForJSON(value);
+    }
+    return sanitized;
+  }
+  
+  return obj;
+};
+
 class CheckinService {
   // Tạo checkin mới
   createCheckin = async (req) => {
@@ -240,9 +269,13 @@ class CheckinService {
         };
       }
 
+      // Sanitize response for JSON serialization
+      const sanitizedResponseData = sanitizeForJSON(responseData);
+      console.log("Sanitized response data:", JSON.stringify(sanitizedResponseData, null, 2));
+
       console.log("=== CREATE CHECKIN SUCCESS ===");
 
-      return responseData;
+      return sanitizedResponseData;
 
     } catch (error) {
       console.error("=== CREATE CHECKIN ERROR ===");
@@ -371,10 +404,14 @@ class CheckinService {
         }
       };
 
-      console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
+      // Sanitize response for JSON serialization
+      const sanitizedResponse = sanitizeForJSON(response);
+      console.log("Sanitized response:", JSON.stringify(sanitizedResponse, null, 2));
+
+      console.log("Response pagination:", JSON.stringify(sanitizedResponse.pagination, null, 2));
       console.log("=== GET CHECKIN FEED SUCCESS ===");
 
-      return response;
+      return sanitizedResponse;
 
     } catch (error) {
       console.error("=== GET CHECKIN FEED ERROR ===");

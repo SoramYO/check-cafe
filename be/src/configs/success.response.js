@@ -13,11 +13,33 @@ class SuccessResponse {
   }
 
   send(res, headers = {}) {
-    res.status(this.statusCode).json({
-      message: this.message,
-      status: this.statusCode,
-      data: this.data,
-    });
+    console.log("=== SUCCESS RESPONSE SEND START ===");
+    console.log("Status code:", this.statusCode);
+    console.log("Message:", this.message);
+    console.log("Data type:", typeof this.data);
+    console.log("Data keys:", this.data ? Object.keys(this.data) : 'null/undefined');
+    
+    try {
+      const responseData = {
+        message: this.message,
+        status: this.statusCode,
+        data: this.data,
+      };
+      
+      console.log("Response data structure:", JSON.stringify(responseData, null, 2));
+      console.log("Sending JSON response...");
+      
+      res.status(this.statusCode).json(responseData);
+      
+      console.log("=== SUCCESS RESPONSE SEND SUCCESS ===");
+    } catch (error) {
+      console.error("=== SUCCESS RESPONSE SEND ERROR ===");
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      console.error("Failed data:", this.data);
+      throw error;
+    }
   }
 }
 
