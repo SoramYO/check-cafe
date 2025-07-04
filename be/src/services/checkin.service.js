@@ -5,10 +5,11 @@ const checkinLikeModel = require("../models/checkinLike.model");
 const checkinCommentModel = require("../models/checkinComment.model");
 const friendModel = require("../models/friend.model");
 const userModel = require("../models/user.model");
-const { getInfoData } = require("../utils");
+const { getInfoData, getSelectData } = require("../utils");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../configs/error.response");
 const mongoose = require("mongoose");
 const NotificationHelper = require("../utils/notification.helper");
+const { getPaginatedData } = require("../helpers/mongooseHelper");
 
 // Helper function to sanitize MongoDB objects for JSON serialization
 const sanitizeForJSON = (obj) => {
@@ -335,26 +336,6 @@ class CheckinService {
       console.log("- cafeId:", cafeId);
       console.log("- tags:", tags);
 
-      // Validate pagination
-      const pageNum = parseInt(page) || 1;
-      const limitNum = parseInt(limit) || 20;
-
-      console.log("Parsed pagination:");
-      console.log("- pageNum:", pageNum);
-      console.log("- limitNum:", limitNum);
-
-      if (pageNum < 1) {
-        console.log("ERROR: Invalid page number");
-        throw new BadRequestError("Page must be greater than 0");
-      }
-
-      if (limitNum < 1 || limitNum > 100) {
-        console.log("ERROR: Invalid limit");
-        throw new BadRequestError("Limit must be between 1 and 100");
-      }
-
-      console.log("Pagination validation passed");
-
       // Lấy danh sách ID của bạn bè
       console.log("Finding friends...");
       const friends = await friendModel.find({
@@ -402,37 +383,49 @@ class CheckinService {
 
       console.log("Final query:", JSON.stringify(query, null, 2));
 
-      const skip = (pageNum - 1) * limitNum;
-      console.log("Skip:", skip, "Limit:", limitNum);
+      // Cấu hình cho getPaginatedData
+      const paginateOptions = {
+        model: checkinModel,
+        query,
+        page,
+        limit,
+        select: getSelectData([
+          "_id",
+          "title", 
+          "image",
+          "location",
+          "visibility",
+          "cafe_id",
+          "tags",
+          "likes_count",
+          "comments_count",
+          "createdAt",
+          "user_id"
+        ]),
+        populate: [
+          { path: "user_id", select: "full_name avatar" },
+          { path: "cafe_id", select: "name address" }
+        ],
+        sort: { createdAt: -1 }
+      };
 
-      console.log("Executing database query...");
-      const checkins = await checkinModel
-        .find(query)
-        .populate('user_id', 'full_name avatar')
-        .populate('cafe_id', 'name address')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean();
+      console.log("Calling getPaginatedData...");
+      const result = await getPaginatedData(paginateOptions);
 
-      console.log("Found checkins count:", checkins.length);
+      console.log("getPaginatedData result:", {
+        dataCount: result.data.length,
+        metadata: result.metadata
+      });
 
-      console.log("Counting total documents...");
-      const total = await checkinModel.countDocuments(query);
-      console.log("Total documents:", total);
+      // Transform data using getInfoData
+      const checkins = result.data.map(checkin => getInfoData({
+        fields: ["_id", "title", "image", "location", "visibility", "cafe_id", "tags", "likes_count", "comments_count", "createdAt", "user_id"],
+        object: checkin,
+      }));
 
-      console.log("Preparing response...");
       const response = {
-        checkins: checkins.map(checkin => getInfoData({
-          fields: ["_id", "title", "image", "location", "visibility", "cafe_id", "tags", "likes_count", "comments_count", "createdAt", "user_id"],
-          object: checkin,
-        })),
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum),
-        }
+        checkins,
+        pagination: result.metadata
       };
 
       console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
@@ -452,27 +445,27 @@ class CheckinService {
 
   // Lấy checkin của một user cụ thể
   getUserCheckins = async (req) => {
+    console.log("=== GET USER CHECKINS START ===");
+    console.log("Request params:", JSON.stringify(req.params, null, 2));
+    console.log("Request query:", JSON.stringify(req.query, null, 2));
+    console.log("Request user:", req.user);
+
     try {
       // Extract parameters from req
       const currentUserId = req.user.userId;
       const { userId: targetUserId } = req.params;
       const { page = 1, limit = 20 } = req.query;
 
-      // Validate pagination
-      const pageNum = parseInt(page) || 1;
-      const limitNum = parseInt(limit) || 20;
-
-      if (pageNum < 1) {
-        throw new BadRequestError("Page must be greater than 0");
-      }
-
-      if (limitNum < 1 || limitNum > 100) {
-        throw new BadRequestError("Limit must be between 1 and 100");
-      }
+      console.log("Extracted parameters:");
+      console.log("- currentUserId:", currentUserId);
+      console.log("- targetUserId:", targetUserId);
+      console.log("- page:", page);
+      console.log("- limit:", limit);
 
       // Kiểm tra user tồn tại
       const targetUser = await userModel.findById(targetUserId);
       if (!targetUser) {
+        console.log("ERROR: Target user not found");
         throw new NotFoundError("User not found");
       }
 
@@ -497,38 +490,73 @@ class CheckinService {
             { visibility: 'public' },
             { visibility: 'friends' }
           ];
+          console.log("Friendship found, can view public and friends checkins");
         } else {
           // Không phải bạn bè, chỉ xem public
           query.visibility = 'public';
+          console.log("No friendship, can only view public checkins");
         }
+      } else {
+        console.log("Viewing own checkins, can view all");
       }
 
-      const skip = (pageNum - 1) * limitNum;
+      console.log("Final query:", JSON.stringify(query, null, 2));
 
-      const checkins = await checkinModel
-        .find(query)
-        .populate('user_id', 'full_name avatar')
-        .populate('cafe_id', 'name address')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum);
-
-      const total = await checkinModel.countDocuments(query);
-
-      return {
-        checkins: checkins.map(checkin => getInfoData({
-          fields: ["_id", "title", "image", "location", "visibility", "cafe_id", "tags", "likes_count", "comments_count", "createdAt", "user_id"],
-          object: checkin,
-        })),
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum),
-        }
+      // Cấu hình cho getPaginatedData
+      const paginateOptions = {
+        model: checkinModel,
+        query,
+        page,
+        limit,
+        select: getSelectData([
+          "_id",
+          "title", 
+          "image",
+          "location",
+          "visibility",
+          "cafe_id",
+          "tags",
+          "likes_count",
+          "comments_count",
+          "createdAt",
+          "user_id"
+        ]),
+        populate: [
+          { path: "user_id", select: "full_name avatar" },
+          { path: "cafe_id", select: "name address" }
+        ],
+        sort: { createdAt: -1 }
       };
 
+      console.log("Calling getPaginatedData...");
+      const result = await getPaginatedData(paginateOptions);
+
+      console.log("getPaginatedData result:", {
+        dataCount: result.data.length,
+        metadata: result.metadata
+      });
+
+      // Transform data using getInfoData
+      const checkins = result.data.map(checkin => getInfoData({
+        fields: ["_id", "title", "image", "location", "visibility", "cafe_id", "tags", "likes_count", "comments_count", "createdAt", "user_id"],
+        object: checkin,
+      }));
+
+      const response = {
+        checkins,
+        pagination: result.metadata
+      };
+
+      console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
+      console.log("=== GET USER CHECKINS SUCCESS ===");
+
+      return response;
+
     } catch (error) {
+      console.error("=== GET USER CHECKINS ERROR ===");
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
       throw error;
     }
   };
@@ -728,63 +756,87 @@ class CheckinService {
 
   // Lấy bình luận của một checkin
   getCheckinComments = async (req) => {
+    console.log("=== GET CHECKIN COMMENTS START ===");
+    console.log("Request params:", JSON.stringify(req.params, null, 2));
+    console.log("Request query:", JSON.stringify(req.query, null, 2));
+
     try {
       // Extract parameters from req
       const { checkinId } = req.params;
       const { page = 1, limit = 20 } = req.query;
 
-      // Validate pagination
-      const pageNum = parseInt(page) || 1;
-      const limitNum = parseInt(limit) || 20;
-
-      if (pageNum < 1) {
-        throw new BadRequestError("Page must be greater than 0");
-      }
-
-      if (limitNum < 1 || limitNum > 100) {
-        throw new BadRequestError("Limit must be between 1 and 100");
-      }
+      console.log("Extracted parameters:");
+      console.log("- checkinId:", checkinId);
+      console.log("- page:", page);
+      console.log("- limit:", limit);
 
       // Validation
       if (!mongoose.isValidObjectId(checkinId)) {
+        console.log("ERROR: Invalid checkin ID");
         throw new BadRequestError("Invalid checkin ID");
       }
 
       // Kiểm tra checkin tồn tại
       const checkin = await checkinModel.findById(checkinId);
       if (!checkin) {
+        console.log("ERROR: Checkin not found");
         throw new NotFoundError("Checkin not found");
       }
 
       if (!checkin.is_active) {
+        console.log("ERROR: Checkin is not active");
         throw new BadRequestError("Checkin is not active");
       }
 
-      const skip = (pageNum - 1) * limitNum;
+      console.log("Checkin validation passed");
 
-      const comments = await checkinCommentModel
-        .find({ checkin_id: checkinId })
-        .populate('user_id', 'full_name avatar')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum);
-
-      const total = await checkinCommentModel.countDocuments({ checkin_id: checkinId });
-
-      return {
-        comments: comments.map(comment => getInfoData({
-          fields: ["_id", "comment", "createdAt", "user_id"],
-          object: comment,
-        })),
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum),
-        }
+      // Cấu hình cho getPaginatedData
+      const paginateOptions = {
+        model: checkinCommentModel,
+        query: { checkin_id: checkinId },
+        page,
+        limit,
+        select: getSelectData([
+          "_id",
+          "comment",
+          "createdAt",
+          "user_id"
+        ]),
+        populate: [
+          { path: "user_id", select: "full_name avatar" }
+        ],
+        sort: { createdAt: -1 }
       };
 
+      console.log("Calling getPaginatedData...");
+      const result = await getPaginatedData(paginateOptions);
+
+      console.log("getPaginatedData result:", {
+        dataCount: result.data.length,
+        metadata: result.metadata
+      });
+
+      // Transform data using getInfoData
+      const comments = result.data.map(comment => getInfoData({
+        fields: ["_id", "comment", "createdAt", "user_id"],
+        object: comment,
+      }));
+
+      const response = {
+        comments,
+        pagination: result.metadata
+      };
+
+      console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
+      console.log("=== GET CHECKIN COMMENTS SUCCESS ===");
+
+      return response;
+
     } catch (error) {
+      console.error("=== GET CHECKIN COMMENTS ERROR ===");
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
       throw error;
     }
   };
