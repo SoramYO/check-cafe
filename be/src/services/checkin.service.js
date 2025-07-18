@@ -76,17 +76,7 @@ const sanitizeForJSON = (obj) => {
 class CheckinService {
   // Tạo checkin mới
   createCheckin = async (req) => {
-    console.log("=== CREATE CHECKIN START ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-    console.log("Request file:", req.file ? {
-      fieldname: req.file.fieldname,
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      filename: req.file.filename
-    } : "No file");
-    console.log("Request user:", req.user);
+
 
     try {
       // Extract parameters from req
@@ -94,69 +84,45 @@ class CheckinService {
       const { title, location, visibility, cafeId, tags } = req.body;
       const imageFile = req.file;
 
-      console.log("Extracted parameters:");
-      console.log("- userId:", userId);
-      console.log("- title:", title);
-      console.log("- location:", location);
-      console.log("- visibility:", visibility);
-      console.log("- cafeId:", cafeId);
-      console.log("- tags:", tags);
-      console.log("- imageFile exists:", !!imageFile);
 
       // Validation
       if (!imageFile) {
-        console.log("ERROR: No image file provided");
         throw new BadRequestError("Image is required");
       }
 
       if (!title || title.trim() === '') {
-        console.log("ERROR: No title provided");
         throw new BadRequestError("Title is required");
       }
 
       if (!location) {
-        console.log("ERROR: No location provided");
         throw new BadRequestError("Location is required");
       }
 
-      console.log("Validation passed, parsing data...");
 
       // Parse location và tags nếu được gửi dưới dạng string
       let parsedLocation, parsedTags;
       
       try {
         parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
-        console.log("Parsed location:", JSON.stringify(parsedLocation, null, 2));
       } catch (parseError) {
-        console.log("ERROR parsing location:", parseError.message);
         throw new BadRequestError("Invalid location format");
       }
 
       try {
         parsedTags = typeof tags === 'string' ? JSON.parse(tags) : (tags || []);
-        console.log("Parsed tags:", JSON.stringify(parsedTags, null, 2));
       } catch (parseError) {
-        console.log("ERROR parsing tags:", parseError.message);
         throw new BadRequestError("Invalid tags format");
       }
 
       // Validate location structure
       if (!parsedLocation.latitude || !parsedLocation.longitude) {
-        console.log("ERROR: Location missing latitude or longitude");
-        console.log("Location object:", JSON.stringify(parsedLocation, null, 2));
         throw new BadRequestError("Location must include latitude and longitude");
       }
 
-      console.log("Location validation passed");
 
       const imageUrl = imageFile.path; // URL từ Cloudinary
       const imagePublicId = imageFile.filename; // Public ID từ Cloudinary
 
-      console.log("Image details:");
-      console.log("- imageUrl:", imageUrl);
-      console.log("- imagePublicId:", imagePublicId);
-
-      console.log("Creating checkin in database...");
 
       let newCheckin;
       try {
@@ -175,7 +141,6 @@ class CheckinService {
           cafe_id: cafeId || null,
           tags: parsedTags,
         });
-        console.log("Checkin created successfully:", newCheckin._id);
       } catch (dbError) {
         console.error("Database error creating checkin:", dbError);
         console.error("Database error details:", {
@@ -188,7 +153,6 @@ class CheckinService {
       }
 
       // Populate user info
-      console.log("Populating checkin data...");
       let populatedCheckin;
       try {
         populatedCheckin = await checkinModel
@@ -197,7 +161,6 @@ class CheckinService {
           .populate('cafe_id', 'name address')
           .lean();
 
-        console.log("Populated checkin:", JSON.stringify(populatedCheckin, null, 2));
       } catch (populateError) {
         console.error("Error populating checkin data:", populateError);
         console.error("Populate error details:", {
@@ -211,7 +174,6 @@ class CheckinService {
 
       // Gửi thông báo cho bạn bè khi checkin (chỉ với visibility friends hoặc public)
       if (populatedCheckin.visibility === 'friends' || populatedCheckin.visibility === 'public') {
-        console.log("Sending notifications to friends...");
         try {
           // Lấy danh sách bạn bè
           const friends = await friendModel.find({
@@ -221,7 +183,6 @@ class CheckinService {
             ]
           });
 
-          console.log("Found friends:", friends.length);
 
           const friendIds = friends.map(friend =>
             friend.requester_id.toString() === userId.toString()
@@ -229,7 +190,6 @@ class CheckinService {
               : friend.requester_id.toString()
           );
 
-          console.log("Friend IDs:", friendIds);
 
           if (friendIds.length > 0) {
             const locationName = populatedCheckin.location?.name ||
@@ -237,7 +197,6 @@ class CheckinService {
               populatedCheckin.cafe_id?.name ||
               'một địa điểm';
 
-            console.log("Sending notification with location name:", locationName);
 
             // Wrap notification in try-catch to prevent it from breaking the main flow
             try {
@@ -247,7 +206,6 @@ class CheckinService {
                 location_name: locationName,
                 checkin_id: populatedCheckin._id,
               });
-              console.log("Notification sent successfully");
             } catch (notificationError) {
               console.error("Error in sendFriendCheckinNotification:", notificationError);
               console.error("Notification error details:", {
@@ -273,14 +231,12 @@ class CheckinService {
         }
       }
 
-      console.log("Preparing response data...");
       let responseData;
       try {
         responseData = getInfoData({
           fields: ["_id", "title", "image", "location", "visibility", "cafe_id", "tags", "likes_count", "comments_count", "createdAt", "user_id"],
           object: populatedCheckin,
         });
-        console.log("Response data:", JSON.stringify(responseData, null, 2));
       } catch (transformError) {
         console.error("Error transforming response data:", transformError);
         console.error("Transform error details:", {
@@ -304,7 +260,6 @@ class CheckinService {
         };
       }
 
-      console.log("=== CREATE CHECKIN SUCCESS ===");
 
       return responseData;
 
@@ -320,24 +275,16 @@ class CheckinService {
 
   // Lấy feed checkin (bản thân và bạn bè)
   getCheckinFeed = async (req) => {
-    console.log("=== GET CHECKIN FEED START ===");
-    console.log("Request query:", JSON.stringify(req.query, null, 2));
-    console.log("Request user:", req.user);
+
 
     try {
       // Extract parameters from req
       const userId = req.user.userId;
       const { page = 1, limit = 20, cafeId, tags } = req.query;
 
-      console.log("Extracted parameters:");
-      console.log("- userId:", userId);
-      console.log("- page:", page);
-      console.log("- limit:", limit);
-      console.log("- cafeId:", cafeId);
-      console.log("- tags:", tags);
 
       // Lấy danh sách ID của bạn bè
-      console.log("Finding friends...");
+
       const friends = await friendModel.find({
         $or: [
           { requester_id: userId, status: 'accepted' },
@@ -345,7 +292,6 @@ class CheckinService {
         ]
       });
 
-      console.log("Found friends count:", friends.length);
 
       const friendIds = friends.map(friend =>
         friend.requester_id.toString() === userId.toString()
@@ -356,7 +302,6 @@ class CheckinService {
       // Thêm chính mình vào danh sách
       friendIds.push(new mongoose.Types.ObjectId(userId));
 
-      console.log("Friend IDs (including self):", friendIds.map(id => id.toString()));
 
       const query = {
         user_id: { $in: friendIds },
@@ -368,20 +313,15 @@ class CheckinService {
         ]
       };
 
-      console.log("Base query:", JSON.stringify(query, null, 2));
 
       // Áp dụng filters
       if (cafeId) {
         query.cafe_id = cafeId;
-        console.log("Added cafe filter:", cafeId);
       }
       if (tags) {
         const tagArray = Array.isArray(tags) ? tags : [tags];
         query.tags = { $in: tagArray };
-        console.log("Added tags filter:", tagArray);
       }
-
-      console.log("Final query:", JSON.stringify(query, null, 2));
 
       // Cấu hình cho getPaginatedData
       const paginateOptions = {
@@ -409,14 +349,6 @@ class CheckinService {
         sort: { createdAt: -1 }
       };
 
-      console.log("Calling getPaginatedData...");
-      const result = await getPaginatedData(paginateOptions);
-
-      console.log("getPaginatedData result:", {
-        dataCount: result.data.length,
-        metadata: result.metadata
-      });
-
       // Transform data using getInfoData
       const checkins = result.data.map(checkin => getInfoData({
         fields: ["_id", "title", "image", "location", "visibility", "cafe_id", "tags", "likes_count", "comments_count", "createdAt", "user_id"],
@@ -427,9 +359,6 @@ class CheckinService {
         checkins,
         pagination: result.metadata
       };
-
-      console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
-      console.log("=== GET CHECKIN FEED SUCCESS ===");
 
       return response;
 
@@ -445,10 +374,6 @@ class CheckinService {
 
   // Lấy checkin của một user cụ thể
   getUserCheckins = async (req) => {
-    console.log("=== GET USER CHECKINS START ===");
-    console.log("Request params:", JSON.stringify(req.params, null, 2));
-    console.log("Request query:", JSON.stringify(req.query, null, 2));
-    console.log("Request user:", req.user);
 
     try {
       // Extract parameters from req
@@ -456,16 +381,11 @@ class CheckinService {
       const { userId: targetUserId } = req.params;
       const { page = 1, limit = 20 } = req.query;
 
-      console.log("Extracted parameters:");
-      console.log("- currentUserId:", currentUserId);
-      console.log("- targetUserId:", targetUserId);
-      console.log("- page:", page);
-      console.log("- limit:", limit);
+
 
       // Kiểm tra user tồn tại
       const targetUser = await userModel.findById(targetUserId);
       if (!targetUser) {
-        console.log("ERROR: Target user not found");
         throw new NotFoundError("User not found");
       }
 
@@ -490,17 +410,13 @@ class CheckinService {
             { visibility: 'public' },
             { visibility: 'friends' }
           ];
-          console.log("Friendship found, can view public and friends checkins");
         } else {
           // Không phải bạn bè, chỉ xem public
           query.visibility = 'public';
-          console.log("No friendship, can only view public checkins");
         }
       } else {
-        console.log("Viewing own checkins, can view all");
       }
 
-      console.log("Final query:", JSON.stringify(query, null, 2));
 
       // Cấu hình cho getPaginatedData
       const paginateOptions = {
@@ -528,13 +444,6 @@ class CheckinService {
         sort: { createdAt: -1 }
       };
 
-      console.log("Calling getPaginatedData...");
-      const result = await getPaginatedData(paginateOptions);
-
-      console.log("getPaginatedData result:", {
-        dataCount: result.data.length,
-        metadata: result.metadata
-      });
 
       // Transform data using getInfoData
       const checkins = result.data.map(checkin => getInfoData({
@@ -546,10 +455,6 @@ class CheckinService {
         checkins,
         pagination: result.metadata
       };
-
-      console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
-      console.log("=== GET USER CHECKINS SUCCESS ===");
-
       return response;
 
     } catch (error) {
@@ -711,7 +616,6 @@ class CheckinService {
             // Lấy thông tin người like
             const liker = await userModel.findById(userId).select('full_name');
 
-            console.log("Sending like notification to checkin owner:", checkin.user_id.toString());
 
             // Wrap notification in try-catch to prevent it from breaking the main flow
             try {
@@ -720,7 +624,6 @@ class CheckinService {
                 liker_name: liker.full_name,
                 checkin_id: checkinId,
               });
-              console.log("Like notification sent successfully");
             } catch (notificationError) {
               console.error("Error in sendCheckinLikeNotification:", notificationError);
               console.error("Like notification error details:", {
@@ -756,39 +659,30 @@ class CheckinService {
 
   // Lấy bình luận của một checkin
   getCheckinComments = async (req) => {
-    console.log("=== GET CHECKIN COMMENTS START ===");
-    console.log("Request params:", JSON.stringify(req.params, null, 2));
-    console.log("Request query:", JSON.stringify(req.query, null, 2));
 
     try {
       // Extract parameters from req
       const { checkinId } = req.params;
       const { page = 1, limit = 20 } = req.query;
 
-      console.log("Extracted parameters:");
-      console.log("- checkinId:", checkinId);
-      console.log("- page:", page);
-      console.log("- limit:", limit);
+
 
       // Validation
       if (!mongoose.isValidObjectId(checkinId)) {
-        console.log("ERROR: Invalid checkin ID");
         throw new BadRequestError("Invalid checkin ID");
       }
 
       // Kiểm tra checkin tồn tại
       const checkin = await checkinModel.findById(checkinId);
       if (!checkin) {
-        console.log("ERROR: Checkin not found");
         throw new NotFoundError("Checkin not found");
       }
 
       if (!checkin.is_active) {
-        console.log("ERROR: Checkin is not active");
         throw new BadRequestError("Checkin is not active");
       }
 
-      console.log("Checkin validation passed");
+
 
       // Cấu hình cho getPaginatedData
       const paginateOptions = {
@@ -808,13 +702,6 @@ class CheckinService {
         sort: { createdAt: -1 }
       };
 
-      console.log("Calling getPaginatedData...");
-      const result = await getPaginatedData(paginateOptions);
-
-      console.log("getPaginatedData result:", {
-        dataCount: result.data.length,
-        metadata: result.metadata
-      });
 
       // Transform data using getInfoData
       const comments = result.data.map(comment => getInfoData({
@@ -826,9 +713,6 @@ class CheckinService {
         comments,
         pagination: result.metadata
       };
-
-      console.log("Response pagination:", JSON.stringify(response.pagination, null, 2));
-      console.log("=== GET CHECKIN COMMENTS SUCCESS ===");
 
       return response;
 
@@ -906,7 +790,6 @@ class CheckinService {
               ? comment.trim().substring(0, 50) + "..."
               : comment.trim();
 
-            console.log("Sending comment notification to checkin owner:", checkin.user_id.toString());
 
             // Wrap notification in try-catch to prevent it from breaking the main flow
             try {
@@ -916,7 +799,6 @@ class CheckinService {
                 comment_preview: commentPreview,
                 checkin_id: checkinId,
               });
-              console.log("Comment notification sent successfully");
             } catch (notificationError) {
               console.error("Error in sendCheckinCommentNotification:", notificationError);
               console.error("Comment notification error details:", {

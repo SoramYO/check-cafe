@@ -129,7 +129,6 @@ class ShopOwnerService {
       if (newUser && newUser._id) {
         try {
           await userModel.findByIdAndDelete(newUser._id);
-          console.log(`Rollback: Deleted user ${newUser._id} due to error`);
         } catch (rollbackError) {
           console.error(`Rollback failed: Could not delete user ${newUser._id}`, rollbackError);
         }

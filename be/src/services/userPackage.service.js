@@ -59,7 +59,6 @@ const getUserPackages = async (req) => {
   };
 
   const result = await getPaginatedData(paginateOptions);
-  console.log(result);
   return result;
 };
 

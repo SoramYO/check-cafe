@@ -457,9 +457,7 @@ class userService {
 
   receiveHook = async (req) => {
     const webhookData = payOS.verifyPaymentWebhookData(req.body)
-    console.log(webhookData);
     const payment = await paymentModel.findOne({ orderCode: webhookData.orderCode });
-    console.log("payment", payment);
     if (!payment) throw new NotFoundError("Payment not found");
 
     if (payment.status === "success") return;
@@ -478,7 +476,6 @@ class userService {
       // Check for existing active package
       const existingActive = await userPackageModel.findOne({ user_id: payment.user_id});
       if (existingActive) {
-        console.log("existingActive", existingActive);
         // Nếu đã có gói còn hạn, cộng thêm thời gian vào end_date hiện tại
         const newEndDate = new Date(existingActive.end_date.getTime() + durationDays * 24 * 60 * 60 * 1000);
         existingActive.end_date = newEndDate;
@@ -497,7 +494,6 @@ class userService {
           end_date: endDate,
           status: 'active',
         });
-        console.log("Created userPackage:", newUserPackage);
       }
 
       await userModel.findByIdAndUpdate(payment.user_id, { vip_status: true });

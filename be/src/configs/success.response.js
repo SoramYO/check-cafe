@@ -13,11 +13,7 @@ class SuccessResponse {
   }
 
   send(res, headers = {}) {
-    console.log("=== SUCCESS RESPONSE SEND START ===");
-    console.log("Status code:", this.statusCode);
-    console.log("Message:", this.message);
-    console.log("Data type:", typeof this.data);
-    console.log("Data keys:", this.data ? Object.keys(this.data) : 'null/undefined');
+
     
     try {
       const responseData = {
@@ -26,12 +22,9 @@ class SuccessResponse {
         data: this.data,
       };
       
-      console.log("Response data structure:", JSON.stringify(responseData, null, 2));
-      console.log("Sending JSON response...");
+
       
       res.status(this.statusCode).json(responseData);
-      
-      console.log("=== SUCCESS RESPONSE SEND SUCCESS ===");
     } catch (error) {
       console.error("=== SUCCESS RESPONSE SEND ERROR ===");
       console.error("Error type:", error.constructor.name);

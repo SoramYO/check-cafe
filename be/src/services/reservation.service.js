@@ -45,7 +45,6 @@ const createReservation = async (req) => {
 
     // Kiểm tra ngày đặt
     const reservationDate = new Date(reservation_date);
-    console.log(reservationDate);
     
     // Kiểm tra xem ngày có hợp lệ không
     if (isNaN(reservationDate.getTime())) {
