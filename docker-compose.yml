@@ -76,8 +76,7 @@ services:
     expose:
       - "3002"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     networks:
       - checkafe-network
 
