@@ -264,7 +264,7 @@
       }
 
       try {
-        const res = await fetch(`http://localhost:3000/api/v1/posts/${postId}`);
+        const res = await fetch(`https://api.checkafe.online/api/v1/posts/${postId}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         
         const data = await res.json();

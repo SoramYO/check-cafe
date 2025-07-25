@@ -39,7 +39,7 @@
       postsList.innerHTML = `<div class="loading-container"><div class="loading-spinner"></div><div>Đang tải danh sách bài viết...</div></div>`;
       pagination.innerHTML = '';
       try {
-        const res = await fetch(`http://localhost:3000/api/v1/posts?limit=${limit}&page=${page}`);
+        const res = await fetch(`https://api.checkafe.online/api/v1/posts?limit=${limit}&page=${page}`);
         const data = await res.json();
         if (data && data.data && data.data.posts && data.data.posts.length > 0) {
           postsList.innerHTML = data.data.posts.map(post => `

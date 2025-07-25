@@ -738,7 +738,7 @@
             const postsList = document.getElementById('posts-list');
             postsList.innerHTML = '<div class="loading">Đang tải bài viết...</div>';
             try {
-                const res = await fetch('http://localhost:3000/api/v1/posts?limit=3');
+                const res = await fetch('https://api.checkafe.online/api/v1/posts?limit=3');
                 const text = await res.text();
                 let data;
                 try {
