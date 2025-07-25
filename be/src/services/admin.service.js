@@ -8,6 +8,7 @@ const notificationModel = require("../models/notification.model");
 const bcrypt = require("bcryptjs");
 const mongoose = require('mongoose');
 const reviewModel = require("../models/review.model");
+const postModel = require("../models/post.model");
 
 class AdminService {
 
@@ -2964,6 +2965,93 @@ class AdminService {
         message: `Failed to delete shop: ${error.message}`,
         status: "error",
       };
+    }
+  };
+
+  // ===== POST (BLOG/NEWS) SERVICES =====
+  createPost = async (data) => {
+    try {
+      const post = await postModel.create(data);
+      return {
+        code: "201",
+        message: "Post created successfully",
+        metadata: { post },
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  getPosts = async ({ page = 1, limit = 10, status, search }) => {
+    try {
+      const query = {};
+      if (status) query.status = status;
+      if (search) query.title = { $regex: search, $options: "i" };
+      const posts = await postModel
+        .find(query)
+        .sort({ publishedAt: -1, createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit))
+        .lean();
+      const total = await postModel.countDocuments(query);
+      return {
+        code: "200",
+        metadata: {
+          posts,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        code: "500",
+        message: error.message,
+        status: "error",
+      };
+    }
+  };
+
+  getPostById = async (id) => {
+    try {
+      const post = await postModel.findById(id).lean();
+      if (!post) {
+        return { code: "404", message: "Post not found", status: "error" };
+      }
+      return { code: "200", metadata: { post } };
+    } catch (error) {
+      return { code: "500", message: error.message, status: "error" };
+    }
+  };
+
+  updatePost = async (id, data) => {
+    try {
+      const post = await postModel.findByIdAndUpdate(id, data, { new: true });
+      if (!post) {
+        return { code: "404", message: "Post not found", status: "error" };
+      }
+      return { code: "200", message: "Post updated successfully", metadata: { post } };
+    } catch (error) {
+      return { code: "500", message: error.message, status: "error" };
+    }
+  };
+
+  deletePost = async (id) => {
+    try {
+      const post = await postModel.findByIdAndDelete(id);
+      if (!post) {
+        return { code: "404", message: "Post not found", status: "error" };
+      }
+      return { code: "200", message: "Post deleted successfully" };
+    } catch (error) {
+      return { code: "500", message: error.message, status: "error" };
     }
   };
 }

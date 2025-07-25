@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Calendar,
   Package,
+  Book,
 } from "lucide-react"
 import { title } from "process"
 
@@ -91,6 +92,11 @@ const adminNavItems = [
     title: "Cài đặt hệ thống",
     href: "/admin/settings",
     icon: Settings,
+  },
+  {
+    title: "Bài viết",
+    href: "/admin/posts",
+    icon: Book,
   },
 ]
 

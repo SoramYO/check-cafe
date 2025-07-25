@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi tiết bài viết - ChecKafe</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <link rel="icon" type="image/svg+xml" href="./assets/logo.png">
+  <style>
+    .post-detail-container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 32px 24px; }
+    .post-detail-title { font-size: 2rem; font-weight: 700; margin-bottom: 16px; }
+    .post-detail-img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px; margin-bottom: 20px; }
+    .post-detail-meta { color: #888; font-size: 0.98rem; margin-bottom: 8px; }
+    .post-detail-content { margin-bottom: 16px; }
+    .post-detail-keywords { color: #666; font-size: 0.98rem; margin-top: 8px; }
+    .btn-back { background: #f3f4f6; color: #333; border-radius: 6px; padding: 8px 16px; text-decoration: none; font-weight: 500; transition: background .2s; display:inline-block; margin-bottom:24px; }
+    .btn-back:hover { background: #e5e7eb; }
+  </style>
+</head>
+<body style="background:#fafbfc;min-height:100vh;">
+  <div class="container">
+    <a href="posts.html" class="btn-back">&larr; Danh sách bài viết</a>
+    <div id="post-detail" class="post-detail-container"></div>
+  </div>
+  <script>
+    async function fetchPostDetail() {
+      const params = new URLSearchParams(window.location.search);
+      const postId = params.get('id');
+      const container = document.getElementById('post-detail');
+      if (!postId) {
+        container.innerHTML = '<div class="text-center text-red-500">Không tìm thấy bài viết.</div>';
+        return;
+      }
+      container.innerHTML = '<div class="loading">Đang tải chi tiết bài viết...</div>';
+      try {
+        const res = await fetch(`/posts/${postId}`);
+        const data = await res.json();
+        if (data && data.data && data.data.post) {
+          const post = data.data.post;
+          document.title = post.title + ' - ChecKafe';
+          container.innerHTML = `
+            <div class="post-detail-title">${post.title}</div>
+            ${post.image ? `<img src="${post.image}" alt="${post.title}" class="post-detail-img">` : ''}
+            <div class="post-detail-meta">${post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : ''}</div>
+            <div class="post-detail-content">${post.content || ''}</div>
+            <div class="post-detail-keywords">${post.keywords && post.keywords.length ? 'Từ khóa: ' + post.keywords.join(', ') : ''}</div>
+          `;
+        } else {
+          container.innerHTML = '<div class="text-center text-gray-500">Không tìm thấy bài viết.</div>';
+        }
+      } catch (err) {
+        container.innerHTML = '<div class="text-center text-red-500">Không thể tải chi tiết bài viết.</div>';
+      }
+    }
+    window.addEventListener('DOMContentLoaded', fetchPostDetail);
+  </script>
+</body>
+</html> 

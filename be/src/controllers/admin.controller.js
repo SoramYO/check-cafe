@@ -563,6 +563,72 @@ class AdminController {
       next(error);
     }
   };
+
+  // ===== POST (BLOG/NEWS) CONTROLLERS =====
+  createPost = async (req, res, next) => {
+    try {
+      const result = await adminService.createPost(req.body);
+      if (result.code === "201") {
+        new OK({ message: result.message, data: result.metadata }).send(res);
+      } else {
+        res.status(Number(result.code) || 500).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getPosts = async (req, res, next) => {
+    try {
+      const result = await adminService.getPosts(req.query);
+      if (result.code === "200") {
+        new OK({ message: "Get posts successfully", data: result.metadata }).send(res);
+      } else {
+        res.status(Number(result.code) || 500).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getPostById = async (req, res, next) => {
+    try {
+      const result = await adminService.getPostById(req.params.id);
+      if (result.code === "200") {
+        new OK({ message: "Get post successfully", data: result.metadata }).send(res);
+      } else {
+        res.status(Number(result.code) || 500).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updatePost = async (req, res, next) => {
+    try {
+      const result = await adminService.updatePost(req.params.id, req.body);
+      if (result.code === "200") {
+        new OK({ message: result.message, data: result.metadata }).send(res);
+      } else {
+        res.status(Number(result.code) || 500).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deletePost = async (req, res, next) => {
+    try {
+      const result = await adminService.deletePost(req.params.id);
+      if (result.code === "200") {
+        new OK({ message: result.message }).send(res);
+      } else {
+        res.status(Number(result.code) || 500).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new AdminController();
