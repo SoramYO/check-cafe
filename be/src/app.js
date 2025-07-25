@@ -35,7 +35,12 @@ app.use(
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3002", // Frontend URL
+    origin: [
+      "https://admin.checkafe.online",
+      "https://checkafe.online",
+      "http://localhost:3001",
+      "http://localhost:3002"
+    ], // Cho phép nhiều FE
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true, // Allow cookies and authentication headers

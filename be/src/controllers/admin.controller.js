@@ -567,7 +567,11 @@ class AdminController {
   // ===== POST (BLOG/NEWS) CONTROLLERS =====
   createPost = async (req, res, next) => {
     try {
-      const result = await adminService.createPost(req.body);
+      const data = { ...req.body };
+      if (req.file && req.file.path) {
+        data.image = req.file.path;
+      }
+      const result = await adminService.createPost(data);
       if (result.code === "201") {
         new OK({ message: result.message, data: result.metadata }).send(res);
       } else {

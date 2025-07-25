@@ -5,6 +5,7 @@ import { Plus, RefreshCw } from "lucide-react"
 import authorizedAxiosInstance from "@/lib/axios"
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog"
 import { PostDetailModal } from "./components/PostDetailModal"
+import { useRouter } from "next/navigation"
 
 interface Post {
   _id: string
@@ -20,6 +21,7 @@ interface Post {
 }
 
 export default function PostsPage() {
+  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export default function PostsPage() {
         limit: limit.toString(),
       })
       if (search) params.append("search", search)
-      const res = await authorizedAxiosInstance.get(`/admin/posts?${params.toString()}`)
+      const res = await authorizedAxiosInstance.get(`/v1/admin/posts?${params.toString()}`)
       if (res.data?.data?.posts) {
         setPosts(res.data.data.posts)
         setTotalPages(res.data.data.pagination.totalPages)
@@ -66,7 +68,7 @@ export default function PostsPage() {
     if (!deletingPost) return
     setIsDeleting(true)
     try {
-      await authorizedAxiosInstance.delete(`/admin/posts/${deletingPost._id}`)
+      await authorizedAxiosInstance.delete(`/v1/admin/posts/${deletingPost._id}`)
       setIsDeleteOpen(false)
       setDeletingPost(null)
       fetchPosts()
@@ -88,7 +90,7 @@ export default function PostsPage() {
           <Button variant="outline" className="flex items-center gap-1" onClick={fetchPosts}>
             <RefreshCw className="h-4 w-4" /> Làm mới
           </Button>
-          <Button className="bg-primary flex items-center gap-1">
+          <Button className="bg-primary flex items-center gap-1" onClick={() => router.push("/admin/posts/create") }>
             <Plus className="h-4 w-4" /> Thêm bài viết mới
           </Button>
         </div>

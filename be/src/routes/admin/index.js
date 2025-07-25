@@ -6,6 +6,7 @@ const { checkAdmin } = require("../../middlewares/auth");
 const { checkAuth, checkRole } = require("../../auth/checkAuth");
 const { USER_ROLE } = require("../../constants/enum");
 const router = express.Router();
+const uploadCloud = require("../../configs/cloudinary.config");
 
 // Auth routes
 router.use(checkAuth);
@@ -50,7 +51,7 @@ router.post("/notifications/user", adminController.createUserNotification);
 router.post("/notifications/shop", adminController.createShopNotification);
 
 // ===== POST (BLOG/NEWS) ROUTES =====
-router.post("/posts", adminController.createPost);
+router.post("/posts", uploadCloud.single("image"), adminController.createPost);
 router.get("/posts", adminController.getPosts);
 router.get("/posts/:id", adminController.getPostById);
 router.put("/posts/:id", adminController.updatePost);
