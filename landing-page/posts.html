@@ -6,43 +6,40 @@
   <title>Danh sách bài viết - ChecKafe</title>
   <link rel="stylesheet" href="./styles/main.css">
   <link rel="icon" type="image/svg+xml" href="./assets/logo.png">
-  <style>
-    .posts-list-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; }
-    .post-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; display: flex; flex-direction: column; }
-    .post-card-image img { width: 100%; height: 180px; object-fit: cover; }
-    .post-card-content { padding: 20px; flex: 1; display: flex; flex-direction: column; }
-    .post-card-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
-    .post-card-meta { font-size: 0.95rem; color: #888; margin-bottom: 8px; }
-    .post-card-desc { color: #444; margin-bottom: 16px; }
-    .post-card-detail-btn { margin-top: auto; }
-    .posts-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
-    .btn-back { background: #f3f4f6; color: #333; border-radius: 6px; padding: 8px 16px; text-decoration: none; font-weight: 500; transition: background .2s; }
-    .btn-back:hover { background: #e5e7eb; }
-    .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 32px; }
-    .pagination button { padding: 8px 16px; border-radius: 6px; border: none; background: #f3f4f6; color: #333; font-weight: 500; cursor: pointer; }
-    .pagination button.active, .pagination button:disabled { background: #d1d5db; color: #888; cursor: default; }
-  </style>
 </head>
-<body style="background:#fafbfc;min-height:100vh;">
-  <div class="container" style="padding:40px 0;max-width:900px;">
-    <div class="posts-header">
-      <a href="index.html" class="btn-back">&larr; Trang chủ</a>
-      <h1 style="font-size:2rem;font-weight:700;">Tất cả bài viết</h1>
-      <div></div>
+<body>
+  <section class="posts-section">
+    <div class="container">
+      <div class="section-header">
+        <a href="index.html" class="btn btn-back" style="margin-bottom: 24px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m12 19-7-7 7-7"/>
+            <path d="M19 12H5"/>
+          </svg>
+          Trang chủ
+        </a>
+        <h2>Tất cả bài viết</h2>
+        <p>Cập nhật tin tức, chia sẻ kinh nghiệm và thông tin mới nhất từ ChecKafe</p>
+      </div>
+      <div id="posts-list" class="posts-list-grid">
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <div>Đang tải danh sách bài viết...</div>
+        </div>
+      </div>
+      <div class="pagination" id="posts-pagination"></div>
     </div>
-    <div id="posts-list" class="posts-list-grid"></div>
-    <div class="pagination" id="posts-pagination"></div>
-  </div>
+  </section>
   <script>
     let currentPage = 1;
     const limit = 12;
     async function fetchPosts(page = 1) {
       const postsList = document.getElementById('posts-list');
       const pagination = document.getElementById('posts-pagination');
-      postsList.innerHTML = '<div class="loading">Đang tải bài viết...</div>';
+      postsList.innerHTML = `<div class="loading-container"><div class="loading-spinner"></div><div>Đang tải danh sách bài viết...</div></div>`;
       pagination.innerHTML = '';
       try {
-        const res = await fetch(`/posts?limit=${limit}&page=${page}`);
+        const res = await fetch(`http://localhost:3000/api/v1/posts?limit=${limit}&page=${page}`);
         const data = await res.json();
         if (data && data.data && data.data.posts && data.data.posts.length > 0) {
           postsList.innerHTML = data.data.posts.map(post => `
@@ -51,33 +48,43 @@
               <div class="post-card-content">
                 <h3 class="post-card-title">${post.title}</h3>
                 <div class="post-card-meta">
-                  <span>${post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : ''}</span>
+                  <span>${post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('vi-VN') : ''}</span>
                 </div>
-                <div class="post-card-desc">${post.metaDescription || ''}</div>
-                <a href="post-detail.html?id=${post._id}" class="btn btn-outline post-card-detail-btn">Xem chi tiết</a>
+                <div class="post-card-desc">${post.metaDescription || post.content || 'Không có mô tả'}</div>
+                <a href="detail.html?id=${post._id}" class="btn btn-outline post-card-detail-btn">Xem chi tiết</a>
               </div>
             </div>
           `).join('');
           // Pagination
-          const totalPages = data.data.pagination.totalPages || 1;
-          let pagBtns = '';
-          for (let i = 1; i <= totalPages; i++) {
-            pagBtns += `<button ${i === page ? 'class="active" disabled' : ''} onclick="gotoPage(${i})">${i}</button>`;
+          const totalPages = data.data.pagination?.totalPages || 1;
+          if (totalPages > 1) {
+            let pagBtns = '';
+            if (page > 1) pagBtns += `<button class="btn btn-outline" onclick="gotoPage(${page - 1})">‹</button>`;
+            for (let i = 1; i <= totalPages; i++) {
+              if (i === 1 || i === totalPages || Math.abs(i - page) <= 2) {
+                pagBtns += `<button class="btn btn-outline${i === page ? ' active' : ''}" ${i === page ? 'disabled' : ''} onclick="gotoPage(${i})">${i}</button>`;
+              } else if (i === page - 3 || i === page + 3) {
+                pagBtns += `<button class="btn btn-outline" disabled>...</button>`;
+              }
+            }
+            if (page < totalPages) pagBtns += `<button class="btn btn-outline" onclick="gotoPage(${page + 1})">›</button>`;
+            pagination.innerHTML = pagBtns;
           }
-          pagination.innerHTML = pagBtns;
         } else {
-          postsList.innerHTML = '<div class="text-center text-gray-500">Chưa có bài viết nào.</div>';
+          postsList.innerHTML = `<div class="empty-state"><i class="fas fa-newspaper"></i><h3>Chưa có bài viết nào</h3><p>Hãy quay lại sau để xem các bài viết mới</p></div>`;
         }
       } catch (err) {
-        postsList.innerHTML = '<div class="text-center text-red-500">Không thể tải bài viết.</div>';
+        postsList.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Lỗi khi tải dữ liệu</h3><p>Không thể kết nối đến server. Vui lòng thử lại sau.</p></div>`;
       }
     }
     function gotoPage(page) {
       currentPage = page;
       fetchPosts(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     window.gotoPage = gotoPage;
     window.addEventListener('DOMContentLoaded', () => fetchPosts(currentPage));
   </script>
 </body>
-</html> 
+</html>
+</html>

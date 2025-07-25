@@ -8,9 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Post } from "../types"
 import authorizedAxiosInstance from "@/lib/axios"
-import dynamic from "next/dynamic"
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
-import "react-quill/dist/quill.snow.css"
+import dynamic from 'next/dynamic'
+import { Editor } from '@tinymce/tinymce-react';
+
+// Dynamically import ReactQuill to avoid SSR issues
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
+import 'react-quill/dist/quill.snow.css'
 
 interface PostFormModalProps {
   isOpen: boolean
@@ -78,6 +81,10 @@ export function PostFormModal({ isOpen, onClose, onSuccess, post }: PostFormModa
     }
   }
 
+  const handleContentChange = (content: string) => {
+    setForm(prev => ({ ...prev, content }))
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -93,9 +100,9 @@ export function PostFormModal({ isOpen, onClose, onSuccess, post }: PostFormModa
       if (imageFile) formData.append("image", imageFile)
       let res
       if (post) {
-        res = await authorizedAxiosInstance.put(`/admin/posts/${post._id}`, formData, { headers: { "Content-Type": "multipart/form-data" } })
+        res = await authorizedAxiosInstance.put(`/v1/admin/posts/${post._id}`, formData, { headers: { "Content-Type": "multipart/form-data" } })
       } else {
-        res = await authorizedAxiosInstance.post(`/admin/posts`, formData, { headers: { "Content-Type": "multipart/form-data" } })
+        res = await authorizedAxiosInstance.post(`/v1/admin/posts`, formData, { headers: { "Content-Type": "multipart/form-data" } })
       }
       if (res.data.status === 200 || res.data.status === 201) {
         onSuccess()
@@ -108,9 +115,27 @@ export function PostFormModal({ isOpen, onClose, onSuccess, post }: PostFormModa
     }
   }
 
+  // Quill modules configuration
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['blockquote', 'code-block'],
+      ['link', 'image'],
+      ['clean']
+    ],
+  }
+
+  const formats = [
+    'header', 'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet', 'blockquote', 'code-block',
+    'link', 'image'
+  ]
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{post ? "Chỉnh sửa bài viết" : "Tạo bài viết mới"}</DialogTitle>
         </DialogHeader>
@@ -121,12 +146,23 @@ export function PostFormModal({ isOpen, onClose, onSuccess, post }: PostFormModa
           </div>
           <div>
             <Label>Nội dung *</Label>
-            <div className="bg-white rounded border">
-              <ReactQuill
+            <div className="bg-white rounded border min-h-[200px]">
+              <Editor
+                apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY || "ri131ytlz0k9b0xyp4eqrlhq19wpr7ngx1eu6ygg4pve5x77"}
                 value={form.content}
-                onChange={val => setForm(prev => ({ ...prev, content: val }))}
-                theme="snow"
-                style={{ minHeight: 180 }}
+                onEditorChange={(val: string) => setForm(prev => ({ ...prev, content: val }))}
+                init={{
+                  height: 220,
+                  menubar: false,
+                  plugins: [
+                    'advlist autolink lists link image charmap preview anchor',
+                    'searchreplace visualblocks code fullscreen',
+                    'insertdatetime media table paste code help wordcount'
+                  ],
+                  toolbar:
+                    'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+                  content_style: 'body { font-family:Inter,sans-serif; font-size:14px }'
+                }}
               />
             </div>
           </div>
@@ -171,4 +207,4 @@ export function PostFormModal({ isOpen, onClose, onSuccess, post }: PostFormModa
       </DialogContent>
     </Dialog>
   )
-} 
+}

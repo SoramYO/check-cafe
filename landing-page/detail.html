@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi tiết bài viết - ChecKafe</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <link rel="icon" type="image/svg+xml" href="./assets/logo.png">
+  <style>
+    .post-detail-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .post-hero-image {
+      width: 100%;
+      height: 400px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .post-content-wrapper {
+      padding: 40px;
+    }
+
+    .post-header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid #f3f4f6;
+      padding-bottom: 24px;
+    }
+
+    .post-title {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 0 0 16px 0;
+    }
+
+    .post-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      color: #6b7280;
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+    }
+
+    .post-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .post-meta-item i {
+      font-size: 0.9rem;
+    }
+
+    .post-description {
+      font-size: 1.15rem;
+      color: #4b5563;
+      line-height: 1.6;
+      font-style: italic;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 12px;
+      border-left: 4px solid #ddd;
+      margin: 24px 0;
+    }
+
+    .post-content {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      color: #374151;
+      margin: 32px 0;
+    }
+
+    .post-content p {
+      margin-bottom: 20px;
+    }
+
+    .post-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .post-keywords {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .keywords-label {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+
+    .keywords-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .keyword-tag {
+      /* Giữ nguyên styling từ class tag gốc */
+      background: #e5e7eb;
+      color: #374151;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: inline-block;
+    }
+
+    .keyword-tag:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: #6b7280;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f4f6;
+      border-top: 4px solid #ccc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #6b7280;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      color: #d1d5db;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+      font-size: 1.5rem;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    .btn-back {
+      /* Giữ nguyên styling từ class btn btn-back gốc */
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .reading-time {
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      .post-content-wrapper {
+        padding: 24px;
+      }
+      
+      .post-hero-image {
+        height: 250px;
+      }
+      
+      .post-meta {
+        gap: 12px;
+      }
+      
+      .keywords-container {
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="posts-section">
+    <div class="container">
+      <a href="posts.html" class="btn-back" style="margin-bottom: 24px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m12 19-7-7 7-7"/>
+          <path d="M19 12H5"/>
+        </svg>
+        Danh sách bài viết
+      </a>
+      
+      <div id="post-detail" class="post-detail-container">
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <div>Đang tải chi tiết bài viết...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function estimateReadingTime(content) {
+      const wordsPerMinute = 200;
+      const words = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+      const minutes = Math.ceil(words / wordsPerMinute);
+      return minutes;
+    }
+
+    function formatContent(content) {
+      if (!content) return 'Không có nội dung';
+      
+      // Split by double newlines to create paragraphs
+      const paragraphs = content.split(/\n\s*\n/);
+      
+      return paragraphs
+        .filter(p => p.trim())
+        .map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`)
+        .join('');
+    }
+
+    async function fetchPostDetail() {
+      const params = new URLSearchParams(window.location.search);
+      let postId = params.get('id');
+      const container = document.getElementById('post-detail');
+      
+      if (postId) postId = postId.split('@')[0].split('/')[0].trim();
+      
+      if (!postId) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-search"></i>
+            <h3>Không tìm thấy bài viết</h3>
+            <p>URL không chứa ID bài viết hợp lệ</p>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/v1/posts/${postId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        
+        const data = await res.json();
+        
+        if (data && data.data && data.data.post) {
+          const post = data.data.post;
+          document.title = post.title + ' - ChecKafe';
+          
+          const readingTime = post.content ? estimateReadingTime(post.content) : 0;
+          const formattedContent = formatContent(post.content);
+          
+          container.innerHTML = `
+            ${post.image ? `<img src="${post.image}" alt="${post.title}" class="post-hero-image">` : ''}
+            
+            <div class="post-content-wrapper">
+              <div class="post-header">
+                <h1 class="post-title" style="color:#111;">${post.title}</h1>
+                
+                <div class="post-meta">
+                  ${post.publishedAt ? `
+                    <div class="post-meta-item">
+                      <i class="fas fa-calendar-alt"></i>
+                      <span>${new Date(post.publishedAt).toLocaleDateString('vi-VN', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}</span>
+                    </div>
+                  ` : ''}
+                  
+                  <div class="post-meta-item">
+                    <i class="fas fa-clock"></i>
+                    <span>${new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
+                  </div>
+                  
+                  ${readingTime > 0 ? `
+                    <div class="post-meta-item">
+                      <span class="reading-time">
+                        <i class="fas fa-book-open"></i>
+                        ${readingTime} phút đọc
+                      </span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+
+              ${post.metaDescription ? `
+                <div class="post-description">
+                  ${post.metaDescription}
+                </div>
+              ` : ''}
+
+              <div class="post-content">
+                ${formattedContent}
+              </div>
+
+              ${post.keywords && post.keywords.length > 0 ? `
+                <div class="post-keywords">
+                  <div class="keywords-label">
+                    <i class="fas fa-tags"></i> Từ khóa
+                  </div>
+                  <div class="keywords-container">
+                    ${post.keywords.map(keyword => `
+                      <span class="keyword-tag">${keyword}</span>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-file-alt"></i>
+              <h3>Bài viết không tồn tại</h3>
+              <p>Không tìm thấy bài viết với ID này</p>
+            </div>
+          `;
+        }
+      } catch (err) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Lỗi khi tải bài viết</h3>
+            <p>${err.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchPostDetail);
+  </script>
+</body>
+</html>

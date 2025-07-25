@@ -738,8 +738,16 @@
             const postsList = document.getElementById('posts-list');
             postsList.innerHTML = '<div class="loading">Đang tải bài viết...</div>';
             try {
-                const res = await fetch('/posts?limit=3');
-                const data = await res.json();
+                const res = await fetch('http://localhost:3000/api/v1/posts?limit=3');
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    postsList.innerHTML = '<div class="text-center text-red-500">API trả về không phải JSON. Hãy kiểm tra lại backend hoặc port.</div>';
+                    console.error('API trả về:', text);
+                    return;
+                }
                 if (data && data.data && data.data.posts && data.data.posts.length > 0) {
                     postsList.innerHTML = data.data.posts.map(post => `
                         <div class="post-card">
@@ -750,7 +758,7 @@
                                     <span>${post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : ''}</span>
                                 </div>
                                 <div class="post-card-desc">${post.metaDescription || ''}</div>
-                                <a href="post-detail.html?id=${post._id}" class="btn btn-outline post-card-detail-btn">Xem chi tiết</a>
+                                <a href="detail.html?id=${post._id}" class="btn btn-outline post-card-detail-btn">Xem chi tiết</a>
                             </div>
                         </div>
                     `).join('');
