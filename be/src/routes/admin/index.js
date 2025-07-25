@@ -49,6 +49,13 @@ router.post("/notifications/system", adminController.createSystemNotification);
 router.post("/notifications/user", adminController.createUserNotification);
 router.post("/notifications/shop", adminController.createShopNotification);
 
+// ===== POST (BLOG/NEWS) ROUTES =====
+router.post("/posts", adminController.createPost);
+router.get("/posts", adminController.getPosts);
+router.get("/posts/:id", adminController.getPostById);
+router.put("/posts/:id", adminController.updatePost);
+router.delete("/posts/:id", adminController.deletePost);
+
 // ===== SHOP DETAILED INFORMATION ROUTES =====
 router.get("/shops/:shopId/reviews", adminController.getShopReviews);
 router.get("/shops/:shopId/statistics", adminController.getShopDetailedStats);

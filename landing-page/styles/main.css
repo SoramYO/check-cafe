@@ -282,23 +282,13 @@ body {
     margin-bottom: 40px;
 }
 
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 32px;
-    border-radius: 50px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: var(--transition);
-    cursor: pointer;
-    border: none;
-    position: relative;
-    overflow: hidden;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 14px;
-}
+.btn { display:inline-block; padding:8px 18px; border-radius:6px; font-weight:500; text-decoration:none; border:none; cursor:pointer; transition:background .2s; }
+.btn-primary { background:#1e293b; color:#fff; }
+.btn-primary:hover { background:#334155; }
+.btn-outline { background:#f3f4f6; color:#333; border:1px solid #d1d5db; }
+.btn-outline:hover { background:#e5e7eb; }
+.btn-back { background: #f3f4f6; color: #333; border-radius: 6px; padding: 8px 16px; text-decoration: none; font-weight: 500; transition: background .2s; }
+.btn-back:hover { background: #e5e7eb; }
 
 .btn::before {
     content: '';
